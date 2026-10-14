@@ -9,20 +9,23 @@ import (
 var (
 	chatInputNamePattern = regexp.MustCompile(`^[a-z0-9_-]{1,32}$`)
 
-	ErrInvalidName             = errors.New("command name must match discord regex rules")
-	ErrNameTooLong             = errors.New("command name exceeds 32 runes")
-	ErrEmptyName               = errors.New("command name cannot be empty")
-	ErrEmptyDescription        = errors.New("chat input command requires description")
-	ErrDescriptionTooLong      = errors.New("command description exceeds 100 runes")
-	ErrContextMenuDescription  = errors.New("context menu commands cannot have a description")
-	ErrSubcommandTopOptions    = errors.New("commands with subcommands cannot have top level options")
-	ErrTooManyOptions          = errors.New("command exceeds maximum of 25 options")
-	ErrTooManyChoices          = errors.New("option exceeds maximum of 25 choices")
-	ErrAutocompleteWithChoices = errors.New("autocomplete options cannot define static choices")
-	ErrEmptySubcommandGroup    = errors.New("subcommand group must contain at least one subcommand")
-	ErrEmptyChoiceName         = errors.New("choice name cannot be empty")
-	ErrChoiceNameTooLong       = errors.New("choice name exceeds 100 runes")
-	ErrInvalidChoiceValue      = errors.New("choice value does not match option type")
+	ErrInvalidName                 = errors.New("command name must match discord regex rules")
+	ErrNameTooLong                 = errors.New("command name exceeds 32 runes")
+	ErrEmptyName                   = errors.New("command name cannot be empty")
+	ErrEmptyDescription            = errors.New("chat input command requires description")
+	ErrDescriptionTooLong          = errors.New("command description exceeds 100 runes")
+	ErrContextMenuDescription      = errors.New("context menu commands cannot have a description")
+	ErrSubcommandTopOptions        = errors.New("commands with subcommands cannot have top level options")
+	ErrTooManyOptions              = errors.New("command exceeds maximum of 25 options")
+	ErrTooManyChoices              = errors.New("option exceeds maximum of 25 choices")
+	ErrAutocompleteWithChoices     = errors.New("autocomplete options cannot define static choices")
+	ErrEmptySubcommandGroup        = errors.New("subcommand group must contain at least one subcommand")
+	ErrEmptyChoiceName             = errors.New("choice name cannot be empty")
+	ErrChoiceNameTooLong           = errors.New("choice name exceeds 100 runes")
+	ErrInvalidChoiceValue          = errors.New("choice value does not match option type")
+	ErrRequiredOptionAfterOptional = errors.New("required options must precede optional options")
+	ErrDuplicateOptionName         = errors.New("option names must be unique within a command")
+	ErrDuplicateChoiceName         = errors.New("choice names must be unique within an option")
 )
 
 func Validate(cmd Command) error {
@@ -64,14 +67,12 @@ func Validate(cmd Command) error {
 		return ErrSubcommandTopOptions
 	}
 
-	if len(cmd.Options) > 25 || subCount > 25 {
+	if subCount > 25 {
 		return ErrTooManyOptions
 	}
 
-	for _, opt := range cmd.Options {
-		if err := validateOption(opt); err != nil {
-			return err
-		}
+	if err := validateOptions(cmd.Options); err != nil {
+		return err
 	}
 
 	for _, sub := range cmd.Subcommands {
@@ -109,22 +110,42 @@ func validateNameAndDesc(name, desc string) error {
 	return nil
 }
 
-func validateSubcommand(sub Subcommand) error {
-	if err := validateNameAndDesc(sub.Name, sub.Description); err != nil {
-		return err
-	}
-
-	if len(sub.Options) > 25 {
+func validateOptions(opts []Option) error {
+	if len(opts) > 25 {
 		return ErrTooManyOptions
 	}
 
-	for _, opt := range sub.Options {
+	seenOptional := false
+	names := make(map[string]struct{}, len(opts))
+
+	for _, opt := range opts {
+		if _, exists := names[opt.Name]; exists {
+			return ErrDuplicateOptionName
+		}
+		names[opt.Name] = struct{}{}
+
+		if opt.Required {
+			if seenOptional {
+				return ErrRequiredOptionAfterOptional
+			}
+		} else {
+			seenOptional = true
+		}
+
 		if err := validateOption(opt); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func validateSubcommand(sub Subcommand) error {
+	if err := validateNameAndDesc(sub.Name, sub.Description); err != nil {
+		return err
+	}
+
+	return validateOptions(sub.Options)
 }
 
 func validateSubcommandGroup(grp SubcommandGroup) error {
@@ -140,7 +161,13 @@ func validateSubcommandGroup(grp SubcommandGroup) error {
 		return ErrTooManyOptions
 	}
 
+	names := make(map[string]struct{}, len(grp.Subcommands))
 	for _, sub := range grp.Subcommands {
+		if _, exists := names[sub.Name]; exists {
+			return ErrDuplicateOptionName
+		}
+		names[sub.Name] = struct{}{}
+
 		if err := validateSubcommand(sub); err != nil {
 			return err
 		}
@@ -162,7 +189,13 @@ func validateOption(opt Option) error {
 		return ErrAutocompleteWithChoices
 	}
 
+	choiceNames := make(map[string]struct{}, len(opt.Choices))
 	for _, choice := range opt.Choices {
+		if _, exists := choiceNames[choice.Name]; exists {
+			return ErrDuplicateChoiceName
+		}
+		choiceNames[choice.Name] = struct{}{}
+
 		if err := validateChoice(opt.Type, choice); err != nil {
 			return err
 		}
@@ -183,7 +216,7 @@ func validateChoice(optType OptionType, choice Choice) error {
 	switch optType {
 	case OptionTypeString:
 		s, ok := choice.Value.(string)
-		if !ok || utf8.RuneCountInString(s) > 100 {
+		if !ok || s == "" || utf8.RuneCountInString(s) > 100 {
 			return ErrInvalidChoiceValue
 		}
 
