@@ -343,3 +343,71 @@ func TestToApplicationCommand_NestedSubcommands(t *testing.T) {
 		t.Fatalf("expected 2 options in subcommand, got %d", len(subOpt.Options))
 	}
 }
+
+func TestToApplicationCommand_MixedSubcommandsAndGroups(t *testing.T) {
+	cmd := Command{
+		Name:        "project",
+		Description: "Project management",
+		Subcommands: []Subcommand{
+			{Name: "status", Description: "Show status"},
+		},
+		SubcommandGroups: []SubcommandGroup{
+			{
+				Name:        "team",
+				Description: "Team management",
+				Subcommands: []Subcommand{
+					{Name: "list", Description: "List members"},
+				},
+			},
+		},
+	}
+
+	appCmd := ToApplicationCommand(cmd)
+	if len(appCmd.Options) != 2 {
+		t.Fatalf("expected 2 options (1 group + 1 subcommand), got %d", len(appCmd.Options))
+	}
+}
+
+func TestToApplicationCommand_NSFW(t *testing.T) {
+	cmd := Command{
+		Name:        "adult",
+		Description: "NSFW content",
+		NSFW:        true,
+	}
+
+	appCmd := ToApplicationCommand(cmd)
+	if appCmd.NSFW == nil || !*appCmd.NSFW {
+		t.Fatalf("expected NSFW true, got %v", appCmd.NSFW)
+	}
+}
+
+func TestValidate_SubcommandLimits(t *testing.T) {
+	subs := make([]Subcommand, 26)
+	for i := range subs {
+		subs[i] = Subcommand{Name: "sub" + string(rune('a'+i)), Description: "desc"}
+	}
+
+	cmd := Command{
+		Name:        "toomanysubs",
+		Description: "Exceeds subcommand limit",
+		Subcommands: subs,
+	}
+	if err := Validate(cmd); !errors.Is(err, ErrTooManyOptions) {
+		t.Fatalf("expected ErrTooManyOptions for subcommands, got %v", err)
+	}
+
+	grp := SubcommandGroup{
+		Name:        "group",
+		Description: "Group with too many subcommands",
+		Subcommands: subs,
+	}
+	cmdGroup := Command{
+		Name:             "badgroup",
+		Description:      "Exceeds group subcommands",
+		SubcommandGroups: []SubcommandGroup{grp},
+	}
+	if err := Validate(cmdGroup); !errors.Is(err, ErrTooManyOptions) {
+		t.Fatalf("expected ErrTooManyOptions for group subcommands, got %v", err)
+	}
+}
+

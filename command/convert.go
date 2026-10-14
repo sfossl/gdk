@@ -18,19 +18,21 @@ func ToApplicationCommand(cmd Command) types.ApplicationCommand {
 		DMPermission:             cmd.DMPermission,
 	}
 
+	if cmd.NSFW {
+		appCmd.NSFW = &cmd.NSFW
+	}
+
 	if cmd.GuildID != 0 {
 		appCmd.GuildID = &cmd.GuildID
 	}
 
-	if len(cmd.SubcommandGroups) > 0 {
-		for _, grp := range cmd.SubcommandGroups {
-			appCmd.Options = append(appCmd.Options, convertSubcommandGroup(grp))
-		}
-	} else if len(cmd.Subcommands) > 0 {
-		for _, sub := range cmd.Subcommands {
-			appCmd.Options = append(appCmd.Options, convertSubcommand(sub))
-		}
-	} else if len(cmd.Options) > 0 {
+	for _, grp := range cmd.SubcommandGroups {
+		appCmd.Options = append(appCmd.Options, convertSubcommandGroup(grp))
+	}
+	for _, sub := range cmd.Subcommands {
+		appCmd.Options = append(appCmd.Options, convertSubcommand(sub))
+	}
+	if len(cmd.SubcommandGroups) == 0 && len(cmd.Subcommands) == 0 {
 		for _, opt := range cmd.Options {
 			appCmd.Options = append(appCmd.Options, convertOption(opt))
 		}
