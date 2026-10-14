@@ -411,3 +411,80 @@ func TestValidate_SubcommandLimits(t *testing.T) {
 	}
 }
 
+func TestValidate_RequiredOptionAfterOptional(t *testing.T) {
+	cmd := Command{
+		Name:        "order",
+		Description: "Option ordering test",
+		Options: []Option{
+			StringOption("first", "Optional first"),
+			StringOption("second", "Required second").WithRequired(),
+		},
+	}
+	if err := Validate(cmd); !errors.Is(err, ErrRequiredOptionAfterOptional) {
+		t.Fatalf("expected ErrRequiredOptionAfterOptional, got %v", err)
+	}
+}
+
+func TestValidate_EmptyStringChoiceValue(t *testing.T) {
+	cmd := Command{
+		Name:        "emptychoice",
+		Description: "Empty choice test",
+		Options: []Option{
+			StringOption("reason", "Reason").WithChoice("Empty", ""),
+		},
+	}
+	if err := Validate(cmd); !errors.Is(err, ErrInvalidChoiceValue) {
+		t.Fatalf("expected ErrInvalidChoiceValue for empty string choice, got %v", err)
+	}
+}
+
+func TestValidate_DuplicateOptionNames(t *testing.T) {
+	cmd := Command{
+		Name:        "dupopts",
+		Description: "Duplicate option test",
+		Options: []Option{
+			StringOption("target", "First target"),
+			UserOption("target", "Second target"),
+		},
+	}
+	if err := Validate(cmd); !errors.Is(err, ErrDuplicateOptionName) {
+		t.Fatalf("expected ErrDuplicateOptionName, got %v", err)
+	}
+}
+
+func TestValidate_DuplicateChoiceNames(t *testing.T) {
+	cmd := Command{
+		Name:        "dupchoices",
+		Description: "Duplicate choice test",
+		Options: []Option{
+			StringOption("type", "Type").
+				WithChoice("Same", "v1").
+				WithChoice("Same", "v2"),
+		},
+	}
+	if err := Validate(cmd); !errors.Is(err, ErrDuplicateChoiceName) {
+		t.Fatalf("expected ErrDuplicateChoiceName, got %v", err)
+	}
+}
+
+func TestValidate_DuplicateSubcommandNames(t *testing.T) {
+	cmd := Command{
+		Name:        "dupsubs",
+		Description: "Duplicate subcommand test",
+		SubcommandGroups: []SubcommandGroup{
+			{
+				Name:        "group",
+				Description: "Group test",
+				Subcommands: []Subcommand{
+					{Name: "run", Description: "First run"},
+					{Name: "run", Description: "Second run"},
+				},
+			},
+		},
+	}
+	if err := Validate(cmd); !errors.Is(err, ErrDuplicateOptionName) {
+		t.Fatalf("expected ErrDuplicateOptionName for subcommands, got %v", err)
+	}
+}
+
+
