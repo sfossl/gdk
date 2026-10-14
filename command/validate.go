@@ -59,12 +59,12 @@ func Validate(cmd Command) error {
 		return nil
 	}
 
-	hasSubcommands := len(cmd.Subcommands) > 0 || len(cmd.SubcommandGroups) > 0
-	if hasSubcommands && len(cmd.Options) > 0 {
+	subCount := len(cmd.Subcommands) + len(cmd.SubcommandGroups)
+	if subCount > 0 && len(cmd.Options) > 0 {
 		return ErrSubcommandTopOptions
 	}
 
-	if len(cmd.Options) > 25 {
+	if len(cmd.Options) > 25 || subCount > 25 {
 		return ErrTooManyOptions
 	}
 
@@ -89,21 +89,29 @@ func Validate(cmd Command) error {
 	return nil
 }
 
-func validateSubcommand(sub Subcommand) error {
-	nameLen := utf8.RuneCountInString(sub.Name)
+func validateNameAndDesc(name, desc string) error {
+	nameLen := utf8.RuneCountInString(name)
 	if nameLen == 0 {
 		return ErrEmptyName
 	}
-	if nameLen > 32 || !chatInputNamePattern.MatchString(sub.Name) {
+	if nameLen > 32 || !chatInputNamePattern.MatchString(name) {
 		return ErrInvalidName
 	}
 
-	descLen := utf8.RuneCountInString(sub.Description)
+	descLen := utf8.RuneCountInString(desc)
 	if descLen == 0 {
 		return ErrEmptyDescription
 	}
 	if descLen > 100 {
 		return ErrDescriptionTooLong
+	}
+
+	return nil
+}
+
+func validateSubcommand(sub Subcommand) error {
+	if err := validateNameAndDesc(sub.Name, sub.Description); err != nil {
+		return err
 	}
 
 	if len(sub.Options) > 25 {
@@ -120,24 +128,16 @@ func validateSubcommand(sub Subcommand) error {
 }
 
 func validateSubcommandGroup(grp SubcommandGroup) error {
-	nameLen := utf8.RuneCountInString(grp.Name)
-	if nameLen == 0 {
-		return ErrEmptyName
-	}
-	if nameLen > 32 || !chatInputNamePattern.MatchString(grp.Name) {
-		return ErrInvalidName
-	}
-
-	descLen := utf8.RuneCountInString(grp.Description)
-	if descLen == 0 {
-		return ErrEmptyDescription
-	}
-	if descLen > 100 {
-		return ErrDescriptionTooLong
+	if err := validateNameAndDesc(grp.Name, grp.Description); err != nil {
+		return err
 	}
 
 	if len(grp.Subcommands) == 0 {
 		return ErrEmptySubcommandGroup
+	}
+
+	if len(grp.Subcommands) > 25 {
+		return ErrTooManyOptions
 	}
 
 	for _, sub := range grp.Subcommands {
@@ -150,20 +150,8 @@ func validateSubcommandGroup(grp SubcommandGroup) error {
 }
 
 func validateOption(opt Option) error {
-	nameLen := utf8.RuneCountInString(opt.Name)
-	if nameLen == 0 {
-		return ErrEmptyName
-	}
-	if nameLen > 32 || !chatInputNamePattern.MatchString(opt.Name) {
-		return ErrInvalidName
-	}
-
-	descLen := utf8.RuneCountInString(opt.Description)
-	if descLen == 0 {
-		return ErrEmptyDescription
-	}
-	if descLen > 100 {
-		return ErrDescriptionTooLong
+	if err := validateNameAndDesc(opt.Name, opt.Description); err != nil {
+		return err
 	}
 
 	if len(opt.Choices) > 25 {
