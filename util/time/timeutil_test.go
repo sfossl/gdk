@@ -232,3 +232,11 @@ func TestParseDuration_Signs(t *testing.T) {
 		t.Fatalf("expected -26h, got: %v, err: %v", dNegCompound, err)
 	}
 }
+
+func TestParseDuration_Overflow(t *testing.T) {
+	_, err := ParseDuration("999999999999999999999999y")
+	if !errors.Is(err, ErrInvalidDuration) {
+		t.Fatalf("expected ErrInvalidDuration for overflow, got: %v", err)
+	}
+}
+
