@@ -2,6 +2,7 @@ package timeutil
 
 import (
 	"errors"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -39,10 +40,11 @@ func ParseDuration(s string) (time.Duration, error) {
 	}
 
 	isNegative := false
-	if runes[i] == '-' {
+	switch runes[i] {
+	case '-':
 		isNegative = true
 		i++
-	} else if runes[i] == '+' {
+	case '+':
 		i++
 	}
 
@@ -96,7 +98,14 @@ func ParseDuration(s string) (time.Duration, error) {
 			return 0, err
 		}
 
-		partDur := time.Duration(val * float64(unitDur))
+		nanos := val * float64(unitDur)
+		if nanos > float64(math.MaxInt64) || nanos < float64(math.MinInt64) {
+			return 0, ErrInvalidDuration
+		}
+		partDur := time.Duration(nanos)
+		if math.MaxInt64-total < partDur {
+			return 0, ErrInvalidDuration
+		}
 		total += partDur
 		parsedParts++
 	}
@@ -247,4 +256,3 @@ func pluralize(n int64, unit string) string {
 	}
 	return strconv.FormatInt(n, 10) + " " + unit + "s"
 }
-
