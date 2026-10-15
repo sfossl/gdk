@@ -97,8 +97,12 @@ func RequirePermissions(userPerms, botPerms types.Permission, opts ...Permission
 	return func(next Handler) Handler {
 		return func(ctx *context.Context) error {
 			if ctx == nil {
-				return next(ctx)
+				if next != nil {
+					return next(ctx)
+				}
+				return nil
 			}
+
 
 			if userPerms != 0 {
 				if ctx.GuildID == nil {
@@ -160,7 +164,10 @@ func RequirePermissions(userPerms, botPerms types.Permission, opts ...Permission
 				}
 			}
 
-			return next(ctx)
+			if next != nil {
+				return next(ctx)
+			}
+			return nil
 		}
 	}
 }
@@ -207,6 +214,7 @@ func PermissionNames(perms types.Permission) []string {
 		{types.PermissionStream, "Video"},
 		{types.PermissionUseEmbeddedActivities, "Use Activities"},
 		{types.PermissionUseSoundboard, "Use Soundboard"},
+		{types.PermissionCreateGuildExpressions, "Create Expressions"},
 		{types.PermissionUseExternalSounds, "Use External Sounds"},
 		{types.PermissionSendVoiceMessages, "Send Voice Messages"},
 		{types.PermissionSendPolls, "Create Polls"},
@@ -225,6 +233,10 @@ func PermissionNames(perms types.Permission) []string {
 		if (perms & c.perm) == c.perm {
 			names = append(names, c.name)
 		}
+	}
+
+	if len(names) == 0 && perms != 0 {
+		names = append(names, fmt.Sprintf("Unknown Permission (0x%X)", uint64(perms)))
 	}
 
 	return names
