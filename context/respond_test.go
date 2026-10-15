@@ -1,0 +1,249 @@
+package context
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/sfossl/gda/rest"
+	"github.com/sfossl/gda/types"
+)
+
+func TestRespond_InitialWebhook(t *testing.T) {
+	in := &types.Interaction{
+		ID:    types.Snowflake(100),
+		Token: "test-token",
+	}
+	c := New(context.Background(), in, nil)
+
+	msg, err := c.Respond(Response{
+		Content:   "hello webhook",
+		Ephemeral: true,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if msg != nil {
+		t.Fatalf("expected nil message for initial response, got: %+v", msg)
+	}
+	if !c.IsAcknowledged() {
+		t.Fatalf("expected context to be acknowledged")
+	}
+
+	select {
+	case res := <-c.ResponseChannel():
+		if res.Type != types.CallbackTypeChannelMessageWithSource {
+			t.Fatalf("expected callback type %d, got: %d", types.CallbackTypeChannelMessageWithSource, res.Type)
+		}
+		if res.Data == nil || res.Data.Content != "hello webhook" {
+			t.Fatalf("unexpected response data: %+v", res.Data)
+		}
+		if res.Data.Flags != types.MessageFlagEphemeral {
+			t.Fatalf("expected ephemeral flag, got: %d", res.Data.Flags)
+		}
+	default:
+		t.Fatalf("expected response on channel")
+	}
+}
+
+func TestRespond_InitialGateway(t *testing.T) {
+	var receivedResponse types.InteractionResponse
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/interactions/100/test-token/callback" {
+			_ = json.NewDecoder(r.Body).Decode(&receivedResponse)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer ts.Close()
+
+	client := rest.NewClient("test-token", rest.WithBaseURL(ts.URL))
+	in := &types.Interaction{
+		ID:    types.Snowflake(100),
+		Token: "test-token",
+	}
+	c := NewGatewayContext(context.Background(), in, client)
+
+	msg, err := c.Respond(Response{
+		Content: "hello gateway",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if msg != nil {
+		t.Fatalf("expected nil message, got: %+v", msg)
+	}
+	if !c.IsAcknowledged() {
+		t.Fatalf("expected context to be acknowledged")
+	}
+	if receivedResponse.Data == nil || receivedResponse.Data.Content != "hello gateway" {
+		t.Fatalf("unexpected received response: %+v", receivedResponse.Data)
+	}
+}
+
+func TestRespond_DeferAndEditOriginal(t *testing.T) {
+	var editedContent string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/interactions/100/test-token/callback":
+			w.WriteHeader(http.StatusNoContent)
+		case "/webhooks/50/test-token/messages/@original":
+			var payload rest.MessagePayload
+			_ = json.NewDecoder(r.Body).Decode(&payload)
+			editedContent = payload.Content
+			_ = json.NewEncoder(w).Encode(types.Message{
+				ID:      types.Snowflake(888),
+				Content: payload.Content,
+			})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer ts.Close()
+
+	client := rest.NewClient("test-token", rest.WithBaseURL(ts.URL))
+	in := &types.Interaction{
+		ID:    types.Snowflake(100),
+		AppID: types.Snowflake(50),
+		Token: "test-token",
+	}
+	c := NewGatewayContext(context.Background(), in, client)
+
+	err := c.Defer(false)
+	if err != nil {
+		t.Fatalf("unexpected defer error: %v", err)
+	}
+	if !c.IsDeferred() {
+		t.Fatalf("expected context to be deferred")
+	}
+
+	msg, err := c.Respond(Response{
+		Content: "updated after defer",
+	})
+	if err != nil {
+		t.Fatalf("unexpected edit error: %v", err)
+	}
+	if msg == nil || msg.Content != "updated after defer" {
+		t.Fatalf("unexpected message: %+v", msg)
+	}
+	if c.IsDeferred() {
+		t.Fatalf("expected context to no longer be deferred")
+	}
+	if editedContent != "updated after defer" {
+		t.Fatalf("expected edited content 'updated after defer', got: %s", editedContent)
+	}
+}
+
+func TestRespond_AutomaticFollowup(t *testing.T) {
+	var followupContent string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/interactions/100/test-token/callback":
+			w.WriteHeader(http.StatusNoContent)
+		case "/webhooks/50/test-token":
+			var payload rest.MessagePayload
+			_ = json.NewDecoder(r.Body).Decode(&payload)
+			followupContent = payload.Content
+			_ = json.NewEncoder(w).Encode(types.Message{
+				ID:      types.Snowflake(999),
+				Content: payload.Content,
+			})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer ts.Close()
+
+	client := rest.NewClient("test-token", rest.WithBaseURL(ts.URL))
+	in := &types.Interaction{
+		ID:    types.Snowflake(100),
+		AppID: types.Snowflake(50),
+		Token: "test-token",
+	}
+	c := NewGatewayContext(context.Background(), in, client)
+
+	_, err := c.Respond(Response{Content: "first message"})
+	if err != nil {
+		t.Fatalf("unexpected error on first response: %v", err)
+	}
+
+	followup, err := c.Respond(Response{Content: "second message followup"})
+	if err != nil {
+		t.Fatalf("unexpected error on followup: %v", err)
+	}
+	if followup == nil || followup.Content != "second message followup" {
+		t.Fatalf("unexpected followup message: %+v", followup)
+	}
+	if followupContent != "second message followup" {
+		t.Fatalf("expected followup content 'second message followup', got: %s", followupContent)
+	}
+}
+
+func TestRespond_AlreadyRespondedDefer(t *testing.T) {
+	in := &types.Interaction{
+		ID:    types.Snowflake(100),
+		Token: "test-token",
+	}
+	c := New(context.Background(), in, nil)
+	_, _ = c.Respond(Response{Content: "initial"})
+
+	err := c.Defer()
+	if !errors.Is(err, ErrAlreadyResponded) {
+		t.Fatalf("expected ErrAlreadyResponded, got: %v", err)
+	}
+}
+
+func TestRespond_MissingREST(t *testing.T) {
+	in := &types.Interaction{
+		ID:    types.Snowflake(100),
+		Token: "test-token",
+	}
+	c := New(context.Background(), in, nil)
+	_, _ = c.Respond(Response{Content: "initial"})
+
+	_, err := c.Respond(Response{Content: "followup"})
+	if !errors.Is(err, ErrNoRESTClient) {
+		t.Fatalf("expected ErrNoRESTClient, got: %v", err)
+	}
+}
+
+func TestRespond_FailureResetAndRetry(t *testing.T) {
+	failRequest := true
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if failRequest {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	client := rest.NewClient("test-token", rest.WithBaseURL(ts.URL))
+	in := &types.Interaction{
+		ID:    types.Snowflake(100),
+		Token: "test-token",
+	}
+	c := NewGatewayContext(context.Background(), in, client)
+
+	_, err := c.Respond(Response{Content: "try 1"})
+	if err == nil {
+		t.Fatalf("expected failure on try 1")
+	}
+	if c.IsAcknowledged() {
+		t.Fatalf("expected context to not be marked acknowledged after failure")
+	}
+
+	failRequest = false
+	_, err = c.Respond(Response{Content: "try 2"})
+	if err != nil {
+		t.Fatalf("expected retry to succeed, got: %v", err)
+	}
+	if !c.IsAcknowledged() {
+		t.Fatalf("expected context to be marked acknowledged after successful retry")
+	}
+}
+
