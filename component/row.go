@@ -19,8 +19,10 @@ var (
 	ErrRowMixedComponents = errors.New("action row cannot mix buttons and select menus")
 	ErrRowMultipleSelects = errors.New("action row cannot contain multiple select menus")
 	ErrRowMultipleInputs  = errors.New("action row cannot contain multiple text inputs")
-	ErrEmptyActionRow     = errors.New("action row cannot be empty")
-	ErrNonActionRowAtRoot = errors.New("top level message component must be an action row")
+	ErrEmptyActionRow       = errors.New("action row cannot be empty")
+	ErrNonActionRowAtRoot   = errors.New("top level message component must be an action row")
+	ErrSelectMissingOptions = errors.New("select menu must contain at least 1 option")
+	ErrSelectTooManyOptions = errors.New("select menu exceeds maximum 25 options")
 )
 
 func ActionRow(components ...types.Component) types.Component {
@@ -123,6 +125,17 @@ func ValidateRows(rows []types.Component) error {
 		}
 		if inputs > MaxTextInputsPerRow {
 			return ErrRowMultipleInputs
+		}
+
+		for _, item := range row.Components {
+			if item.Type == types.ComponentTypeStringSelect {
+				if len(item.Options) == 0 {
+					return ErrSelectMissingOptions
+				}
+				if len(item.Options) > 25 {
+					return ErrSelectTooManyOptions
+				}
+			}
 		}
 	}
 
