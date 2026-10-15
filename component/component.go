@@ -135,7 +135,7 @@ func newSelect(typ types.ComponentType, customID, placeholder string, opts ...Se
 	return c
 }
 
-func Option(label, value string, description ...string) types.SelectOption {
+func SelectOption(label, value string, description ...string) types.SelectOption {
 	var desc string
 	if len(description) > 0 {
 		desc = description[0]
@@ -145,6 +145,10 @@ func Option(label, value string, description ...string) types.SelectOption {
 		Value:       value,
 		Description: desc,
 	}
+}
+
+func Option(label, value string, description ...string) types.SelectOption {
+	return SelectOption(label, value, description...)
 }
 
 func WithOptionEmoji(opt types.SelectOption, name string, id ...types.Snowflake) types.SelectOption {
