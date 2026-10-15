@@ -92,8 +92,10 @@ func (c *Context) CanManageRole(roleID types.Snowflake) (bool, error) {
 	}
 	botMaxPos := memberMaxRolePosition(botMember.Roles, rolePositions)
 
-	if botMaxPos <= rolePos {
-		return false, ErrRoleOutranksBot
+	if c.AppID == 0 || c.AppID != guild.OwnerID {
+		if botMaxPos <= rolePos {
+			return false, ErrRoleOutranksBot
+		}
 	}
 
 	invokerID := types.Snowflake(0)
