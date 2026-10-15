@@ -7,6 +7,7 @@ import (
 
 type Context = context.Context
 type OptionVal = context.OptionVal
+type Response = context.Response
 type Command = command.Command
 type CommandType = command.CommandType
 type Option = command.Option
@@ -51,5 +52,7 @@ var (
 	ErrCannotModerateOwner = context.ErrCannotModerateOwner
 	ErrTargetOutranksUser  = context.ErrTargetOutranksUser
 	ErrTargetOutranksBot   = context.ErrTargetOutranksBot
+	ErrAlreadyResponded    = context.ErrAlreadyResponded
+	ErrNoInteraction       = context.ErrNoInteraction
 )
 
