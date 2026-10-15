@@ -218,8 +218,7 @@ func (a *App) handleComponent(ctx *context.Context) error {
 		return ErrComponentNotFound
 	}
 
-	pipeline := a.globalPipeline.Clone()
-	return pipeline.Execute(ctx, handler)
+	return a.globalPipeline.Execute(ctx, handler)
 }
 
 func (a *App) handleModal(ctx *context.Context) error {
@@ -236,8 +235,11 @@ func (a *App) handleModal(ctx *context.Context) error {
 		return ErrModalNotFound
 	}
 
-	pipeline := a.globalPipeline.Clone()
-	return pipeline.Execute(ctx, handler)
+	return a.globalPipeline.Execute(ctx, handler)
+}
+
+func (a *App) Err() error {
+	return a.initErr
 }
 
 func (a *App) Run(ctx stdctx.Context) error {
@@ -326,9 +328,11 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 			return
 		}
 
-		gdkCtx := context.New(r.Context(), &in, a.REST)
+		bgCtx, cancel := stdctx.WithTimeout(stdctx.WithoutCancel(r.Context()), a.config.Timeout)
+		gdkCtx := context.New(bgCtx, &in, a.REST)
 
 		go func() {
+			defer cancel()
 			_ = a.Handle(gdkCtx)
 		}()
 
@@ -337,10 +341,17 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(resp)
 		case <-time.After(2500 * time.Millisecond):
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(types.InteractionResponse{
-				Type: types.CallbackTypeDeferredChannelMessageWithSource,
-			})
+			select {
+			case resp := <-gdkCtx.ResponseChannel():
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(resp)
+			default:
+				_ = gdkCtx.Defer(false)
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(types.InteractionResponse{
+					Type: types.CallbackTypeDeferredChannelMessageWithSource,
+				})
+			}
 		}
 	})
 
