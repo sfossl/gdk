@@ -56,7 +56,12 @@ func Guard(opts ...GuardOption) Middleware {
 				if r := recover(); r != nil {
 					stack := debug.Stack()
 					if cfg.OnPanic != nil {
-						cfg.OnPanic(ctx, r, stack)
+						func() {
+							defer func() {
+								_ = recover()
+							}()
+							cfg.OnPanic(ctx, r, stack)
+						}()
 					}
 
 					if ctx != nil && (!ctx.IsAcknowledged() || ctx.IsDeferred()) {
@@ -70,7 +75,10 @@ func Guard(opts ...GuardOption) Middleware {
 				}
 			}()
 
-			return next(ctx)
+			if next != nil {
+				return next(ctx)
+			}
+			return nil
 		}
 	}
 }
