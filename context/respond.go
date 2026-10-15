@@ -150,3 +150,34 @@ func flagsFromEphemeral(ephemeral bool) types.MessageFlag {
 	return 0
 }
 
+func (c *Context) Pong() error {
+	if c.responded.Load() {
+		return ErrAlreadyResponded
+	}
+	if !c.responded.CompareAndSwap(false, true) {
+		return ErrAlreadyResponded
+	}
+
+	resp := types.InteractionResponse{
+		Type: types.CallbackTypePong,
+	}
+
+	if !c.gatewayMode && c.responseChan != nil {
+		select {
+		case c.responseChan <- resp:
+			return nil
+		default:
+		}
+	}
+
+	if c.REST != nil && c.Interaction != nil {
+		err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
+		if err != nil {
+			c.responded.Store(false)
+			return err
+		}
+	}
+
+	return nil
+}
+
