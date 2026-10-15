@@ -121,6 +121,9 @@ func TestOpt_ExtractionAndFallbacks(t *testing.T) {
 	if v := ctx.Opt("snow_val").Snowflake(); v != 123456789012345678 {
 		t.Errorf("expected snowflake 123456789012345678, got %d", v)
 	}
+	if v := ctx.Opt("int_val").Snowflake(); v != 42 {
+		t.Errorf("expected snowflake 42 from int, got %d", v)
+	}
 	if v := ctx.Opt("json_num").Snowflake(); v != 999 {
 		t.Errorf("expected snowflake 999 from json.Number, got %d", v)
 	}
