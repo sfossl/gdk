@@ -247,3 +247,44 @@ func TestRespond_FailureResetAndRetry(t *testing.T) {
 	}
 }
 
+func TestRespond_ConcurrentDeferred(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/interactions/100/test-token/callback":
+			w.WriteHeader(http.StatusNoContent)
+		case "/webhooks/50/test-token/messages/@original":
+			_ = json.NewEncoder(w).Encode(types.Message{ID: types.Snowflake(111), Content: "original"})
+		case "/webhooks/50/test-token":
+			_ = json.NewEncoder(w).Encode(types.Message{ID: types.Snowflake(222), Content: "followup"})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer ts.Close()
+
+	client := rest.NewClient("test-token", rest.WithBaseURL(ts.URL))
+	in := &types.Interaction{
+		ID:    types.Snowflake(100),
+		AppID: types.Snowflake(50),
+		Token: "test-token",
+	}
+	c := NewGatewayContext(context.Background(), in, client)
+	_ = c.Defer()
+
+	errChan := make(chan error, 2)
+	go func() {
+		_, err := c.Respond(Response{Content: "goroutine 1"})
+		errChan <- err
+	}()
+	go func() {
+		_, err := c.Respond(Response{Content: "goroutine 2"})
+		errChan <- err
+	}()
+
+	for i := 0; i < 2; i++ {
+		if err := <-errChan; err != nil {
+			t.Fatalf("concurrent respond failed: %v", err)
+		}
+	}
+}
+
