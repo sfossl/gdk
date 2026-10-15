@@ -172,3 +172,31 @@ func TestEmbedBuilder_Limits(t *testing.T) {
 	}
 }
 
+func TestEmbedUnicodeLimits(t *testing.T) {
+	jpTitle := strings.Repeat("日", 256)
+	jpFieldVal := strings.Repeat("語", 1024)
+
+	b := NewEmbed().
+		SetTitle(jpTitle).
+		SetDescription(strings.Repeat("本", 2000)).
+		AddField("テスト", jpFieldVal)
+
+	embed, err := b.Build()
+	if err != nil {
+		t.Fatalf("expected unicode embed to pass, got %v", err)
+	}
+	if embed == nil {
+		t.Fatal("expected non-nil embed")
+	}
+
+	jpTitleOver := strings.Repeat("日", 257)
+	if _, err := NewEmbed().SetTitle(jpTitleOver).Build(); !errors.Is(err, ErrEmbedTitleTooLong) {
+		t.Fatalf("expected ErrEmbedTitleTooLong for 257 runes, got %v", err)
+	}
+
+	jpDescOver := strings.Repeat("本", 4097)
+	if _, err := NewEmbed().SetDescription(jpDescOver).Build(); !errors.Is(err, ErrEmbedDescriptionTooLong) {
+		t.Fatalf("expected ErrEmbedDescriptionTooLong for 4097 runes, got %v", err)
+	}
+}
+
