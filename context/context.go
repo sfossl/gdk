@@ -10,23 +10,25 @@ import (
 )
 
 type Context struct {
-	ctx          context.Context
-	Interaction  *types.Interaction
-	REST         *rest.Client
-	ID           types.Snowflake
-	AppID        types.Snowflake
-	GuildID      *types.Snowflake
-	ChannelID    types.Snowflake
-	Author       *types.User
-	Member       *types.Member
-	responded    atomic.Bool
-	deferred     atomic.Bool
-	gatewayMode  bool
-	responseChan chan types.InteractionResponse
-	storeMu      sync.RWMutex
-	store        map[string]any
-	optsMu       sync.RWMutex
-	optsMap      map[string]OptionVal
+	ctx             context.Context
+	Interaction     *types.Interaction
+	REST            *rest.Client
+	ID              types.Snowflake
+	AppID           types.Snowflake
+	GuildID         *types.Snowflake
+	ChannelID       types.Snowflake
+	Author          *types.User
+	Member          *types.Member
+	responded       atomic.Bool
+	deferred        atomic.Bool
+	gatewayMode     bool
+	responseChan    chan types.InteractionResponse
+	storeMu         sync.RWMutex
+	store           map[string]any
+	optsMu          sync.RWMutex
+	optsMap         map[string]OptionVal
+	subcommand      string
+	subcommandGroup string
 }
 
 func New(ctx context.Context, in *types.Interaction, restClient *rest.Client) *Context {
@@ -72,6 +74,27 @@ func (c *Context) initFields(in *types.Interaction) {
 	}
 
 	c.Member = in.Member
+
+	if in.Data != nil && len(in.Data.Options) > 0 {
+		first := in.Data.Options[0]
+		switch first.Type {
+		case 1:
+			c.subcommand = first.Name
+		case 2:
+			c.subcommandGroup = first.Name
+			if len(first.Options) > 0 && first.Options[0].Type == 1 {
+				c.subcommand = first.Options[0].Name
+			}
+		}
+	}
+}
+
+func (c *Context) Subcommand() string {
+	return c.subcommand
+}
+
+func (c *Context) SubcommandGroup() string {
+	return c.subcommandGroup
 }
 
 func (c *Context) Context() context.Context {
@@ -104,4 +127,3 @@ func (c *Context) Get(key string) any {
 	defer c.storeMu.RUnlock()
 	return c.store[key]
 }
-
