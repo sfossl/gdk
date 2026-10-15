@@ -3,6 +3,7 @@ package middleware
 import (
 	stdctx "context"
 	"errors"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -219,5 +220,30 @@ func TestCooldown_StoreSweepAndConcurrency(t *testing.T) {
 
 func ptr[T any](v T) *T {
 	return &v
+}
+
+func TestCooldown_AutoPruneOnTake(t *testing.T) {
+	store := NewCooldownStore()
+	policy := UserCooldown(5 * time.Millisecond)
+
+	for i := 0; i < 3000; i++ {
+		_, _ = store.Take("key_"+strconv.Itoa(i), policy)
+	}
+
+	time.Sleep(15 * time.Millisecond)
+
+	for i := 0; i < 3000; i++ {
+		_, _ = store.Take("new_key_"+strconv.Itoa(i), policy)
+	}
+
+	total := 0
+	for _, sh := range store.shards {
+		sh.mu.Lock()
+		total += len(sh.buckets)
+		sh.mu.Unlock()
+	}
+	if total >= 6000 {
+		t.Fatalf("expected old expired buckets to be pruned below 6000, got %d", total)
+	}
 }
 
