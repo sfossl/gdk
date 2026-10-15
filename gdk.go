@@ -218,6 +218,8 @@ var (
 	ErrRowMultipleInputs       = component.ErrRowMultipleInputs
 	ErrEmptyActionRow          = component.ErrEmptyActionRow
 	ErrNonActionRowAtRoot      = component.ErrNonActionRowAtRoot
+	ErrSelectMissingOptions    = component.ErrSelectMissingOptions
+	ErrSelectTooManyOptions    = component.ErrSelectTooManyOptions
 
 	Guard            = middleware.Guard
 	WithPanicHandler = middleware.WithPanicHandler
