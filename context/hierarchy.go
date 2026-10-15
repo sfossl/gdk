@@ -88,8 +88,10 @@ func (c *Context) CanModerate(targetMemberID types.Snowflake) (bool, error) {
 	}
 	targetMaxPos := memberMaxRolePosition(targetRoles, rolePositions)
 
-	if botMaxPos <= targetMaxPos {
-		return false, ErrTargetOutranksBot
+	if c.AppID == 0 || c.AppID != guild.OwnerID {
+		if botMaxPos <= targetMaxPos {
+			return false, ErrTargetOutranksBot
+		}
 	}
 
 	if invokerID != 0 && invokerID == guild.OwnerID {
