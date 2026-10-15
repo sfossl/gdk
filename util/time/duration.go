@@ -74,10 +74,6 @@ func ParseDuration(s string) (time.Duration, error) {
 		}
 
 		numStr := string(runes[startNum:i])
-		val, err := strconv.ParseFloat(numStr, 64)
-		if err != nil {
-			return 0, ErrInvalidDuration
-		}
 
 		for i < n && unicode.IsSpace(runes[i]) {
 			i++
@@ -98,12 +94,30 @@ func ParseDuration(s string) (time.Duration, error) {
 			return 0, err
 		}
 
-		nanos := val * float64(unitDur)
-		if nanos > float64(math.MaxInt64) || nanos < float64(math.MinInt64) {
-			return 0, ErrInvalidDuration
+		var partDur time.Duration
+		if hasDot {
+			val, err := strconv.ParseFloat(numStr, 64)
+			if err != nil {
+				return 0, ErrInvalidDuration
+			}
+			nanos := val * float64(unitDur)
+			if nanos >= 9223372036854775808.0 || nanos < 0 {
+				return 0, ErrInvalidDuration
+			}
+			partDur = time.Duration(nanos)
+		} else {
+			intVal, err := strconv.ParseInt(numStr, 10, 64)
+			if err != nil || intVal < 0 {
+				return 0, ErrInvalidDuration
+			}
+			unitNanos := int64(unitDur)
+			if intVal > math.MaxInt64/unitNanos {
+				return 0, ErrInvalidDuration
+			}
+			partDur = time.Duration(intVal * unitNanos)
 		}
-		partDur := time.Duration(nanos)
-		if math.MaxInt64-total < partDur {
+
+		if partDur < 0 || math.MaxInt64-total < partDur {
 			return 0, ErrInvalidDuration
 		}
 		total += partDur
