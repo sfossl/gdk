@@ -20,6 +20,14 @@ func TestCanModerate_NotInGuild(t *testing.T) {
 	}
 }
 
+func TestCanModerate_InvalidTarget(t *testing.T) {
+	c := &Context{}
+	ok, err := c.CanModerate(types.Snowflake(0))
+	if ok || !errors.Is(err, ErrInvalidTarget) {
+		t.Fatalf("expected ErrInvalidTarget, got ok=%v, err=%v", ok, err)
+	}
+}
+
 func TestCanModerate_NoRESTClient(t *testing.T) {
 	guildID := types.Snowflake(100)
 	c := &Context{
