@@ -143,6 +143,8 @@ func (v OptionVal) Snowflake(fallback ...types.Snowflake) types.Snowflake {
 		return types.Snowflake(uint64(s))
 	case int64:
 		return types.Snowflake(uint64(s))
+	case int:
+		return types.Snowflake(uint64(s))
 	case uint64:
 		return types.Snowflake(s)
 	case json.Number:
