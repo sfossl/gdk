@@ -14,9 +14,13 @@ var (
 	ErrCannotModerateOwner = errors.New("cannot moderate guild owner")
 	ErrTargetOutranksUser  = errors.New("target outranks or equals user in role hierarchy")
 	ErrTargetOutranksBot   = errors.New("target outranks or equals bot in role hierarchy")
+	ErrInvalidTarget       = errors.New("invalid target member id")
 )
 
 func (c *Context) CanModerate(targetMemberID types.Snowflake) (bool, error) {
+	if targetMemberID == 0 {
+		return false, ErrInvalidTarget
+	}
 	if c.GuildID == nil {
 		return false, ErrNotInGuild
 	}
