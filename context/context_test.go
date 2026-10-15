@@ -213,4 +213,33 @@ func TestOpt_NestedSubcommands(t *testing.T) {
 	if v := ctx.Opt("nested_arg").String(); v != "deep_value" {
 		t.Fatalf("expected deep_value, got %s", v)
 	}
+	if ctx.SubcommandGroup() != "group" {
+		t.Fatalf("expected subcommand group 'group', got: %s", ctx.SubcommandGroup())
+	}
+	if ctx.Subcommand() != "sub" {
+		t.Fatalf("expected subcommand 'sub', got: %s", ctx.Subcommand())
+	}
+}
+
+func TestContext_SimpleSubcommand(t *testing.T) {
+	in := &types.Interaction{
+		Data: &types.InteractionData{
+			Options: []types.ApplicationCommandOption{
+				{
+					Name: "kick",
+					Type: 1,
+					Options: []types.ApplicationCommandOption{
+						{Name: "user", Type: 6, Value: "123"},
+					},
+				},
+			},
+		},
+	}
+	ctx := New(context.Background(), in, nil)
+	if ctx.Subcommand() != "kick" {
+		t.Fatalf("expected subcommand 'kick', got: %s", ctx.Subcommand())
+	}
+	if ctx.SubcommandGroup() != "" {
+		t.Fatalf("expected empty subcommand group, got: %s", ctx.SubcommandGroup())
+	}
 }
