@@ -3,7 +3,6 @@ package middleware
 import (
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"sync"
 	"time"
 
@@ -152,18 +151,39 @@ func NewCooldownStore() *CooldownStore {
 }
 
 func (s *CooldownStore) getShard(key string) *shard {
-	h := fnv.New32a()
-	_, _ = h.Write([]byte(key))
-	idx := h.Sum32() % shardCount
-	return s.shards[idx]
+	var h uint32 = 2166136261
+	for i := 0; i < len(key); i++ {
+		h ^= uint32(key[i])
+		h *= 16777619
+	}
+	return s.shards[h%shardCount]
 }
 
 func (s *CooldownStore) Take(key string, policy Policy) (bool, time.Duration) {
+	if s == nil {
+		return true, 0
+	}
+	if policy.Duration <= 0 {
+		policy.Duration = time.Second
+	}
+	if policy.Burst <= 0 {
+		policy.Burst = 1
+	}
+
 	sh := s.getShard(key)
 	sh.mu.Lock()
 	defer sh.mu.Unlock()
 
 	now := time.Now()
+
+	if len(sh.buckets) > 32 {
+		for k, b := range sh.buckets {
+			if now.Sub(b.lastRefill) >= b.duration {
+				delete(sh.buckets, k)
+			}
+		}
+	}
+
 	b, ok := sh.buckets[key]
 	if !ok {
 		capVal := float64(policy.Burst)
@@ -200,6 +220,9 @@ func (s *CooldownStore) Take(key string, policy Policy) (bool, time.Duration) {
 }
 
 func (s *CooldownStore) Sweep() {
+	if s == nil {
+		return
+	}
 	now := time.Now()
 	for _, sh := range s.shards {
 		sh.mu.Lock()
@@ -267,13 +290,23 @@ func Cooldown(policies []Policy, opts ...CooldownOption) Middleware {
 	return func(next Handler) Handler {
 		return func(ctx *context.Context) error {
 			if ctx == nil {
-				return next(ctx)
+				if next != nil {
+					return next(ctx)
+				}
+				return nil
 			}
 
 			now := time.Now()
 			for _, policy := range cfg.Policies {
+				if policy.Duration < 0 || policy.Burst < 0 {
+					return ErrInvalidCooldown
+				}
+
 				key, err := resolveCooldownKey(cfg.KeyPrefix, ctx, policy.Scope)
 				if err != nil {
+					if errors.Is(err, ErrInvalidCooldown) {
+						return ErrInvalidCooldown
+					}
 					continue
 				}
 
@@ -297,17 +330,25 @@ func Cooldown(policies []Policy, opts ...CooldownOption) Middleware {
 				}
 			}
 
-			return next(ctx)
+			if next != nil {
+				return next(ctx)
+			}
+			return nil
 		}
 	}
 }
 
 func resolveCooldownKey(prefix string, ctx *context.Context, scope Scope) (string, error) {
+	if ctx == nil {
+		return "", errors.New("nil context")
+	}
 	switch scope {
 	case ScopeUser:
 		var uid types.Snowflake
 		if ctx.Author != nil {
 			uid = ctx.Author.ID
+		} else if ctx.Member != nil && ctx.Member.User != nil {
+			uid = ctx.Member.User.ID
 		}
 		if uid == 0 {
 			return "", errors.New("missing user id")
@@ -333,6 +374,6 @@ func resolveCooldownKey(prefix string, ctx *context.Context, scope Scope) (strin
 		return fmt.Sprintf("%s/global", prefix), nil
 
 	default:
-		return fmt.Sprintf("%s/unknown", prefix), nil
+		return "", ErrInvalidCooldown
 	}
 }
