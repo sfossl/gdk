@@ -65,12 +65,14 @@ func (c *Context) CanModerate(targetMemberID types.Snowflake) (bool, error) {
 	botMaxPos := memberMaxRolePosition(botMember.Roles, rolePositions)
 
 	var targetRoles []types.Snowflake
+	targetFound := false
 	if c.Interaction != nil && c.Interaction.Data != nil && c.Interaction.Data.Resolved != nil && c.Interaction.Data.Resolved.Members != nil {
 		if tm, ok := c.Interaction.Data.Resolved.Members[targetMemberID]; ok {
 			targetRoles = tm.Roles
+			targetFound = true
 		}
 	}
-	if targetRoles == nil {
+	if !targetFound {
 		tm, err := c.REST.GetGuildMember(ctx, guildID, targetMemberID)
 		if err != nil {
 			if !rest.IsNotFound(err) {
