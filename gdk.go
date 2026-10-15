@@ -44,5 +44,12 @@ var (
 	MentionableOption = command.MentionableOption
 	AttachmentOption  = command.AttachmentOption
 	ValidateCommand   = command.Validate
+
+	ErrNotInGuild          = context.ErrNotInGuild
+	ErrNoRESTClient        = context.ErrNoRESTClient
+	ErrCannotModerateSelf  = context.ErrCannotModerateSelf
+	ErrCannotModerateOwner = context.ErrCannotModerateOwner
+	ErrTargetOutranksUser  = context.ErrTargetOutranksUser
+	ErrTargetOutranksBot   = context.ErrTargetOutranksBot
 )
 
