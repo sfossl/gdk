@@ -145,6 +145,10 @@ func (v OptionVal) Snowflake(fallback ...types.Snowflake) types.Snowflake {
 		return types.Snowflake(uint64(s))
 	case uint64:
 		return types.Snowflake(s)
+	case json.Number:
+		if id, err := strconv.ParseUint(s.String(), 10, 64); err == nil {
+			return types.Snowflake(id)
+		}
 	}
 	if len(fallback) > 0 {
 		return fallback[0]
