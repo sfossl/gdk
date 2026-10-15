@@ -3,6 +3,7 @@ package component
 import (
 	"errors"
 	"time"
+	"unicode/utf8"
 
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/util/time"
@@ -163,15 +164,17 @@ func (b *EmbedBuilder) Build() (*types.Embed, error) {
 
 	totalLen := 0
 
-	if len(b.embed.Title) > 256 {
+	titleLen := utf8.RuneCountInString(b.embed.Title)
+	if titleLen > 256 {
 		return nil, ErrEmbedTitleTooLong
 	}
-	totalLen += len(b.embed.Title)
+	totalLen += titleLen
 
-	if len(b.embed.Description) > 4096 {
+	descLen := utf8.RuneCountInString(b.embed.Description)
+	if descLen > 4096 {
 		return nil, ErrEmbedDescriptionTooLong
 	}
-	totalLen += len(b.embed.Description)
+	totalLen += descLen
 
 	if len(b.embed.Fields) > 25 {
 		return nil, ErrEmbedTooManyFields
@@ -181,30 +184,34 @@ func (b *EmbedBuilder) Build() (*types.Embed, error) {
 		if f.Name == "" {
 			return nil, ErrEmbedFieldMissingName
 		}
-		if len(f.Name) > 256 {
+		nameLen := utf8.RuneCountInString(f.Name)
+		if nameLen > 256 {
 			return nil, ErrEmbedFieldNameTooLong
 		}
 		if f.Value == "" {
 			return nil, ErrEmbedFieldMissingValue
 		}
-		if len(f.Value) > 1024 {
+		valLen := utf8.RuneCountInString(f.Value)
+		if valLen > 1024 {
 			return nil, ErrEmbedFieldValueTooLong
 		}
-		totalLen += len(f.Name) + len(f.Value)
+		totalLen += nameLen + valLen
 	}
 
 	if b.embed.Footer != nil {
-		if len(b.embed.Footer.Text) > 2048 {
+		footerLen := utf8.RuneCountInString(b.embed.Footer.Text)
+		if footerLen > 2048 {
 			return nil, ErrEmbedFooterTooLong
 		}
-		totalLen += len(b.embed.Footer.Text)
+		totalLen += footerLen
 	}
 
 	if b.embed.Author != nil {
-		if len(b.embed.Author.Name) > 256 {
+		authorLen := utf8.RuneCountInString(b.embed.Author.Name)
+		if authorLen > 256 {
 			return nil, ErrEmbedAuthorTooLong
 		}
-		totalLen += len(b.embed.Author.Name)
+		totalLen += authorLen
 	}
 
 	if totalLen > 6000 {
