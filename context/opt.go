@@ -52,6 +52,10 @@ func (v OptionVal) Int(fallback ...int) int {
 		if i, err := n.Int64(); err == nil {
 			return int(i)
 		}
+	case string:
+		if i, err := strconv.Atoi(n); err == nil {
+			return i
+		}
 	}
 	if len(fallback) > 0 {
 		return fallback[0]
@@ -75,6 +79,10 @@ func (v OptionVal) Int64(fallback ...int64) int64 {
 		return int64(n)
 	case json.Number:
 		if i, err := n.Int64(); err == nil {
+			return i
+		}
+	case string:
+		if i, err := strconv.ParseInt(n, 10, 64); err == nil {
 			return i
 		}
 	}
@@ -104,6 +112,10 @@ func (v OptionVal) Float(fallback ...float64) float64 {
 		if f, err := n.Float64(); err == nil {
 			return f
 		}
+	case string:
+		if f, err := strconv.ParseFloat(n, 64); err == nil {
+			return f
+		}
 	}
 	if len(fallback) > 0 {
 		return fallback[0]
@@ -118,8 +130,13 @@ func (v OptionVal) Bool(fallback ...bool) bool {
 		}
 		return false
 	}
-	if b, ok := v.val.(bool); ok {
+	switch b := v.val.(type) {
+	case bool:
 		return b
+	case string:
+		if parsed, err := strconv.ParseBool(b); err == nil {
+			return parsed
+		}
 	}
 	if len(fallback) > 0 {
 		return fallback[0]
@@ -181,6 +198,11 @@ func (v OptionVal) Member() *types.Member {
 		return nil
 	}
 	if m, ok := v.res.Members[sf]; ok {
+		if m.User == nil && v.res.Users != nil {
+			if u, okU := v.res.Users[sf]; okU {
+				m.User = &u
+			}
+		}
 		return &m
 	}
 	return nil
