@@ -213,5 +213,33 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 			t.Fatalf("expected resolved target success, got ok=%v, err=%v", ok, err)
 		}
 	})
+
+	t.Run("target resolved with nil roles skips REST", func(t *testing.T) {
+		specs[botAppID] = memberSpec{roles: []types.Snowflake{roleHigh.ID}}
+
+		rolelessID := types.Snowflake(888)
+		c := &Context{
+			ctx:     context.Background(),
+			GuildID: &guildID,
+			AppID:   botAppID,
+			REST:    client,
+			Author:  &types.User{ID: invokerID},
+			Member:  &types.Member{Roles: []types.Snowflake{roleMid.ID}},
+			Interaction: &types.Interaction{
+				Data: &types.InteractionData{
+					Resolved: &types.ResolvedData{
+						Members: map[types.Snowflake]types.Member{
+							rolelessID: {Roles: nil},
+						},
+					},
+				},
+			},
+		}
+
+		ok, err := c.CanModerate(rolelessID)
+		if !ok || err != nil {
+			t.Fatalf("expected roleless target moderation success without REST error, got ok=%v, err=%v", ok, err)
+		}
+	})
 }
 
