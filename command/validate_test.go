@@ -235,3 +235,38 @@ func TestValidate_ChoiceLimitsAndTypes(t *testing.T) {
 	}
 }
 
+func TestValidate_TopLevelDuplicateSubcommands(t *testing.T) {
+	cmdDupSubs := Command{
+		Name:        "test",
+		Description: "test command",
+		Subcommands: []Subcommand{
+			{Name: "view", Description: "view 1"},
+			{Name: "view", Description: "view 2"},
+		},
+	}
+	if err := Validate(cmdDupSubs); !errors.Is(err, ErrDuplicateOptionName) {
+		t.Fatalf("expected ErrDuplicateOptionName for duplicate subcommands, got %v", err)
+	}
+
+	cmdDupSubAndGroup := Command{
+		Name:        "test",
+		Description: "test command",
+		Subcommands: []Subcommand{
+			{Name: "config", Description: "sub config"},
+		},
+		SubcommandGroups: []SubcommandGroup{
+			{
+				Name:        "config",
+				Description: "group config",
+				Subcommands: []Subcommand{
+					{Name: "get", Description: "get"},
+				},
+			},
+		},
+	}
+	if err := Validate(cmdDupSubAndGroup); !errors.Is(err, ErrDuplicateOptionName) {
+		t.Fatalf("expected ErrDuplicateOptionName for collision between sub and group, got %v", err)
+	}
+}
+
+
