@@ -10,6 +10,7 @@ type Context = context.Context
 type OptionVal = context.OptionVal
 type Response = context.Response
 type ModAction = context.ModAction
+type ChannelAction = context.ChannelAction
 type TimeItem = timeutil.Item
 type Command = command.Command
 type CommandType = command.CommandType
@@ -38,6 +39,7 @@ const (
 
 	MaxTimeoutDuration = context.MaxTimeoutDuration
 	MaxBanDeleteSec    = context.MaxBanDeleteSec
+	MaxSlowmodeSeconds = context.MaxSlowmodeSeconds
 )
 
 var (
@@ -64,15 +66,19 @@ var (
 	ErrTimeoutTooLong      = context.ErrTimeoutTooLong
 	ErrTimeoutTooShort     = context.ErrTimeoutTooShort
 	ErrBanDeleteTooLong    = context.ErrBanDeleteTooLong
+	ErrInvalidChannelID    = context.ErrInvalidChannelID
+	ErrChannelNameRequired = context.ErrChannelNameRequired
+	ErrSlowmodeTooLong     = context.ErrSlowmodeTooLong
+	ErrSlowmodeNegative    = context.ErrSlowmodeNegative
 
-	Time                 = timeutil.New
-	FormatTime           = timeutil.Format
-	ParseDuration        = timeutil.ParseDuration
-	FormatDuration       = timeutil.FormatDuration
-	FormatDurationHuman  = timeutil.FormatDurationHuman
-	ErrInvalidDuration   = timeutil.ErrInvalidDuration
-	ErrEmptyDuration     = timeutil.ErrEmptyDuration
-	ErrUnknownUnit       = timeutil.ErrUnknownUnit
-	ErrInvalidTime       = timeutil.ErrInvalidTime
+	Time                = timeutil.New
+	FormatTime          = timeutil.Format
+	ParseDuration       = timeutil.ParseDuration
+	FormatDuration      = timeutil.FormatDuration
+	FormatDurationHuman = timeutil.FormatDurationHuman
+	ErrInvalidDuration  = timeutil.ErrInvalidDuration
+	ErrEmptyDuration    = timeutil.ErrEmptyDuration
+	ErrUnknownUnit      = timeutil.ErrUnknownUnit
+	ErrInvalidTime      = timeutil.ErrInvalidTime
 )
 
