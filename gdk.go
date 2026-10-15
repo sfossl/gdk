@@ -3,11 +3,14 @@ package gdk
 import (
 	"github.com/sfossl/gdk/command"
 	"github.com/sfossl/gdk/context"
+	"github.com/sfossl/gdk/util/time"
 )
 
 type Context = context.Context
 type OptionVal = context.OptionVal
 type Response = context.Response
+type ModAction = context.ModAction
+type TimeItem = timeutil.Item
 type Command = command.Command
 type CommandType = command.CommandType
 type Option = command.Option
@@ -32,6 +35,9 @@ const (
 	OptionTypeMentionable     = command.OptionTypeMentionable
 	OptionTypeNumber          = command.OptionTypeNumber
 	OptionTypeAttachment      = command.OptionTypeAttachment
+
+	MaxTimeoutDuration = context.MaxTimeoutDuration
+	MaxBanDeleteSec    = context.MaxBanDeleteSec
 )
 
 var (
@@ -52,7 +58,21 @@ var (
 	ErrCannotModerateOwner = context.ErrCannotModerateOwner
 	ErrTargetOutranksUser  = context.ErrTargetOutranksUser
 	ErrTargetOutranksBot   = context.ErrTargetOutranksBot
+	ErrInvalidTarget       = context.ErrInvalidTarget
 	ErrAlreadyResponded    = context.ErrAlreadyResponded
 	ErrNoInteraction       = context.ErrNoInteraction
+	ErrTimeoutTooLong      = context.ErrTimeoutTooLong
+	ErrTimeoutTooShort     = context.ErrTimeoutTooShort
+	ErrBanDeleteTooLong    = context.ErrBanDeleteTooLong
+
+	Time                 = timeutil.New
+	FormatTime           = timeutil.Format
+	ParseDuration        = timeutil.ParseDuration
+	FormatDuration       = timeutil.FormatDuration
+	FormatDurationHuman  = timeutil.FormatDurationHuman
+	ErrInvalidDuration   = timeutil.ErrInvalidDuration
+	ErrEmptyDuration     = timeutil.ErrEmptyDuration
+	ErrUnknownUnit       = timeutil.ErrUnknownUnit
+	ErrInvalidTime       = timeutil.ErrInvalidTime
 )
 
