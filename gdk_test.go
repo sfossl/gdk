@@ -51,3 +51,58 @@ func TestFacadeExports(t *testing.T) {
 	}
 }
 
+func TestFacadeMiddlewareExports(t *testing.T) {
+	guard := Guard(WithMessage("Guard error"))
+	cd := Cooldown([]Policy{UserCooldown("5s")}, WithCooldownAutoRespond(false))
+	req := RequireUser(1<<3, WithPermissionAutoRespond(false))
+
+	pipe := NewPipeline(guard, cd, req)
+	if pipe == nil {
+		t.Fatal("expected non-nil pipeline")
+	}
+
+	chained := Chain(guard, cd)
+	if chained == nil {
+		t.Fatal("expected non-nil chained middleware")
+	}
+
+	names := PermissionNames(1 << 3)
+	if len(names) != 1 || names[0] != "Administrator" {
+		t.Fatalf("unexpected permission names: %v", names)
+	}
+
+	store := NewCooldownStore()
+	ok, _ := store.Take("test", UserCooldown(1))
+	if !ok {
+		t.Fatal("expected initial cooldown token to be granted")
+	}
+}
+
+func TestFacadeAppExports(t *testing.T) {
+	cfg := DefaultConfig("token", 123)
+	if cfg.Token != "token" || cfg.AppID != 123 {
+		t.Fatalf("unexpected DefaultConfig: %v", cfg)
+	}
+
+	app, err := NewApp("token", 123,
+		WithMode(ModeWebhook),
+		WithAutoSync(false),
+		WithAutoDefer(true),
+		WithDevMode(true, 456),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error creating app via facade: %v", err)
+	}
+	if app.Config().Mode != ModeWebhook {
+		t.Fatalf("expected ModeWebhook, got %v", app.Config().Mode)
+	}
+	if !app.Config().DevMode || app.Config().DevGuildID != 456 {
+		t.Fatalf("expected dev mode enabled")
+	}
+
+	if ErrTokenRequired == nil || ErrAppIDRequired == nil || ErrCommandNotFound == nil {
+		t.Fatal("expected non-nil error sentinels")
+	}
+}
+
+
