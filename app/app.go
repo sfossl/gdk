@@ -310,6 +310,7 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 			return
 		}
 
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
@@ -336,11 +337,19 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 			_ = a.Handle(gdkCtx)
 		}()
 
+		deferDelay := a.config.AutoDeferDelay
+		if deferDelay <= 0 {
+			deferDelay = 2500 * time.Millisecond
+		}
+		if !a.config.AutoDefer {
+			deferDelay = 2800 * time.Millisecond
+		}
+
 		select {
 		case resp := <-gdkCtx.ResponseChannel():
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(resp)
-		case <-time.After(2500 * time.Millisecond):
+		case <-time.After(deferDelay):
 			select {
 			case resp := <-gdkCtx.ResponseChannel():
 				w.Header().Set("Content-Type", "application/json")
