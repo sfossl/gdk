@@ -15,6 +15,7 @@ var (
 	ErrEmptyDescription            = errors.New("chat input command requires description")
 	ErrDescriptionTooLong          = errors.New("command description exceeds 100 runes")
 	ErrContextMenuDescription      = errors.New("context menu commands cannot have a description")
+	ErrContextMenuOptions          = errors.New("context menu commands cannot have options or subcommands")
 	ErrSubcommandTopOptions        = errors.New("commands with subcommands cannot have top level options")
 	ErrTooManyOptions              = errors.New("command exceeds maximum of 25 options")
 	ErrTooManyChoices              = errors.New("option exceeds maximum of 25 choices")
@@ -58,6 +59,9 @@ func Validate(cmd Command) error {
 	case CommandTypeUser, CommandTypeMessage:
 		if cmd.Description != "" {
 			return ErrContextMenuDescription
+		}
+		if len(cmd.Options) > 0 || len(cmd.Subcommands) > 0 || len(cmd.SubcommandGroups) > 0 {
+			return ErrContextMenuOptions
 		}
 		return nil
 	}
