@@ -200,3 +200,12 @@ func TestEmbedUnicodeLimits(t *testing.T) {
 	}
 }
 
+func TestEmbedBuilder_WhitespaceFields(t *testing.T) {
+	if _, err := NewEmbed().AddField("   ", "valid").Build(); !errors.Is(err, ErrEmbedFieldMissingName) {
+		t.Fatalf("expected ErrEmbedFieldMissingName for whitespace-only name, got %v", err)
+	}
+	if _, err := NewEmbed().AddField("valid", "   ").Build(); !errors.Is(err, ErrEmbedFieldMissingValue) {
+		t.Fatalf("expected ErrEmbedFieldMissingValue for whitespace-only value, got %v", err)
+	}
+}
+
