@@ -2,8 +2,11 @@ package gdk
 
 import (
 	"github.com/sfossl/gdk/command"
+	"github.com/sfossl/gdk/context"
 )
 
+type Context = context.Context
+type OptionVal = context.OptionVal
 type Command = command.Command
 type CommandType = command.CommandType
 type Option = command.Option
