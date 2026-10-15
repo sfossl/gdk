@@ -2,6 +2,7 @@ package component
 
 import (
 	"errors"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -181,14 +182,14 @@ func (b *EmbedBuilder) Build() (*types.Embed, error) {
 	}
 
 	for _, f := range b.embed.Fields {
-		if f.Name == "" {
+		if strings.TrimSpace(f.Name) == "" {
 			return nil, ErrEmbedFieldMissingName
 		}
 		nameLen := utf8.RuneCountInString(f.Name)
 		if nameLen > 256 {
 			return nil, ErrEmbedFieldNameTooLong
 		}
-		if f.Value == "" {
+		if strings.TrimSpace(f.Value) == "" {
 			return nil, ErrEmbedFieldMissingValue
 		}
 		valLen := utf8.RuneCountInString(f.Value)
