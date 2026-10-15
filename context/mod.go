@@ -50,9 +50,6 @@ func (m ModAction) Ban(deleteHistory any, reason ...string) error {
 	if err != nil {
 		return err
 	}
-	if sec > MaxBanDeleteSec {
-		return ErrBanDeleteTooLong
-	}
 
 	r := strings.Join(reason, " ")
 	return m.ctx.REST.BanMember(m.ctx.Context(), *m.ctx.GuildID, m.targetID, sec, r)
@@ -100,22 +97,23 @@ func parseDeleteHistorySeconds(v any) (int, error) {
 	if v == nil {
 		return 0, nil
 	}
+	var sec int
 	switch val := v.(type) {
 	case int:
 		if val < 0 {
 			return 0, nil
 		}
-		return val, nil
+		sec = val
 	case int64:
 		if val < 0 {
 			return 0, nil
 		}
-		return int(val), nil
+		sec = int(val)
 	case time.Duration:
 		if val <= 0 {
 			return 0, nil
 		}
-		return int(val.Seconds()), nil
+		sec = int(val.Seconds())
 	case string:
 		if val == "" {
 			return 0, nil
@@ -124,10 +122,15 @@ func parseDeleteHistorySeconds(v any) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		return int(d.Seconds()), nil
+		sec = int(d.Seconds())
 	default:
 		return 0, ErrUnsupportedType
 	}
+
+	if sec > MaxBanDeleteSec {
+		return 0, ErrBanDeleteTooLong
+	}
+	return sec, nil
 }
 
 func parseTimeoutUntil(v any) (*time.Time, error) {
