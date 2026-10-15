@@ -144,3 +144,18 @@ func TestGuard_NilContextHandling(t *testing.T) {
 	}
 }
 
+func TestGuard_OnPanicCallbackPanics(t *testing.T) {
+	guard := Guard(WithPanicHandler(func(ctx *context.Context, r any, stack []byte) {
+		panic("panic inside panic telemetry hook")
+	}))
+
+	handler := guard(func(ctx *context.Context) error {
+		panic("handler panic")
+	})
+
+	err := handler(nil)
+	if !errors.Is(err, ErrPanicRecovered) {
+		t.Fatalf("expected ErrPanicRecovered, got %v", err)
+	}
+}
+
