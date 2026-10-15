@@ -17,6 +17,9 @@ func NewPipeline(middlewares ...Middleware) *Pipeline {
 }
 
 func (p *Pipeline) Use(middlewares ...Middleware) *Pipeline {
+	if p == nil {
+		return p
+	}
 	for _, m := range middlewares {
 		if m != nil {
 			p.middlewares = append(p.middlewares, m)
@@ -26,6 +29,9 @@ func (p *Pipeline) Use(middlewares ...Middleware) *Pipeline {
 }
 
 func (p *Pipeline) Clone() *Pipeline {
+	if p == nil {
+		return NewPipeline()
+	}
 	cloned := make([]Middleware, len(p.middlewares))
 	copy(cloned, p.middlewares)
 	return &Pipeline{
@@ -38,6 +44,9 @@ func (p *Pipeline) Wrap(handler Handler) Handler {
 		handler = func(ctx *context.Context) error {
 			return nil
 		}
+	}
+	if p == nil {
+		return handler
 	}
 	for i := len(p.middlewares) - 1; i >= 0; i-- {
 		handler = p.middlewares[i](handler)
