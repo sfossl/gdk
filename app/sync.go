@@ -72,21 +72,23 @@ func (a *App) SyncWithResult(ctx stdctx.Context, force ...bool) (*SyncResult, er
 	}
 
 	if !a.config.DevMode {
-		hash, err := hashCommands(globalList)
-		if err != nil {
-			return nil, err
-		}
-
-		if !forceSync && a.syncedHashes["global"] == hash {
-			result.Skipped++
-		} else {
-			_, err := a.REST.BulkOverwriteGlobalCommands(ctx, a.config.AppID, globalList)
+		if len(globalList) > 0 || a.syncedHashes["global"] != "" || forceSync {
+			hash, err := hashCommands(globalList)
 			if err != nil {
 				return nil, err
 			}
-			a.syncedHashes["global"] = hash
-			result.GlobalSynced = true
-			result.Updated++
+
+			if !forceSync && a.syncedHashes["global"] == hash {
+				result.Skipped++
+			} else {
+				_, err := a.REST.BulkOverwriteGlobalCommands(ctx, a.config.AppID, globalList)
+				if err != nil {
+					return nil, err
+				}
+				a.syncedHashes["global"] = hash
+				result.GlobalSynced = true
+				result.Updated++
+			}
 		}
 	}
 
@@ -124,13 +126,16 @@ func (a *App) SyncWithResult(ctx stdctx.Context, force ...bool) (*SyncResult, er
 
 func sortCommands(cmds []types.ApplicationCommand) {
 	sort.Slice(cmds, func(i, j int) bool {
+		if cmds[i].Name == cmds[j].Name {
+			return cmds[i].Type < cmds[j].Type
+		}
 		return cmds[i].Name < cmds[j].Name
 	})
 }
 
 func hashCommands(cmds []types.ApplicationCommand) (string, error) {
-	if len(cmds) == 0 {
-		return "", nil
+	if cmds == nil {
+		cmds = []types.ApplicationCommand{}
 	}
 	data, err := json.Marshal(cmds)
 	if err != nil {
