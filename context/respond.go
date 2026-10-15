@@ -67,11 +67,13 @@ func (c *Context) Respond(res Response) (*types.Message, error) {
 
 	flags := flagsFromEphemeral(res.Ephemeral)
 
-	if c.deferred.Load() {
+	if c.deferred.CompareAndSwap(true, false) {
 		if c.REST == nil {
+			c.deferred.Store(true)
 			return nil, ErrNoRESTClient
 		}
 		if c.Interaction == nil {
+			c.deferred.Store(true)
 			return nil, ErrNoInteraction
 		}
 		msg, err := c.REST.EditOriginalInteractionResponse(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
@@ -83,9 +85,9 @@ func (c *Context) Respond(res Response) (*types.Message, error) {
 			Files:      res.Files,
 		})
 		if err != nil {
+			c.deferred.Store(true)
 			return nil, err
 		}
-		c.deferred.Store(false)
 		return msg, nil
 	}
 
