@@ -79,13 +79,22 @@ func Validate(cmd Command) error {
 		return err
 	}
 
+	topLevelNames := make(map[string]struct{}, subCount)
 	for _, sub := range cmd.Subcommands {
+		if _, exists := topLevelNames[sub.Name]; exists {
+			return ErrDuplicateOptionName
+		}
+		topLevelNames[sub.Name] = struct{}{}
 		if err := validateSubcommand(sub); err != nil {
 			return err
 		}
 	}
 
 	for _, grp := range cmd.SubcommandGroups {
+		if _, exists := topLevelNames[grp.Name]; exists {
+			return ErrDuplicateOptionName
+		}
+		topLevelNames[grp.Name] = struct{}{}
 		if err := validateSubcommandGroup(grp); err != nil {
 			return err
 		}
