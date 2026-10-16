@@ -1,6 +1,8 @@
 package command
 
 import (
+	"time"
+
 	"github.com/sfossl/gda/types"
 )
 
@@ -8,8 +10,6 @@ type CommandType int
 
 const (
 	CommandTypeChatInput CommandType = 1
-	CommandTypeUser      CommandType = 2
-	CommandTypeMessage   CommandType = 3
 )
 
 type OptionType int
@@ -91,9 +91,7 @@ type Command struct {
 	SubcommandGroups         []SubcommandGroup
 	Handler                  any
 	AutocompleteHandler      any
-	Slash                    *bool
-	UserContext              bool
-	MsgContext               bool
-	UserContextName          string
-	MsgContextName           string
+	Permissions              types.Permission
+	GuildOnly                bool
+	Cooldown                 time.Duration
 }
