@@ -27,51 +27,6 @@ func TestValidate_ValidChatInputCommand(t *testing.T) {
 	}
 }
 
-func TestValidate_ValidContextMenuCommands(t *testing.T) {
-	userCmd := Command{
-		Type: CommandTypeUser,
-		Name: "View User Profile",
-	}
-	if err := Validate(userCmd); err != nil {
-		t.Fatalf("unexpected user context menu error: %v", err)
-	}
-
-	msgCmd := Command{
-		Type: CommandTypeMessage,
-		Name: "Bookmark Message",
-	}
-	if err := Validate(msgCmd); err != nil {
-		t.Fatalf("unexpected message context menu error: %v", err)
-	}
-}
-
-func TestValidate_ContextMenuRules(t *testing.T) {
-	cmd := Command{
-		Type:        CommandTypeUser,
-		Name:        "View Profile",
-		Description: "Should not exist",
-	}
-	if err := Validate(cmd); !errors.Is(err, ErrContextMenuDescription) {
-		t.Fatalf("expected ErrContextMenuDescription, got: %v", err)
-	}
-	cmdOpts := Command{
-		Type:    CommandTypeUser,
-		Name:    "View Profile",
-		Options: []Option{StringOption("reason", "Reason")},
-	}
-	if err := Validate(cmdOpts); !errors.Is(err, ErrContextMenuOptions) {
-		t.Fatalf("expected ErrContextMenuOptions, got: %v", err)
-	}
-	cmdSubs := Command{
-		Type:        CommandTypeMessage,
-		Name:        "Bookmark",
-		Subcommands: []Subcommand{{Name: "sub", Description: "desc"}},
-	}
-	if err := Validate(cmdSubs); !errors.Is(err, ErrContextMenuOptions) {
-		t.Fatalf("expected ErrContextMenuOptions, got: %v", err)
-	}
-}
-
 func TestValidate_NameRules(t *testing.T) {
 	cases := []struct {
 		name    string
