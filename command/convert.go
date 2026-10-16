@@ -10,12 +10,23 @@ func ToApplicationCommand(cmd Command) types.ApplicationCommand {
 		cmdType = int(CommandTypeChatInput)
 	}
 
+	dmPerm := cmd.DMPermission
+	if dmPerm == nil && cmd.GuildOnly {
+		f := false
+		dmPerm = &f
+	}
+
+	defPerm := cmd.DefaultMemberPermissions
+	if defPerm == nil && cmd.Permissions != 0 {
+		defPerm = &cmd.Permissions
+	}
+
 	appCmd := types.ApplicationCommand{
 		Name:                     cmd.Name,
 		Description:              cmd.Description,
 		Type:                     cmdType,
-		DefaultMemberPermissions: cmd.DefaultMemberPermissions,
-		DMPermission:             cmd.DMPermission,
+		DefaultMemberPermissions: defPerm,
+		DMPermission:             dmPerm,
 	}
 
 	if cmd.NSFW {
