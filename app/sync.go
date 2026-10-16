@@ -14,30 +14,9 @@ import (
 )
 
 var (
-	ErrDevGuildRequired           = errors.New("dev guild id required when dev mode is enabled")
-	ErrNoRESTClient               = errors.New("rest client is not configured")
-	ErrMaxUserContextCommands    = errors.New("maximum of 5 user context menu commands exceeded")
-	ErrMaxMessageContextCommands = errors.New("maximum of 5 message context menu commands exceeded")
+	ErrDevGuildRequired = errors.New("dev guild id required when dev mode is enabled")
+	ErrNoRESTClient     = errors.New("rest client is not configured")
 )
-
-func validateLimits(cmds []types.ApplicationCommand) error {
-	var userCount, msgCount int
-	for _, cmd := range cmds {
-		switch cmd.Type {
-		case 2:
-			userCount++
-		case 3:
-			msgCount++
-		}
-	}
-	if userCount > 5 {
-		return ErrMaxUserContextCommands
-	}
-	if msgCount > 5 {
-		return ErrMaxMessageContextCommands
-	}
-	return nil
-}
 
 type SyncResult struct {
 	GlobalSynced bool
@@ -93,15 +72,6 @@ func (a *App) SyncWithResult(ctx stdctx.Context, force ...bool) (*SyncResult, er
 			} else {
 				globalList = append(globalList, appCmd)
 			}
-		}
-	}
-
-	if err := validateLimits(globalList); err != nil {
-		return nil, err
-	}
-	for _, list := range guildMap {
-		if err := validateLimits(list); err != nil {
-			return nil, err
 		}
 	}
 
