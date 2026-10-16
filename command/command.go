@@ -91,4 +91,9 @@ type Command struct {
 	SubcommandGroups         []SubcommandGroup
 	Handler                  any
 	AutocompleteHandler      any
+	Slash                    *bool
+	UserContext              bool
+	MsgContext               bool
+	UserContextName          string
+	MsgContextName           string
 }
