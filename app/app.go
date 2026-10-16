@@ -2,12 +2,10 @@ package app
 
 import (
 	stdctx "context"
-	"crypto/ed25519"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
-	"io"
+	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -109,6 +107,27 @@ func (a *App) Use(middlewares ...middleware.Middleware) *App {
 	return a
 }
 
+func cmdKey(typ int, name string) string {
+	return strconv.Itoa(typ) + ":" + name
+}
+
+func (a *App) lookupCommand(typ int, name string) *commandEntry {
+	if typ == 0 {
+		typ = int(command.CommandTypeChatInput)
+	}
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if entry, ok := a.commands[cmdKey(typ, name)]; ok {
+		return entry
+	}
+	if entry, ok := a.commands[name]; ok {
+		if entry.cmd.Type == 0 || int(entry.cmd.Type) == typ {
+			return entry
+		}
+	}
+	return nil
+}
+
 func (a *App) RegisterCommand(cmd command.Command, handler middleware.Handler, middlewares ...middleware.Middleware) error {
 	if err := command.Validate(cmd); err != nil {
 		return err
@@ -117,16 +136,84 @@ func (a *App) RegisterCommand(cmd command.Command, handler middleware.Handler, m
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if _, exists := a.commands[cmd.Name]; exists {
-		return ErrDuplicateCommand
+	p := middleware.NewPipeline(middlewares...)
+	slashEnabled := cmd.Slash == nil || *cmd.Slash
+
+	if slashEnabled {
+		if _, exists := a.commands[cmd.Name]; exists {
+			return ErrDuplicateCommand
+		}
+		c := cmd
+		c.Type = command.CommandTypeChatInput
+		a.commands[cmd.Name] = &commandEntry{cmd: c, handler: handler, pipeline: p}
 	}
 
-	p := middleware.NewPipeline(middlewares...)
-	a.commands[cmd.Name] = &commandEntry{
-		cmd:      cmd,
-		handler:  handler,
-		pipeline: p,
+	if cmd.UserContext {
+		ucName := cmd.UserContextName
+		if ucName == "" {
+			if !slashEnabled && !cmd.MsgContext {
+				ucName = cmd.Name
+			} else {
+				tmpl := a.config.UserContextFallback
+				if tmpl == "" {
+					tmpl = "%s (User)"
+				}
+				ucName = fmt.Sprintf(tmpl, cmd.Name)
+			}
+		}
+		c := cmd
+		c.Type = command.CommandTypeUser
+		c.Name = ucName
+		c.Description = ""
+		c.Options = nil
+		c.Subcommands = nil
+		c.SubcommandGroups = nil
+		entry := &commandEntry{cmd: c, handler: handler, pipeline: p}
+
+		if _, exists := a.commands[ucName]; !exists {
+			a.commands[ucName] = entry
+		} else {
+			key := cmdKey(int(command.CommandTypeUser), ucName)
+			if _, exists := a.commands[key]; exists {
+				return ErrDuplicateCommand
+			}
+			a.commands[key] = entry
+		}
 	}
+
+	if cmd.MsgContext {
+		mcName := cmd.MsgContextName
+		if mcName == "" {
+			if !slashEnabled && !cmd.UserContext {
+				mcName = cmd.Name
+			} else {
+				tmpl := a.config.MsgContextFallback
+				if tmpl == "" {
+					tmpl = "%s (Message)"
+				}
+				mcName = fmt.Sprintf(tmpl, cmd.Name)
+			}
+		}
+		c := cmd
+		c.Type = command.CommandTypeMessage
+		c.Name = mcName
+		c.Description = ""
+		c.Options = nil
+		c.Subcommands = nil
+		c.SubcommandGroups = nil
+		entry := &commandEntry{cmd: c, handler: handler, pipeline: p}
+
+		if _, exists := a.commands[mcName]; !exists {
+			a.commands[mcName] = entry
+		} else {
+			key := cmdKey(int(command.CommandTypeMessage), mcName)
+			if _, exists := a.commands[key]; exists {
+				return ErrDuplicateCommand
+			}
+			a.commands[key] = entry
+		}
+	}
+
 	return nil
 }
 
@@ -175,6 +262,8 @@ func (a *App) Handle(ctx *context.Context) error {
 		return a.handleCommand(ctx)
 	case 3:
 		return a.handleComponent(ctx)
+	case 4:
+		return a.handleAutocomplete(ctx)
 	case 5:
 		return a.handleModal(ctx)
 	default:
@@ -191,17 +280,35 @@ func (a *App) handleCommand(ctx *context.Context) error {
 		return ErrCommandNotFound
 	}
 
-	name := ctx.Interaction.Data.Name
-	a.mu.RLock()
-	entry, ok := a.commands[name]
-	a.mu.RUnlock()
-
-	if !ok || entry == nil {
+	entry := a.lookupCommand(ctx.Interaction.Data.Type, ctx.Interaction.Data.Name)
+	if entry == nil {
 		return ErrCommandNotFound
 	}
 
 	cmdHandler := entry.pipeline.Wrap(entry.handler)
 	return a.globalPipeline.Execute(ctx, cmdHandler)
+}
+
+func (a *App) handleAutocomplete(ctx *context.Context) error {
+	if ctx.Interaction.Data == nil {
+		return ErrCommandNotFound
+	}
+
+	entry := a.lookupCommand(ctx.Interaction.Data.Type, ctx.Interaction.Data.Name)
+	if entry == nil {
+		return ErrCommandNotFound
+	}
+
+	if entry.cmd.AutocompleteHandler != nil {
+		if fn, ok := entry.cmd.AutocompleteHandler.(func(*context.Context) error); ok {
+			return fn(ctx)
+		}
+		if fn, ok := entry.cmd.AutocompleteHandler.(middleware.Handler); ok {
+			return fn(ctx)
+		}
+	}
+
+	return nil
 }
 
 func (a *App) handleComponent(ctx *context.Context) error {
@@ -265,135 +372,3 @@ func (a *App) Run(ctx stdctx.Context) error {
 	}
 }
 
-func (a *App) runGateway(ctx stdctx.Context) error {
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- a.Gateway.Connect(ctx)
-	}()
-
-	select {
-	case <-ctx.Done():
-		_ = a.Gateway.Close()
-		return ctx.Err()
-	case err := <-errCh:
-		return err
-	}
-}
-
-func (a *App) runWebhook(ctx stdctx.Context) error {
-	if a.config.PublicKey == "" {
-		return ErrPublicKeyRequired
-	}
-
-	pubKeyBytes, err := hex.DecodeString(a.config.PublicKey)
-	if err != nil || len(pubKeyBytes) != ed25519.PublicKeySize {
-		return ErrInvalidSignature
-	}
-
-	mux := http.NewServeMux()
-	mux.HandleFunc(a.config.WebhookPath, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		sigHex := r.Header.Get("X-Signature-Ed25519")
-		timestamp := r.Header.Get("X-Signature-Timestamp")
-		if sigHex == "" || timestamp == "" {
-			http.Error(w, "invalid request signature", http.StatusUnauthorized)
-			return
-		}
-
-		sig, err := hex.DecodeString(sigHex)
-		if err != nil || len(sig) != ed25519.SignatureSize {
-			http.Error(w, "invalid request signature", http.StatusUnauthorized)
-			return
-		}
-
-		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "bad request", http.StatusBadRequest)
-			return
-		}
-
-		msg := append([]byte(timestamp), body...)
-		if !ed25519.Verify(pubKeyBytes, msg, sig) {
-			http.Error(w, "invalid request signature", http.StatusUnauthorized)
-			return
-		}
-
-		var in types.Interaction
-		if err := json.Unmarshal(body, &in); err != nil {
-			http.Error(w, "bad request", http.StatusBadRequest)
-			return
-		}
-
-		bgCtx, cancel := stdctx.WithTimeout(stdctx.WithoutCancel(r.Context()), a.config.Timeout)
-		gdkCtx := context.New(bgCtx, &in, a.REST)
-
-		go func() {
-			defer cancel()
-			_ = a.Handle(gdkCtx)
-		}()
-
-		deferDelay := a.config.AutoDeferDelay
-		if deferDelay <= 0 {
-			deferDelay = 2500 * time.Millisecond
-		}
-		if !a.config.AutoDefer {
-			deferDelay = 2800 * time.Millisecond
-		}
-
-		select {
-		case resp := <-gdkCtx.ResponseChannel():
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(resp)
-		case <-time.After(deferDelay):
-			select {
-			case resp := <-gdkCtx.ResponseChannel():
-				w.Header().Set("Content-Type", "application/json")
-				_ = json.NewEncoder(w).Encode(resp)
-			default:
-				_ = gdkCtx.Defer(false)
-				w.Header().Set("Content-Type", "application/json")
-				_ = json.NewEncoder(w).Encode(types.InteractionResponse{
-					Type: types.CallbackTypeDeferredChannelMessageWithSource,
-				})
-			}
-		}
-	})
-
-	a.server = &http.Server{
-		Addr:    a.config.WebhookAddr,
-		Handler: mux,
-	}
-
-	errCh := make(chan error, 1)
-	go func() {
-		if err := a.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			errCh <- err
-		}
-	}()
-
-	select {
-	case <-ctx.Done():
-		shutdownCtx, cancel := stdctx.WithTimeout(stdctx.Background(), 5*time.Second)
-		defer cancel()
-		return a.server.Shutdown(shutdownCtx)
-	case err := <-errCh:
-		return err
-	}
-}
-
-func (a *App) Close() error {
-	if a.server != nil {
-		ctx, cancel := stdctx.WithTimeout(stdctx.Background(), 5*time.Second)
-		defer cancel()
-		_ = a.server.Shutdown(ctx)
-	}
-	if a.Gateway != nil {
-		_ = a.Gateway.Close()
-	}
-	return nil
-}
