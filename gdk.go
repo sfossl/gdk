@@ -1,6 +1,7 @@
 package gdk
 
 import (
+	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/app"
 	"github.com/sfossl/gdk/command"
 	"github.com/sfossl/gdk/component"
@@ -8,6 +9,19 @@ import (
 	"github.com/sfossl/gdk/middleware"
 	"github.com/sfossl/gdk/util/time"
 )
+
+type Snowflake = types.Snowflake
+type Permission = types.Permission
+type Intent = types.Intent
+type Embed = types.Embed
+type Component = types.Component
+type Message = types.Message
+type User = types.User
+type Member = types.Member
+type Role = types.Role
+type Channel = types.Channel
+type Guild = types.Guild
+type ReadyEvent = types.ReadyEvent
 
 type App = app.App
 type Config = app.Config
@@ -56,8 +70,6 @@ const (
 	ModeWebhook = app.ModeWebhook
 
 	CommandTypeChatInput = command.CommandTypeChatInput
-	CommandTypeUser      = command.CommandTypeUser
-	CommandTypeMessage   = command.CommandTypeMessage
 
 	OptionTypeSubcommand      = command.OptionTypeSubcommand
 	OptionTypeSubcommandGroup = command.OptionTypeSubcommandGroup
@@ -113,6 +125,24 @@ const (
 
 	TargetUser = middleware.TargetUser
 	TargetBot  = middleware.TargetBot
+
+	PermissionAdministrator         = types.PermissionAdministrator
+	PermissionManageGuild           = types.PermissionManageGuild
+	PermissionManageRoles           = types.PermissionManageRoles
+	PermissionManageChannels        = types.PermissionManageChannels
+	PermissionKickMembers           = types.PermissionKickMembers
+	PermissionBanMembers            = types.PermissionBanMembers
+	PermissionModerateMembers       = types.PermissionModerateMembers
+	PermissionManageMessages        = types.PermissionManageMessages
+	PermissionSendMessages          = types.PermissionSendMessages
+	PermissionViewChannel           = types.PermissionViewChannel
+
+	IntentGuilds                    = types.IntentGuilds
+	IntentGuildMembers              = types.IntentGuildMembers
+	IntentGuildMessages             = types.IntentGuildMessages
+	IntentMessageContent            = types.IntentMessageContent
+	IntentsDefault                  = types.IntentsDefault
+	IntentsNonPrivileged            = types.IntentsNonPrivileged
 )
 
 var (
