@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -353,7 +354,7 @@ func TestApp_WebhookVerification(t *testing.T) {
 	}
 
 	body := []byte(`{"type":1}`)
-	timestamp := "1600000000"
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	msg := append([]byte(timestamp), body...)
 	sig := ed25519.Sign(priv, msg)
 	sigHex := hex.EncodeToString(sig)
@@ -368,6 +369,16 @@ func TestApp_WebhookVerification(t *testing.T) {
 			sHex := r.Header.Get("X-Signature-Ed25519")
 			ts := r.Header.Get("X-Signature-Timestamp")
 			if sHex == "" || ts == "" {
+				http.Error(w, "invalid request signature", http.StatusUnauthorized)
+				return
+			}
+			sec, err := strconv.ParseInt(ts, 10, 64)
+			if err != nil {
+				http.Error(w, "invalid request signature", http.StatusUnauthorized)
+				return
+			}
+			diff := time.Since(time.Unix(sec, 0))
+			if diff < -5*time.Minute || diff > 5*time.Minute {
 				http.Error(w, "invalid request signature", http.StatusUnauthorized)
 				return
 			}
