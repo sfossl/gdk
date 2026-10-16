@@ -4,7 +4,9 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
+	"time"
 
+	"github.com/sfossl/gda/gateway"
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
 )
@@ -13,6 +15,7 @@ type Context struct {
 	ctx             context.Context
 	Interaction     *types.Interaction
 	REST            *rest.Client
+	Gateway         *gateway.Client
 	ID              types.Snowflake
 	AppID           types.Snowflake
 	GuildID         *types.Snowflake
@@ -126,4 +129,11 @@ func (c *Context) Get(key string) any {
 	c.storeMu.RLock()
 	defer c.storeMu.RUnlock()
 	return c.store[key]
+}
+
+func (c *Context) Latency() time.Duration {
+	if c.Gateway != nil {
+		return c.Gateway.Latency()
+	}
+	return 0
 }
