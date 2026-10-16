@@ -69,6 +69,16 @@ func TestStress_WebhookTamperingAndVerification(t *testing.T) {
 			http.Error(w, "invalid request signature", http.StatusUnauthorized)
 			return
 		}
+		sec, err := strconv.ParseInt(timestamp, 10, 64)
+		if err != nil {
+			http.Error(w, "invalid request signature", http.StatusUnauthorized)
+			return
+		}
+		diff := time.Since(time.Unix(sec, 0))
+		if diff < -5*time.Minute || diff > 5*time.Minute {
+			http.Error(w, "invalid request signature", http.StatusUnauthorized)
+			return
+		}
 		sig, err := hex.DecodeString(sigHex)
 		if err != nil || len(sig) != ed25519.SignatureSize {
 			http.Error(w, "invalid request signature", http.StatusUnauthorized)
@@ -101,7 +111,7 @@ func TestStress_WebhookTamperingAndVerification(t *testing.T) {
 	var wg sync.WaitGroup
 
 	for i := 0; i < iterations; i++ {
-		wg.Add(3)
+		wg.Add(4)
 
 		go func() {
 			defer wg.Done()
@@ -134,6 +144,17 @@ func TestStress_WebhookTamperingAndVerification(t *testing.T) {
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil || resp.StatusCode != http.StatusUnauthorized {
 				t.Errorf("expected 401 for tampered body, got: %v", resp.StatusCode)
+			}
+		}()
+
+		go func() {
+			defer wg.Done()
+			req, _ := http.NewRequest(http.MethodPost, ts.URL+"/interactions", bytes.NewReader(inBytes))
+			req.Header.Set("X-Signature-Ed25519", validSig)
+			req.Header.Set("X-Signature-Timestamp", "1600000000")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil || resp.StatusCode != http.StatusUnauthorized {
+				t.Errorf("expected 401 for stale timestamp replay, got: %v", resp.StatusCode)
 			}
 		}()
 	}
@@ -308,4 +329,50 @@ func TestStress_AppErrAndLifecycle(t *testing.T) {
 		t.Fatalf("expected Run to return initErr %v, got %v", app.Err(), err)
 	}
 }
+
+func TestStress_AutocompleteDispatch(t *testing.T) {
+	app, _ := New("token", types.Snowflake(1))
+
+	var handled bool
+	app.Command(command.Command{
+		Name:        "search",
+		Description: "search query",
+		AutocompleteHandler: func(ctx *context.Context) error {
+			handled = true
+			return ctx.Autocomplete([]types.Choice{
+				{Name: "Option A", Value: "opt_a"},
+				{Name: "Option B", Value: "opt_b"},
+			})
+		},
+	}, nil)
+
+	in := &types.Interaction{
+		ID:    1,
+		Token: "tok",
+		Type:  4,
+		Data: &types.InteractionData{
+			Name: "search",
+		},
+	}
+	ctx := context.New(stdctx.Background(), in, nil)
+	if err := app.Handle(ctx); err != nil {
+		t.Fatalf("unexpected autocomplete handle error: %v", err)
+	}
+	if !handled {
+		t.Fatal("expected autocomplete handler to be called")
+	}
+
+	select {
+	case resp := <-ctx.ResponseChannel():
+		if resp.Type != types.CallbackTypeApplicationCommandAutocompleteResult {
+			t.Fatalf("expected callback type 8, got %v", resp.Type)
+		}
+		if len(resp.Data.Choices) != 2 {
+			t.Fatalf("expected 2 choices, got %d", len(resp.Data.Choices))
+		}
+	default:
+		t.Fatal("expected autocomplete response on channel")
+	}
+}
+
 
