@@ -45,8 +45,6 @@ type Config struct {
 	WebhookAddr         string
 	WebhookPath         string
 	PublicKey           string
-	UserContextFallback string
-	MsgContextFallback  string
 }
 
 func DefaultConfig(token string, appID types.Snowflake) Config {
@@ -62,8 +60,6 @@ func DefaultConfig(token string, appID types.Snowflake) Config {
 		Timeout:             14*time.Minute + 50*time.Second,
 		WebhookAddr:         ":8080",
 		WebhookPath:         "/interactions",
-		UserContextFallback: "%s (User)",
-		MsgContextFallback:  "%s (Message)",
 	}
 }
 
