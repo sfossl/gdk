@@ -3,9 +3,7 @@ package app
 import (
 	stdctx "context"
 	"errors"
-	"fmt"
 	"net/http"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -92,6 +90,7 @@ func New(token string, appID types.Snowflake, opts ...Option) (*App, error) {
 func (a *App) initDispatcher() {
 	a.Dispatcher.OnInteractionCreate(func(ctx stdctx.Context, in *types.Interaction) {
 		gdkCtx := context.NewGatewayContext(ctx, in, a.REST)
+		gdkCtx.Gateway = a.Gateway
 		_ = a.Handle(gdkCtx)
 	})
 }
@@ -107,25 +106,10 @@ func (a *App) Use(middlewares ...middleware.Middleware) *App {
 	return a
 }
 
-func cmdKey(typ int, name string) string {
-	return strconv.Itoa(typ) + ":" + name
-}
-
 func (a *App) lookupCommand(typ int, name string) *commandEntry {
-	if typ == 0 {
-		typ = int(command.CommandTypeChatInput)
-	}
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	if entry, ok := a.commands[cmdKey(typ, name)]; ok {
-		return entry
-	}
-	if entry, ok := a.commands[name]; ok {
-		if entry.cmd.Type == 0 || int(entry.cmd.Type) == typ {
-			return entry
-		}
-	}
-	return nil
+	return a.commands[name]
 }
 
 func (a *App) RegisterCommand(cmd command.Command, handler middleware.Handler, middlewares ...middleware.Middleware) error {
@@ -136,83 +120,22 @@ func (a *App) RegisterCommand(cmd command.Command, handler middleware.Handler, m
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
+	if _, exists := a.commands[cmd.Name]; exists {
+		return ErrDuplicateCommand
+	}
+
+	if cmd.Cooldown > 0 {
+		middlewares = append([]middleware.Middleware{
+			middleware.Cooldown([]middleware.Policy{
+				middleware.UserCooldown(cmd.Cooldown),
+			}),
+		}, middlewares...)
+	}
+
 	p := middleware.NewPipeline(middlewares...)
-	slashEnabled := cmd.Slash == nil || *cmd.Slash
-
-	if slashEnabled {
-		if _, exists := a.commands[cmd.Name]; exists {
-			return ErrDuplicateCommand
-		}
-		c := cmd
-		c.Type = command.CommandTypeChatInput
-		a.commands[cmd.Name] = &commandEntry{cmd: c, handler: handler, pipeline: p}
-	}
-
-	if cmd.UserContext {
-		ucName := cmd.UserContextName
-		if ucName == "" {
-			if !slashEnabled && !cmd.MsgContext {
-				ucName = cmd.Name
-			} else {
-				tmpl := a.config.UserContextFallback
-				if tmpl == "" {
-					tmpl = "%s (User)"
-				}
-				ucName = fmt.Sprintf(tmpl, cmd.Name)
-			}
-		}
-		c := cmd
-		c.Type = command.CommandTypeUser
-		c.Name = ucName
-		c.Description = ""
-		c.Options = nil
-		c.Subcommands = nil
-		c.SubcommandGroups = nil
-		entry := &commandEntry{cmd: c, handler: handler, pipeline: p}
-
-		if _, exists := a.commands[ucName]; !exists {
-			a.commands[ucName] = entry
-		} else {
-			key := cmdKey(int(command.CommandTypeUser), ucName)
-			if _, exists := a.commands[key]; exists {
-				return ErrDuplicateCommand
-			}
-			a.commands[key] = entry
-		}
-	}
-
-	if cmd.MsgContext {
-		mcName := cmd.MsgContextName
-		if mcName == "" {
-			if !slashEnabled && !cmd.UserContext {
-				mcName = cmd.Name
-			} else {
-				tmpl := a.config.MsgContextFallback
-				if tmpl == "" {
-					tmpl = "%s (Message)"
-				}
-				mcName = fmt.Sprintf(tmpl, cmd.Name)
-			}
-		}
-		c := cmd
-		c.Type = command.CommandTypeMessage
-		c.Name = mcName
-		c.Description = ""
-		c.Options = nil
-		c.Subcommands = nil
-		c.SubcommandGroups = nil
-		entry := &commandEntry{cmd: c, handler: handler, pipeline: p}
-
-		if _, exists := a.commands[mcName]; !exists {
-			a.commands[mcName] = entry
-		} else {
-			key := cmdKey(int(command.CommandTypeMessage), mcName)
-			if _, exists := a.commands[key]; exists {
-				return ErrDuplicateCommand
-			}
-			a.commands[key] = entry
-		}
-	}
+	c := cmd
+	c.Type = command.CommandTypeChatInput
+	a.commands[cmd.Name] = &commandEntry{cmd: c, handler: handler, pipeline: p}
 
 	return nil
 }
