@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/sfossl/gda/types"
@@ -41,24 +42,28 @@ type Config struct {
 	AutoDeferDelay time.Duration
 	AutoSync       bool
 	Timeout        time.Duration
-	WebhookAddr    string
-	WebhookPath    string
-	PublicKey      string
+	WebhookAddr         string
+	WebhookPath         string
+	PublicKey           string
+	UserContextFallback string
+	MsgContextFallback  string
 }
 
 func DefaultConfig(token string, appID types.Snowflake) Config {
 	return Config{
-		Token:          token,
-		AppID:          appID,
-		Mode:           ModeGateway,
-		Intents:        types.IntentsDefault,
-		DevMode:        false,
-		AutoDefer:      true,
-		AutoDeferDelay: 2500 * time.Millisecond,
-		AutoSync:       false,
-		Timeout:        14*time.Minute + 50*time.Second,
-		WebhookAddr:    ":8080",
-		WebhookPath:    "/interactions",
+		Token:               token,
+		AppID:               appID,
+		Mode:                ModeGateway,
+		Intents:             types.IntentsDefault,
+		DevMode:             false,
+		AutoDefer:           true,
+		AutoDeferDelay:      2500 * time.Millisecond,
+		AutoSync:            false,
+		Timeout:             14*time.Minute + 50*time.Second,
+		WebhookAddr:         ":8080",
+		WebhookPath:         "/interactions",
+		UserContextFallback: "%s (User)",
+		MsgContextFallback:  "%s (Message)",
 	}
 }
 
@@ -70,6 +75,15 @@ func (c Config) Validate() error {
 		return ErrAppIDRequired
 	}
 	return nil
+}
+
+func (c Config) String() string {
+	redacted := "[REDACTED]"
+	if c.Token == "" {
+		redacted = "[EMPTY]"
+	}
+	return fmt.Sprintf("Config{Token:%s, AppID:%s, Mode:%s, Intents:%d}",
+		redacted, c.AppID, c.Mode, c.Intents)
 }
 
 type Option func(*Config)
