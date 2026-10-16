@@ -14,8 +14,6 @@ var (
 	ErrEmptyName                   = errors.New("command name cannot be empty")
 	ErrEmptyDescription            = errors.New("chat input command requires description")
 	ErrDescriptionTooLong          = errors.New("command description exceeds 100 runes")
-	ErrContextMenuDescription      = errors.New("context menu commands cannot have a description")
-	ErrContextMenuOptions          = errors.New("context menu commands cannot have options or subcommands")
 	ErrSubcommandTopOptions        = errors.New("commands with subcommands cannot have top level options")
 	ErrTooManyOptions              = errors.New("command exceeds maximum of 25 options")
 	ErrTooManyChoices              = errors.New("option exceeds maximum of 25 choices")
@@ -27,17 +25,9 @@ var (
 	ErrRequiredOptionAfterOptional = errors.New("required options must precede optional options")
 	ErrDuplicateOptionName         = errors.New("option names must be unique within a command")
 	ErrDuplicateChoiceName         = errors.New("choice names must be unique within an option")
-	ErrContextMenuSubcommands      = errors.New("context menus require a root handler when subcommands are present")
-	ErrContextMenuNameTooLong      = errors.New("context menu name exceeds 32 runes")
-	ErrNoCommandTypeEnabled        = errors.New("command must have at least one execution type enabled")
 )
 
 func Validate(cmd Command) error {
-	slashEnabled := cmd.Slash == nil || *cmd.Slash
-	if !slashEnabled && !cmd.UserContext && !cmd.MsgContext && cmd.Type == 0 {
-		return ErrNoCommandTypeEnabled
-	}
-
 	nameLen := utf8.RuneCountInString(cmd.Name)
 	if nameLen == 0 {
 		return ErrEmptyName
@@ -45,52 +35,15 @@ func Validate(cmd Command) error {
 	if nameLen > 32 {
 		return ErrNameTooLong
 	}
-
-	if cmd.UserContextName != "" && utf8.RuneCountInString(cmd.UserContextName) > 32 {
-		return ErrContextMenuNameTooLong
+	if !chatInputNamePattern.MatchString(cmd.Name) {
+		return ErrInvalidName
 	}
-	if cmd.MsgContextName != "" && utf8.RuneCountInString(cmd.MsgContextName) > 32 {
-		return ErrContextMenuNameTooLong
+	descLen := utf8.RuneCountInString(cmd.Description)
+	if descLen == 0 {
+		return ErrEmptyDescription
 	}
-
-	if (cmd.UserContext || cmd.MsgContext) && (len(cmd.Subcommands) > 0 || len(cmd.SubcommandGroups) > 0) && cmd.Handler == nil {
-		return ErrContextMenuSubcommands
-	}
-
-	cmdType := cmd.Type
-	if cmdType == 0 {
-		if slashEnabled {
-			cmdType = CommandTypeChatInput
-		} else if cmd.UserContext {
-			cmdType = CommandTypeUser
-		} else if cmd.MsgContext {
-			cmdType = CommandTypeMessage
-		}
-	}
-
-	switch cmdType {
-	case CommandTypeChatInput:
-		if slashEnabled {
-			if !chatInputNamePattern.MatchString(cmd.Name) {
-				return ErrInvalidName
-			}
-			descLen := utf8.RuneCountInString(cmd.Description)
-			if descLen == 0 {
-				return ErrEmptyDescription
-			}
-			if descLen > 100 {
-				return ErrDescriptionTooLong
-			}
-		}
-
-	case CommandTypeUser, CommandTypeMessage:
-		if cmd.Description != "" {
-			return ErrContextMenuDescription
-		}
-		if len(cmd.Options) > 0 || len(cmd.Subcommands) > 0 || len(cmd.SubcommandGroups) > 0 {
-			return ErrContextMenuOptions
-		}
-		return nil
+	if descLen > 100 {
+		return ErrDescriptionTooLong
 	}
 
 	subCount := len(cmd.Subcommands) + len(cmd.SubcommandGroups)
