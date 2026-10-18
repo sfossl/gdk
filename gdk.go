@@ -15,6 +15,7 @@ type Permission = types.Permission
 type Intent = types.Intent
 type Embed = types.Embed
 type Component = types.Component
+type ComponentType = types.ComponentType
 type Message = types.Message
 type User = types.User
 type Member = types.Member
@@ -22,6 +23,12 @@ type Role = types.Role
 type Channel = types.Channel
 type Guild = types.Guild
 type ReadyEvent = types.ReadyEvent
+type Interaction = types.Interaction
+type InteractionData = types.InteractionData
+type InteractionResponse = types.InteractionResponse
+type InteractionResponseData = types.InteractionResponseData
+type InteractionType = types.InteractionType
+type InteractionCallbackType = types.InteractionCallbackType
 
 type App = app.App
 type Config = app.Config
@@ -32,6 +39,7 @@ type SyncResult = app.SyncResult
 type Context = context.Context
 type OptionVal = context.OptionVal
 type Response = context.Response
+type Modal = context.Modal
 type ModAction = context.ModAction
 type ChannelAction = context.ChannelAction
 type RoleAction = context.RoleAction
@@ -53,6 +61,7 @@ type Middleware = middleware.Middleware
 type PanicHandler = middleware.PanicHandler
 type GuardConfig = middleware.GuardConfig
 type GuardOption = middleware.GuardOption
+type CooldownScope = command.CooldownScope
 type Scope = middleware.Scope
 type Policy = middleware.Policy
 type CooldownStore = middleware.CooldownStore
@@ -118,6 +127,11 @@ const (
 	MaxSelectsPerRow    = component.MaxSelectsPerRow
 	MaxTextInputsPerRow = component.MaxTextInputsPerRow
 
+	CooldownScopeUser    = command.CooldownScopeUser
+	CooldownScopeChannel = command.CooldownScopeChannel
+	CooldownScopeGuild   = command.CooldownScopeGuild
+	CooldownScopeGlobal  = command.CooldownScopeGlobal
+
 	ScopeUser    = middleware.ScopeUser
 	ScopeChannel = middleware.ScopeChannel
 	ScopeGuild   = middleware.ScopeGuild
@@ -143,6 +157,29 @@ const (
 	IntentMessageContent            = types.IntentMessageContent
 	IntentsDefault                  = types.IntentsDefault
 	IntentsNonPrivileged            = types.IntentsNonPrivileged
+
+	InteractionTypePing                           = types.InteractionTypePing
+	InteractionTypeApplicationCommand             = types.InteractionTypeApplicationCommand
+	InteractionTypeMessageComponent               = types.InteractionTypeMessageComponent
+	InteractionTypeApplicationCommandAutocomplete = types.InteractionTypeApplicationCommandAutocomplete
+	InteractionTypeModalSubmit                    = types.InteractionTypeModalSubmit
+
+	CallbackTypePong                                    = types.CallbackTypePong
+	CallbackTypeChannelMessageWithSource                = types.CallbackTypeChannelMessageWithSource
+	CallbackTypeDeferredChannelMessageWithSource        = types.CallbackTypeDeferredChannelMessageWithSource
+	CallbackTypeDeferredUpdateMessage                   = types.CallbackTypeDeferredUpdateMessage
+	CallbackTypeUpdateMessage                           = types.CallbackTypeUpdateMessage
+	CallbackTypeApplicationCommandAutocompleteResult    = types.CallbackTypeApplicationCommandAutocompleteResult
+	CallbackTypeModal                                   = types.CallbackTypeModal
+
+	ComponentTypeActionRow         = types.ComponentTypeActionRow
+	ComponentTypeButton            = types.ComponentTypeButton
+	ComponentTypeStringSelect      = types.ComponentTypeStringSelect
+	ComponentTypeTextInput         = types.ComponentTypeTextInput
+	ComponentTypeUserSelect        = types.ComponentTypeUserSelect
+	ComponentTypeRoleSelect        = types.ComponentTypeRoleSelect
+	ComponentTypeMentionableSelect = types.ComponentTypeMentionableSelect
+	ComponentTypeChannelSelect     = types.ComponentTypeChannelSelect
 )
 
 var (
@@ -165,6 +202,7 @@ var (
 	ErrTargetOutranksBot        = context.ErrTargetOutranksBot
 	ErrInvalidTarget            = context.ErrInvalidTarget
 	ErrAlreadyResponded         = context.ErrAlreadyResponded
+	ErrModalAfterDefer          = context.ErrModalAfterDefer
 	ErrNoInteraction            = context.ErrNoInteraction
 	ErrTimeoutTooLong           = context.ErrTimeoutTooLong
 	ErrTimeoutTooShort          = context.ErrTimeoutTooShort
