@@ -182,9 +182,6 @@ func (i Item) Discord(style ...string) string {
 }
 
 func (i Item) Human() string {
-	if i.isDur {
-		return FormatDurationHuman(i.duration)
-	}
 	return FormatDurationHuman(i.duration)
 }
 
