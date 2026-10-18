@@ -101,18 +101,18 @@ func (b *EmbedBuilder) SetFooter(text string, iconURL ...string) *EmbedBuilder {
 	return b
 }
 
-func (b *EmbedBuilder) SetAuthor(name string, iconURL ...string) *EmbedBuilder {
-	var icon, url string
-	if len(iconURL) > 0 {
-		icon = iconURL[0]
+func (b *EmbedBuilder) SetAuthor(name string, urls ...string) *EmbedBuilder {
+	var url, icon string
+	if len(urls) > 0 {
+		url = urls[0]
 	}
-	if len(iconURL) > 1 {
-		url = iconURL[1]
+	if len(urls) > 1 {
+		icon = urls[1]
 	}
 	b.embed.Author = &types.EmbedAuthor{
 		Name:    name,
-		IconURL: icon,
 		URL:     url,
+		IconURL: icon,
 	}
 	return b
 }
