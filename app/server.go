@@ -2,8 +2,6 @@ package app
 
 import (
 	stdctx "context"
-	"crypto/ed25519"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -11,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/sfossl/gda/interaction"
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/context"
 )
@@ -35,8 +34,8 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 		return ErrPublicKeyRequired
 	}
 
-	pubKeyBytes, err := hex.DecodeString(a.config.PublicKey)
-	if err != nil || len(pubKeyBytes) != ed25519.PublicKeySize {
+	pubKey, err := interaction.ParsePublicKey(a.config.PublicKey)
+	if err != nil {
 		return ErrInvalidSignature
 	}
 
@@ -65,12 +64,6 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 			return
 		}
 
-		sig, err := hex.DecodeString(sigHex)
-		if err != nil || len(sig) != ed25519.SignatureSize {
-			http.Error(w, "invalid request signature", http.StatusUnauthorized)
-			return
-		}
-
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -78,8 +71,7 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 			return
 		}
 
-		msg := append([]byte(timestamp), body...)
-		if !ed25519.Verify(pubKeyBytes, msg, sig) {
+		if !interaction.VerifySignature(pubKey, sigHex, timestamp, body) {
 			http.Error(w, "invalid request signature", http.StatusUnauthorized)
 			return
 		}
@@ -98,19 +90,14 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 			_ = a.Handle(gdkCtx)
 		}()
 
-		deferDelay := a.config.AutoDeferDelay
-		if deferDelay <= 0 {
-			deferDelay = 2500 * time.Millisecond
-		}
-		if !a.config.AutoDefer {
-			deferDelay = 2800 * time.Millisecond
-		}
+		timer := time.NewTimer(2800 * time.Millisecond)
+		defer timer.Stop()
 
 		select {
 		case resp := <-gdkCtx.ResponseChannel():
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(resp)
-		case <-time.After(deferDelay):
+		case <-timer.C:
 			select {
 			case resp := <-gdkCtx.ResponseChannel():
 				w.Header().Set("Content-Type", "application/json")
@@ -122,6 +109,9 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 					Type: types.CallbackTypeDeferredChannelMessageWithSource,
 				})
 			}
+		case <-r.Context().Done():
+			cancel()
+			return
 		}
 	})
 
