@@ -15,7 +15,7 @@ func (c *Context) TargetID() types.Snowflake {
 		return sf
 	}
 	for _, opt := range c.Interaction.Data.Options {
-		if opt.Type == 6 {
+		if opt.Type == int(types.OptionTypeUser) {
 			if sf := c.Opt(opt.Name).Snowflake(); sf != 0 {
 				return sf
 			}
@@ -35,7 +35,7 @@ func (c *Context) TargetUser() *types.User {
 		return u
 	}
 	for _, opt := range c.Interaction.Data.Options {
-		if opt.Type == 6 {
+		if opt.Type == int(types.OptionTypeUser) {
 			if u := c.Opt(opt.Name).User(); u != nil {
 				return u
 			}
@@ -55,7 +55,7 @@ func (c *Context) TargetMember() *types.Member {
 		return m
 	}
 	for _, opt := range c.Interaction.Data.Options {
-		if opt.Type == 6 {
+		if opt.Type == int(types.OptionTypeUser) {
 			if m := c.Opt(opt.Name).Member(); m != nil {
 				return m
 			}
