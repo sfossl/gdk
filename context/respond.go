@@ -9,8 +9,16 @@ import (
 
 var (
 	ErrAlreadyResponded = errors.New("interaction already acknowledged")
+	ErrModalAfterDefer  = errors.New("cannot send modal after deferring")
 	ErrNoInteraction    = errors.New("interaction payload missing")
 )
+
+type Modal struct {
+	CustomID   string
+	Title      string
+	Components []types.Component
+}
+
 
 type Response struct {
 	Content    string
@@ -214,4 +222,44 @@ func (c *Context) Autocomplete(choices []types.Choice) error {
 
 	return nil
 }
+
+func (c *Context) Modal(m Modal) error {
+	if c.deferred.Load() {
+		return ErrModalAfterDefer
+	}
+	if c.responded.Load() {
+		return ErrAlreadyResponded
+	}
+	if !c.responded.CompareAndSwap(false, true) {
+		return ErrAlreadyResponded
+	}
+
+	resp := types.InteractionResponse{
+		Type: types.CallbackTypeModal,
+		Data: &types.InteractionResponseData{
+			CustomID:   m.CustomID,
+			Title:      m.Title,
+			Components: m.Components,
+		},
+	}
+
+	if !c.gatewayMode && c.responseChan != nil {
+		select {
+		case c.responseChan <- resp:
+			return nil
+		default:
+		}
+	}
+
+	if c.REST != nil && c.Interaction != nil {
+		err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
+		if err != nil {
+			c.responded.Store(false)
+			return err
+		}
+	}
+
+	return nil
+}
+
 
