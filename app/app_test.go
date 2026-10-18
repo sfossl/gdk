@@ -149,7 +149,7 @@ func TestApp_CommandRegistration(t *testing.T) {
 	}
 
 	app2.Command(validCmd, handler)
-	if _, exists := app2.commands[validCmd.Name]; exists {
+	if app2.lookupCommand(int(command.CommandTypeChatInput), validCmd.Name) != nil {
 		t.Fatal("subsequent Command calls should be skipped if initErr is present")
 	}
 }
