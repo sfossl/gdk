@@ -18,7 +18,7 @@ func TestEmbedBuilder_FluentSuccess(t *testing.T) {
 		SetColor("blurple").
 		SetTimestamp(now).
 		SetFooter("Footer Text", "https://example.com/footer.png").
-		SetAuthor("Author Name", "https://example.com/icon.png", "https://example.com/author").
+		SetAuthor("Author Name", "https://example.com/author", "https://example.com/icon.png").
 		SetImage("https://example.com/image.png").
 		SetThumbnail("https://example.com/thumb.png").
 		AddField("Field 1", "Value 1", true).
@@ -47,7 +47,7 @@ func TestEmbedBuilder_FluentSuccess(t *testing.T) {
 	if embed.Footer == nil || embed.Footer.Text != "Footer Text" || embed.Footer.IconURL != "https://example.com/footer.png" {
 		t.Fatalf("unexpected footer %v", embed.Footer)
 	}
-	if embed.Author == nil || embed.Author.Name != "Author Name" || embed.Author.URL != "https://example.com/author" {
+	if embed.Author == nil || embed.Author.Name != "Author Name" || embed.Author.URL != "https://example.com/author" || embed.Author.IconURL != "https://example.com/icon.png" {
 		t.Fatalf("unexpected author %v", embed.Author)
 	}
 	if embed.Image == nil || embed.Image.URL != "https://example.com/image.png" {
