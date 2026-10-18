@@ -183,6 +183,8 @@ const (
 )
 
 var (
+	ParseSnowflake = types.ParseSnowflake
+
 	StringOption      = command.StringOption
 	IntOption         = command.IntOption
 	NumberOption      = command.NumberOption
