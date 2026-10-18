@@ -130,8 +130,9 @@ type bucket struct {
 }
 
 type shard struct {
-	mu      sync.Mutex
-	buckets map[string]*bucket
+	mu        sync.Mutex
+	buckets   map[string]*bucket
+	lastSweep time.Time
 }
 
 const shardCount = 64
@@ -176,7 +177,8 @@ func (s *CooldownStore) Take(key string, policy Policy) (bool, time.Duration) {
 
 	now := time.Now()
 
-	if len(sh.buckets) > 32 {
+	if len(sh.buckets) > 32 || (!sh.lastSweep.IsZero() && now.Sub(sh.lastSweep) >= time.Minute) || (sh.lastSweep.IsZero() && len(sh.buckets) > 0) {
+		sh.lastSweep = now
 		for k, b := range sh.buckets {
 			if now.Sub(b.lastRefill) >= b.duration {
 				delete(sh.buckets, k)
