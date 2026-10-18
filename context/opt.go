@@ -280,7 +280,7 @@ func (c *Context) Opt(name string) OptionVal {
 func extractLeafOptions(opts []types.ApplicationCommandOption, res *types.ResolvedData, target map[string]OptionVal) {
 	for _, opt := range opts {
 		switch opt.Type {
-		case 1, 2:
+		case int(types.OptionTypeSubcommand), int(types.OptionTypeSubcommandGroup):
 			extractLeafOptions(opt.Options, res, target)
 		default:
 			target[opt.Name] = OptionVal{
@@ -291,4 +291,3 @@ func extractLeafOptions(opts []types.ApplicationCommandOption, res *types.Resolv
 		}
 	}
 }
-
