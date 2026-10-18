@@ -78,6 +78,15 @@ type SubcommandGroup struct {
 	Subcommands []Subcommand
 }
 
+type CooldownScope int
+
+const (
+	CooldownScopeUser CooldownScope = iota
+	CooldownScopeChannel
+	CooldownScopeGuild
+	CooldownScopeGlobal
+)
+
 type Command struct {
 	Type                     CommandType
 	Name                     string
@@ -94,4 +103,5 @@ type Command struct {
 	Permissions              types.Permission
 	GuildOnly                bool
 	Cooldown                 time.Duration
+	CooldownScope            CooldownScope
 }
