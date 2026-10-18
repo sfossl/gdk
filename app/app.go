@@ -26,6 +26,11 @@ var (
 	ErrDuplicateCommand    = errors.New("command already registered")
 )
 
+type commandKey struct {
+	name string
+	typ  int
+}
+
 type commandEntry struct {
 	cmd      command.Command
 	handler  middleware.Handler
@@ -38,7 +43,7 @@ type App struct {
 	Gateway        *gateway.Client
 	Dispatcher     *gateway.EventDispatcher
 	globalPipeline *middleware.Pipeline
-	commands       map[string]*commandEntry
+	commands       map[commandKey]*commandEntry
 	components     map[string]middleware.Handler
 	modals         map[string]middleware.Handler
 	syncedHashes   map[string]string
@@ -77,7 +82,7 @@ func New(token string, appID types.Snowflake, opts ...Option) (*App, error) {
 		Gateway:        gatewayClient,
 		Dispatcher:     dispatcher,
 		globalPipeline: middleware.NewPipeline(),
-		commands:       make(map[string]*commandEntry),
+		commands:       make(map[commandKey]*commandEntry),
 		components:     make(map[string]middleware.Handler),
 		modals:         make(map[string]middleware.Handler),
 		syncedHashes:   make(map[string]string),
@@ -107,9 +112,12 @@ func (a *App) Use(middlewares ...middleware.Middleware) *App {
 }
 
 func (a *App) lookupCommand(typ int, name string) *commandEntry {
+	if typ == 0 {
+		typ = int(command.CommandTypeChatInput)
+	}
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	return a.commands[name]
+	return a.commands[commandKey{name: name, typ: typ}]
 }
 
 func (a *App) RegisterCommand(cmd command.Command, handler middleware.Handler, middlewares ...middleware.Middleware) error {
@@ -117,25 +125,44 @@ func (a *App) RegisterCommand(cmd command.Command, handler middleware.Handler, m
 		return err
 	}
 
+	c := cmd
+	if c.Type == 0 {
+		c.Type = command.CommandTypeChatInput
+	}
+	key := commandKey{name: c.Name, typ: int(c.Type)}
+
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if _, exists := a.commands[cmd.Name]; exists {
+	if _, exists := a.commands[key]; exists {
 		return ErrDuplicateCommand
 	}
 
 	if cmd.Cooldown > 0 {
+		var scope middleware.Scope
+		switch cmd.CooldownScope {
+		case command.CooldownScopeChannel:
+			scope = middleware.ScopeChannel
+		case command.CooldownScopeGuild:
+			scope = middleware.ScopeGuild
+		case command.CooldownScopeGlobal:
+			scope = middleware.ScopeGlobal
+		default:
+			scope = middleware.ScopeUser
+		}
 		middlewares = append([]middleware.Middleware{
 			middleware.Cooldown([]middleware.Policy{
-				middleware.UserCooldown(cmd.Cooldown),
+				{
+					Scope:    scope,
+					Duration: cmd.Cooldown,
+					Burst:    1,
+				},
 			}),
 		}, middlewares...)
 	}
 
 	p := middleware.NewPipeline(middlewares...)
-	c := cmd
-	c.Type = command.CommandTypeChatInput
-	a.commands[cmd.Name] = &commandEntry{cmd: c, handler: handler, pipeline: p}
+	a.commands[key] = &commandEntry{cmd: c, handler: handler, pipeline: p}
 
 	return nil
 }
@@ -179,15 +206,15 @@ func (a *App) Handle(ctx *context.Context) error {
 	}
 
 	switch ctx.Interaction.Type {
-	case 1:
+	case types.InteractionTypePing:
 		return a.handlePing(ctx)
-	case 2:
+	case types.InteractionTypeApplicationCommand:
 		return a.handleCommand(ctx)
-	case 3:
+	case types.InteractionTypeMessageComponent:
 		return a.handleComponent(ctx)
-	case 4:
+	case types.InteractionTypeApplicationCommandAutocomplete:
 		return a.handleAutocomplete(ctx)
-	case 5:
+	case types.InteractionTypeModalSubmit:
 		return a.handleModal(ctx)
 	default:
 		return nil
