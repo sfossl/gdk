@@ -288,3 +288,57 @@ func TestRespond_ConcurrentDeferred(t *testing.T) {
 	}
 }
 
+func TestContext_Modal(t *testing.T) {
+	t.Run("success webhook", func(t *testing.T) {
+		in := &types.Interaction{ID: 100, Token: "token"}
+		c := New(context.Background(), in, nil)
+		err := c.Modal(Modal{
+			CustomID: "my_modal",
+			Title:    "Feedback",
+			Components: []types.Component{
+				{Type: types.ComponentTypeActionRow},
+			},
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !c.IsAcknowledged() {
+			t.Fatalf("expected context to be acknowledged")
+		}
+		select {
+		case res := <-c.ResponseChannel():
+			if res.Type != types.CallbackTypeModal {
+				t.Fatalf("expected modal callback, got %d", res.Type)
+			}
+			if res.Data.CustomID != "my_modal" || res.Data.Title != "Feedback" {
+				t.Fatalf("unexpected modal data: %+v", res.Data)
+			}
+		default:
+			t.Fatalf("expected response on channel")
+		}
+	})
+
+	t.Run("modal after defer", func(t *testing.T) {
+		in := &types.Interaction{ID: 100, Token: "token"}
+		c := New(context.Background(), in, nil)
+		if err := c.Defer(); err != nil {
+			t.Fatalf("unexpected defer error: %v", err)
+		}
+		if err := c.Modal(Modal{CustomID: "modal"}); !errors.Is(err, ErrModalAfterDefer) {
+			t.Fatalf("expected ErrModalAfterDefer, got %v", err)
+		}
+	})
+
+	t.Run("modal after respond", func(t *testing.T) {
+		in := &types.Interaction{ID: 100, Token: "token"}
+		c := New(context.Background(), in, nil)
+		if _, err := c.Respond(Response{Content: "hi"}); err != nil {
+			t.Fatalf("unexpected respond error: %v", err)
+		}
+		if err := c.Modal(Modal{CustomID: "modal"}); !errors.Is(err, ErrAlreadyResponded) {
+			t.Fatalf("expected ErrAlreadyResponded, got %v", err)
+		}
+	})
+}
+
+
