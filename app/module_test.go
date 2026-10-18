@@ -45,10 +45,7 @@ func TestApp_RegisterModule(t *testing.T) {
 		t.Fatal("expected module Register to be called")
 	}
 
-	app.mu.RLock()
-	_, exists := app.commands["modcmd"]
-	app.mu.RUnlock()
-	if !exists {
+	if app.lookupCommand(int(command.CommandTypeChatInput), "modcmd") == nil {
 		t.Fatal("expected command from module to be registered in app")
 	}
 
