@@ -81,11 +81,11 @@ func (c *Context) initFields(in *types.Interaction) {
 	if in.Data != nil && len(in.Data.Options) > 0 {
 		first := in.Data.Options[0]
 		switch first.Type {
-		case 1:
+		case int(types.OptionTypeSubcommand):
 			c.subcommand = first.Name
-		case 2:
+		case int(types.OptionTypeSubcommandGroup):
 			c.subcommandGroup = first.Name
-			if len(first.Options) > 0 && first.Options[0].Type == 1 {
+			if len(first.Options) > 0 && first.Options[0].Type == int(types.OptionTypeSubcommand) {
 				c.subcommand = first.Options[0].Name
 			}
 		}
