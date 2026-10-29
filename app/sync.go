@@ -41,16 +41,10 @@ func (a *App) SyncWithResult(ctx stdctx.Context, force ...bool) (*SyncResult, er
 		return nil, ErrDevGuildRequired
 	}
 
+	a.syncMu.Lock()
+	defer a.syncMu.Unlock()
+
 	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	result := &SyncResult{
-		GuildsSynced: make(map[types.Snowflake]bool),
-	}
-
-	var globalList []types.ApplicationCommand
-	guildMap := make(map[types.Snowflake][]types.ApplicationCommand)
-
 	seen := make(map[*commandEntry]bool)
 	var entries []*commandEntry
 	for _, entry := range a.commands {
@@ -59,6 +53,18 @@ func (a *App) SyncWithResult(ctx stdctx.Context, force ...bool) (*SyncResult, er
 			entries = append(entries, entry)
 		}
 	}
+	syncedHashes := make(map[string]string, len(a.syncedHashes))
+	for k, v := range a.syncedHashes {
+		syncedHashes[k] = v
+	}
+	a.mu.Unlock()
+
+	result := &SyncResult{
+		GuildsSynced: make(map[types.Snowflake]bool),
+	}
+
+	var globalList []types.ApplicationCommand
+	guildMap := make(map[types.Snowflake][]types.ApplicationCommand)
 
 	if a.config.DevMode {
 		for _, entry := range entries {
@@ -80,21 +86,23 @@ func (a *App) SyncWithResult(ctx stdctx.Context, force ...bool) (*SyncResult, er
 		sortCommands(list)
 	}
 
+	updatedHashes := make(map[string]string)
+
 	if !a.config.DevMode {
-		if len(globalList) > 0 || a.syncedHashes["global"] != "" || forceSync {
+		if len(globalList) > 0 || syncedHashes["global"] != "" || forceSync {
 			hash, err := hashCommands(globalList)
 			if err != nil {
 				return nil, err
 			}
 
-			if !forceSync && a.syncedHashes["global"] == hash {
+			if !forceSync && syncedHashes["global"] == hash {
 				result.Skipped++
 			} else {
 				_, err := a.REST.BulkOverwriteGlobalCommands(ctx, a.config.AppID, globalList)
 				if err != nil {
 					return nil, err
 				}
-				a.syncedHashes["global"] = hash
+				updatedHashes["global"] = hash
 				result.GlobalSynced = true
 				result.Updated++
 			}
@@ -117,17 +125,25 @@ func (a *App) SyncWithResult(ctx stdctx.Context, force ...bool) (*SyncResult, er
 		}
 
 		key := "guild/" + strconv.FormatUint(uint64(gid), 10)
-		if !forceSync && a.syncedHashes[key] == hash {
+		if !forceSync && syncedHashes[key] == hash {
 			result.Skipped++
 		} else {
 			_, err := a.REST.BulkOverwriteGuildCommands(ctx, a.config.AppID, gid, cmds)
 			if err != nil {
 				return nil, err
 			}
-			a.syncedHashes[key] = hash
+			updatedHashes[key] = hash
 			result.GuildsSynced[gid] = true
 			result.Updated++
 		}
+	}
+
+	if len(updatedHashes) > 0 {
+		a.mu.Lock()
+		for k, v := range updatedHashes {
+			a.syncedHashes[k] = v
+		}
+		a.mu.Unlock()
 	}
 
 	return result, nil

@@ -48,6 +48,7 @@ type App struct {
 	modals         map[string]middleware.Handler
 	syncedHashes   map[string]string
 	mu             sync.RWMutex
+	syncMu         sync.Mutex
 	running        atomic.Bool
 	initErr        error
 	server         *http.Server

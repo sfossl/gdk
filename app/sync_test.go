@@ -14,6 +14,7 @@ import (
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/command"
+	"github.com/sfossl/gdk/context"
 )
 
 func TestSync_DevGuildRequired(t *testing.T) {
@@ -208,6 +209,67 @@ func TestSync_AutoSync_Run(t *testing.T) {
 	_ = app.Run(ctx)
 	if syncCalled.Load() == 0 {
 		t.Fatal("expected AutoSync to trigger Sync during Run")
+	}
+}
+
+func TestSync_NonBlockingConcurrentHandle(t *testing.T) {
+	syncStarted := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(syncStarted)
+		time.Sleep(150 * time.Millisecond)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]types.ApplicationCommand{})
+	}))
+	defer server.Close()
+
+	app, err := New("token", 12345)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	app.REST = rest.NewClient("token", rest.WithBaseURL(server.URL))
+
+	handled := make(chan struct{})
+	cmd := command.Command{
+		Type:        command.CommandTypeChatInput,
+		Name:        "fastcmd",
+		Description: "non-blocking test",
+	}
+	_ = app.RegisterCommand(cmd, func(c *context.Context) error {
+		close(handled)
+		return nil
+	})
+
+	go func() {
+		_ = app.Sync(stdctx.Background(), true)
+	}()
+
+	select {
+	case <-syncStarted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for sync to begin")
+	}
+
+	start := time.Now()
+	in := &types.Interaction{
+		Type: types.InteractionTypeApplicationCommand,
+		Data: &types.InteractionData{
+			Name: "fastcmd",
+			Type: int(command.CommandTypeChatInput),
+		},
+	}
+	gdkCtx := context.New(stdctx.Background(), in, nil)
+	if err := app.Handle(gdkCtx); err != nil {
+		t.Fatalf("unexpected handle error: %v", err)
+	}
+
+	select {
+	case <-handled:
+	case <-time.After(50 * time.Millisecond):
+		t.Fatal("Handle was blocked by in-flight sync network call")
+	}
+
+	if time.Since(start) >= 100*time.Millisecond {
+		t.Fatalf("Handle took too long (%v), lock contention detected", time.Since(start))
 	}
 }
 
