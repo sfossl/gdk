@@ -47,6 +47,9 @@ func (c *Context) CanModerate(targetMemberID types.Snowflake) (bool, error) {
 	if invokerID != 0 && targetMemberID == invokerID {
 		return false, ErrCannotModerateSelf
 	}
+	if c.AppID != 0 && targetMemberID == c.AppID {
+		return false, ErrCannotModerateSelf
+	}
 
 	roles := guild.Roles
 	if len(roles) == 0 {
@@ -61,12 +64,6 @@ func (c *Context) CanModerate(targetMemberID types.Snowflake) (bool, error) {
 	for _, r := range roles {
 		rolePositions[r.ID] = r.Position
 	}
-
-	botMember, err := c.REST.GetGuildMember(ctx, guildID, c.AppID)
-	if err != nil {
-		return false, err
-	}
-	botMaxPos := memberMaxRolePosition(botMember.Roles, rolePositions)
 
 	var targetRoles []types.Snowflake
 	targetFound := false
@@ -89,6 +86,11 @@ func (c *Context) CanModerate(targetMemberID types.Snowflake) (bool, error) {
 	targetMaxPos := memberMaxRolePosition(targetRoles, rolePositions)
 
 	if c.AppID == 0 || c.AppID != guild.OwnerID {
+		botMember, err := c.REST.GetGuildMember(ctx, guildID, c.AppID)
+		if err != nil {
+			return false, err
+		}
+		botMaxPos := memberMaxRolePosition(botMember.Roles, rolePositions)
 		if botMaxPos <= targetMaxPos {
 			return false, ErrTargetOutranksBot
 		}

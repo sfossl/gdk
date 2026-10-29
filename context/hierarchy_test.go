@@ -251,3 +251,48 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 	})
 }
 
+func TestCanModerate_ShortCircuitsWithoutHTTP(t *testing.T) {
+	var memberCalls int
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/guilds/100" {
+			_ = json.NewEncoder(w).Encode(types.Guild{
+				ID:      types.Snowflake(100),
+				OwnerID: types.Snowflake(1),
+			})
+			return
+		}
+		memberCalls++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	guildID := types.Snowflake(100)
+	authorID := types.Snowflake(555)
+	botAppID := types.Snowflake(999)
+
+	client := rest.NewClient("test-token", rest.WithBaseURL(ts.URL))
+	c := &Context{
+		ctx:     context.Background(),
+		GuildID: &guildID,
+		AppID:   botAppID,
+		REST:    client,
+		Author:  &types.User{ID: authorID},
+	}
+
+	ok, err := c.CanModerate(authorID)
+	if ok || !errors.Is(err, ErrCannotModerateSelf) {
+		t.Fatalf("expected ErrCannotModerateSelf for author, got %v", err)
+	}
+	if memberCalls != 0 {
+		t.Fatalf("expected zero member HTTP requests when moderating author, got %d", memberCalls)
+	}
+
+	ok, err = c.CanModerate(botAppID)
+	if ok || !errors.Is(err, ErrCannotModerateSelf) {
+		t.Fatalf("expected ErrCannotModerateSelf for bot, got %v", err)
+	}
+	if memberCalls != 0 {
+		t.Fatalf("expected zero member HTTP requests when moderating bot self, got %d", memberCalls)
+	}
+}
+
