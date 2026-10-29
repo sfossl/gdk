@@ -8,6 +8,9 @@ func (c *Context) TargetID() types.Snowflake {
 	if c.Interaction == nil || c.Interaction.Data == nil {
 		return 0
 	}
+	if c.Interaction.Data.TargetID != nil && *c.Interaction.Data.TargetID != 0 {
+		return *c.Interaction.Data.TargetID
+	}
 	if sf := c.Opt("user").Snowflake(); sf != 0 {
 		return sf
 	}
@@ -28,6 +31,11 @@ func (c *Context) TargetUser() *types.User {
 	if c.Interaction == nil || c.Interaction.Data == nil {
 		return nil
 	}
+	if c.Interaction.Data.TargetID != nil && c.Interaction.Data.Resolved != nil {
+		if u, ok := c.Interaction.Data.Resolved.Users[*c.Interaction.Data.TargetID]; ok {
+			return &u
+		}
+	}
 	if u := c.Opt("user").User(); u != nil {
 		return u
 	}
@@ -47,6 +55,11 @@ func (c *Context) TargetUser() *types.User {
 func (c *Context) TargetMember() *types.Member {
 	if c.Interaction == nil || c.Interaction.Data == nil {
 		return nil
+	}
+	if c.Interaction.Data.TargetID != nil && c.Interaction.Data.Resolved != nil {
+		if m, ok := c.Interaction.Data.Resolved.Members[*c.Interaction.Data.TargetID]; ok {
+			return &m
+		}
 	}
 	if m := c.Opt("user").Member(); m != nil {
 		return m
@@ -69,4 +82,14 @@ func (c *Context) TargetUserID() types.Snowflake {
 		return u.ID
 	}
 	return c.TargetID()
+}
+
+func (c *Context) ResolvedMessage() *types.Message {
+	if c.Interaction == nil || c.Interaction.Data == nil || c.Interaction.Data.TargetID == nil || c.Interaction.Data.Resolved == nil {
+		return nil
+	}
+	if msg, ok := c.Interaction.Data.Resolved.Messages[*c.Interaction.Data.TargetID]; ok {
+		return &msg
+	}
+	return nil
 }
