@@ -51,11 +51,6 @@ func TestChannelDefaultsAndTargeting(t *testing.T) {
 	if actTarget.ID() != types.Snowflake(300) {
 		t.Fatalf("expected channel id 300, got %v", actTarget.ID())
 	}
-
-	actManage := c.ManageChannel(types.Snowflake(400))
-	if actManage.ID() != types.Snowflake(400) {
-		t.Fatalf("expected channel id 400, got %v", actManage.ID())
-	}
 }
 
 func TestChannelValidationErrors(t *testing.T) {
@@ -312,6 +307,181 @@ func TestChannelEdit(t *testing.T) {
 	}
 	if !ch.NSFW {
 		t.Fatalf("expected nsfw true")
+	}
+}
+
+func TestManageChannel_Unified(t *testing.T) {
+	var created, edited, deleted, locked, unlocked, purged bool
+	var auditReason string
+
+	c, cleanup := setupChannelTestContext(func(w http.ResponseWriter, r *http.Request) {
+		auditReason = r.Header.Get("X-Audit-Log-Reason")
+		switch {
+		case r.Method == "POST" && r.URL.Path == "/guilds/100/channels":
+			created = true
+			_ = json.NewEncoder(w).Encode(types.Channel{ID: types.Snowflake(201), Name: strPtr("created-ch")})
+		case r.Method == "PATCH" && r.URL.Path == "/channels/200":
+			edited = true
+			_ = json.NewEncoder(w).Encode(types.Channel{ID: types.Snowflake(200), Topic: strPtr("updated-topic")})
+		case r.Method == "DELETE" && r.URL.Path == "/channels/200":
+			deleted = true
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == "PUT" && r.URL.Path == "/channels/200/permissions/100":
+			locked = true
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == "DELETE" && r.URL.Path == "/channels/200/permissions/100":
+			unlocked = true
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == "GET" && r.URL.Path == "/channels/200/messages":
+			_ = json.NewEncoder(w).Encode([]types.Message{
+				{ID: types.Snowflake(1001)},
+				{ID: types.Snowflake(1002)},
+			})
+		case r.Method == "POST" && r.URL.Path == "/channels/200/messages/bulk-delete":
+			purged = true
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+	defer cleanup()
+
+	err := c.ManageChannel(ChannelOptions{
+		Type:   ChannelCreate,
+		Name:   "created-ch",
+		Reason: "create reason",
+	})
+	if err != nil || !created || auditReason != "create reason" {
+		t.Fatalf("ChannelCreate failed: err=%v, created=%v", err, created)
+	}
+
+	err = c.ManageChannel(ChannelOptions{
+		Type:   ChannelEdit,
+		Topic:  "updated-topic",
+		Reason: "edit reason",
+	})
+	if err != nil || !edited || auditReason != "edit reason" {
+		t.Fatalf("ChannelEdit failed: err=%v, edited=%v", err, edited)
+	}
+
+	err = c.ManageChannel(ChannelOptions{
+		Type:   ChannelLock,
+		Locked: true,
+	})
+	if err != nil || !locked {
+		t.Fatalf("ChannelLock (lock) failed: err=%v, locked=%v", err, locked)
+	}
+
+	err = c.ManageChannel(ChannelOptions{
+		Type:   ChannelLock,
+		Locked: false,
+	})
+	if err != nil || !unlocked {
+		t.Fatalf("ChannelLock (unlock) failed: err=%v, unlocked=%v", err, unlocked)
+	}
+
+	err = c.ManageChannel(ChannelOptions{
+		Type:       ChannelPurge,
+		PurgeCount: 2,
+		Reason:     "purge reason",
+	})
+	if err != nil || !purged || auditReason != "purge reason" {
+		t.Fatalf("ChannelPurge failed: err=%v, purged=%v", err, purged)
+	}
+
+	err = c.ManageChannel(ChannelOptions{
+		Type:       ChannelPurge,
+		PurgeCount: 1,
+	})
+	if !errors.Is(err, ErrInvalidPurgeCount) {
+		t.Fatalf("expected ErrInvalidPurgeCount, got %v", err)
+	}
+
+	err = c.ManageChannel(ChannelOptions{
+		Type:   ChannelDelete,
+		Reason: "delete reason",
+	})
+	if err != nil || !deleted || auditReason != "delete reason" {
+		t.Fatalf("ChannelDelete failed: err=%v, deleted=%v", err, deleted)
+	}
+
+	err = c.ManageChannel(ChannelOptions{
+		Type: ChannelAction(999),
+	})
+	if !errors.Is(err, ErrInvalidChannelAction) {
+		t.Fatalf("expected ErrInvalidChannelAction, got %v", err)
+	}
+}
+
+func TestManageChannel_OptionsAndShortcuts(t *testing.T) {
+	var locked, deleted bool
+	var auditReason string
+	c, cleanup := setupChannelTestContext(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "PUT" && r.URL.Path == "/channels/200/permissions/100":
+			locked = true
+			auditReason = r.Header.Get("X-Audit-Log-Reason")
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == "DELETE" && r.URL.Path == "/channels/200":
+			deleted = true
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+	defer cleanup()
+
+	err := c.ManageChannel("lock", "emergency lockdown")
+	if err != nil {
+		t.Fatalf("unexpected lock shortcut error: %v", err)
+	}
+	if !locked || auditReason != "emergency lockdown" {
+		t.Fatalf("expected locked with reason, got locked=%v reason=%s", locked, auditReason)
+	}
+
+	err = c.ManageChannel(Options{
+		Type: "delete",
+	})
+	if err != nil {
+		t.Fatalf("unexpected delete options error: %v", err)
+	}
+	if !deleted {
+		t.Fatalf("expected deleted true")
+	}
+}
+
+func TestManageChannel_PurgeSingleMessage(t *testing.T) {
+	var singleDeleted bool
+	var auditReason string
+	c, cleanup := setupChannelTestContext(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/channels/200/messages":
+			_ = json.NewEncoder(w).Encode([]types.Message{
+				{ID: types.Snowflake(5555)},
+			})
+		case r.Method == "DELETE" && r.URL.Path == "/channels/200/messages/5555":
+			singleDeleted = true
+			auditReason = r.Header.Get("X-Audit-Log-Reason")
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+	defer cleanup()
+
+	err := c.ManageChannel(Options{
+		Type:   "purge",
+		Count:  5,
+		Reason: "purge single",
+	})
+	if err != nil {
+		t.Fatalf("unexpected purge single error: %v", err)
+	}
+	if !singleDeleted {
+		t.Fatal("expected single message 5555 to be deleted via DeleteMessage")
+	}
+	if auditReason != "purge single" {
+		t.Fatalf("expected audit reason 'purge single', got '%s'", auditReason)
 	}
 }
 
