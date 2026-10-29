@@ -20,15 +20,7 @@ type Modal struct {
 }
 
 
-type Response struct {
-	Content    string
-	Embeds     []types.Embed
-	Components []types.Component
-	Files      []types.File
-	Ephemeral  bool
-	TTS        bool
-	Deferred   bool
-}
+type Response = Options
 
 func (c *Context) Defer(ephemeral ...bool) error {
 	if c.responded.Load() {
@@ -67,7 +59,33 @@ func (c *Context) Defer(ephemeral ...bool) error {
 	return nil
 }
 
-func (c *Context) Respond(res Response) (*types.Message, error) {
+func (c *Context) Respond(args ...any) (*types.Message, error) {
+	res := Options{}
+	for _, arg := range args {
+		switch v := arg.(type) {
+		case Options:
+			res = v
+		case *Options:
+			if v != nil {
+				res = *v
+			}
+		case string:
+			res.Content = v
+		case bool:
+			res.Ephemeral = v
+		case error:
+			res.Content = v.Error()
+			res.Ephemeral = true
+		case types.Embed:
+			res.Embeds = append(res.Embeds, v)
+		case []types.Embed:
+			res.Embeds = append(res.Embeds, v...)
+		case types.Component:
+			res.Components = append(res.Components, v)
+		case []types.Component:
+			res.Components = append(res.Components, v...)
+		}
+	}
 	if res.Deferred {
 		err := c.Defer(res.Ephemeral)
 		return nil, err

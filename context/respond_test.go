@@ -341,4 +341,90 @@ func TestContext_Modal(t *testing.T) {
 	})
 }
 
+func TestRespond_Tier1Shortcuts(t *testing.T) {
+	t.Run("simple string", func(t *testing.T) {
+		in := &types.Interaction{ID: 100, Token: "token"}
+		c := New(context.Background(), in, nil)
+		_, err := c.Respond("Pong!")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		select {
+		case res := <-c.ResponseChannel():
+			if res.Data == nil || res.Data.Content != "Pong!" {
+				t.Fatalf("expected Pong!, got %+v", res.Data)
+			}
+			if res.Data.Flags != 0 {
+				t.Fatalf("expected 0 flags, got %d", res.Data.Flags)
+			}
+		default:
+			t.Fatalf("expected response on channel")
+		}
+	})
+
+	t.Run("string with ephemeral bool", func(t *testing.T) {
+		in := &types.Interaction{ID: 100, Token: "token"}
+		c := New(context.Background(), in, nil)
+		_, err := c.Respond("Secret", true)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		select {
+		case res := <-c.ResponseChannel():
+			if res.Data == nil || res.Data.Content != "Secret" {
+				t.Fatalf("expected Secret, got %+v", res.Data)
+			}
+			if res.Data.Flags != types.MessageFlagEphemeral {
+				t.Fatalf("expected ephemeral flag, got %d", res.Data.Flags)
+			}
+		default:
+			t.Fatalf("expected response on channel")
+		}
+	})
+
+	t.Run("direct error", func(t *testing.T) {
+		in := &types.Interaction{ID: 100, Token: "token"}
+		c := New(context.Background(), in, nil)
+		testErr := errors.New("something broke")
+		_, err := c.Respond(testErr)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		select {
+		case res := <-c.ResponseChannel():
+			if res.Data == nil || res.Data.Content != "something broke" {
+				t.Fatalf("expected 'something broke', got %+v", res.Data)
+			}
+			if res.Data.Flags != types.MessageFlagEphemeral {
+				t.Fatalf("expected ephemeral flag, got %d", res.Data.Flags)
+			}
+		default:
+			t.Fatalf("expected response on channel")
+		}
+	})
+
+	t.Run("options struct", func(t *testing.T) {
+		in := &types.Interaction{ID: 100, Token: "token"}
+		c := New(context.Background(), in, nil)
+		_, err := c.Respond(Options{
+			Content:   "Tier 2 Options",
+			Ephemeral: true,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		select {
+		case res := <-c.ResponseChannel():
+			if res.Data == nil || res.Data.Content != "Tier 2 Options" {
+				t.Fatalf("expected 'Tier 2 Options', got %+v", res.Data)
+			}
+			if res.Data.Flags != types.MessageFlagEphemeral {
+				t.Fatalf("expected ephemeral flag, got %d", res.Data.Flags)
+			}
+		default:
+			t.Fatalf("expected response on channel")
+		}
+	})
+}
+
 
