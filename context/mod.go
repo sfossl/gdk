@@ -9,7 +9,18 @@ import (
 	"github.com/sfossl/gdk/util/time"
 )
 
+type ModType int
+
+const (
+	ModKick ModType = iota + 1
+	ModBan
+	ModUnban
+	ModTimeout
+	ModRemoveTimeout
+)
+
 var (
+	ErrInvalidModType   = errors.New("invalid moderation action type")
 	ErrTimeoutTooLong   = errors.New("timeout duration exceeds maximum 28 days")
 	ErrTimeoutTooShort  = errors.New("timeout duration must be at least 1 second")
 	ErrBanDeleteTooLong = errors.New("ban delete message duration exceeds maximum 7 days")
@@ -21,12 +32,169 @@ const (
 	MaxBanDeleteSec    = 7 * 24 * 60 * 60
 )
 
+type ModOptions struct {
+	Type           ModType
+	Target         types.Snowflake
+	Duration       any
+	DeleteMessages any
+	Reason         string
+}
+
+func parseModType(v any) ModType {
+	switch val := v.(type) {
+	case ModType:
+		return val
+	case string:
+		switch strings.ToLower(strings.TrimSpace(val)) {
+		case "kick":
+			return ModKick
+		case "ban":
+			return ModBan
+		case "unban":
+			return ModUnban
+		case "timeout":
+			return ModTimeout
+		case "removetimeout":
+			return ModRemoveTimeout
+		}
+	}
+	return 0
+}
+
+func (c *Context) Mod(args ...any) error {
+	if c.GuildID == nil {
+		return ErrNotInGuild
+	}
+	if c.REST == nil {
+		return ErrNoRESTClient
+	}
+	if len(args) == 0 {
+		return ErrInvalidModType
+	}
+
+	opts := ModOptions{}
+	switch v := args[0].(type) {
+	case ModOptions:
+		opts = v
+	case *ModOptions:
+		if v != nil {
+			opts = *v
+		}
+	case Options:
+		opts = ModOptions{
+			Type:           parseModType(v.Type),
+			Target:         v.ResolveTarget(c),
+			Duration:       v.Duration,
+			DeleteMessages: v.Duration,
+			Reason:         v.Reason,
+		}
+	case *Options:
+		if v != nil {
+			opts = ModOptions{
+				Type:           parseModType(v.Type),
+				Target:         v.ResolveTarget(c),
+				Duration:       v.Duration,
+				DeleteMessages: v.Duration,
+				Reason:         v.Reason,
+			}
+		}
+	case ModType:
+		opts.Type = v
+		for _, arg := range args[1:] {
+			switch a := arg.(type) {
+			case types.Snowflake:
+				opts.Target = a
+			case time.Duration:
+				opts.Duration = a
+			case int:
+				if opts.Type == ModBan {
+					opts.DeleteMessages = a
+				} else if opts.Type == ModTimeout {
+					opts.Duration = a
+				}
+			case string:
+				opts.Reason = a
+			}
+		}
+	case string:
+		opts.Type = parseModType(v)
+		for _, arg := range args[1:] {
+			switch a := arg.(type) {
+			case types.Snowflake:
+				opts.Target = a
+			case time.Duration:
+				opts.Duration = a
+			case int:
+				if opts.Type == ModBan {
+					opts.DeleteMessages = a
+				} else if opts.Type == ModTimeout {
+					opts.Duration = a
+				}
+			case string:
+				if opts.Type == ModTimeout && opts.Duration == nil {
+					opts.Duration = a
+				} else if opts.Type == ModBan && opts.DeleteMessages == nil && (strings.HasSuffix(a, "d") || strings.HasSuffix(a, "h") || strings.HasSuffix(a, "m") || strings.HasSuffix(a, "s")) {
+					opts.DeleteMessages = a
+				} else {
+					opts.Reason = a
+				}
+			}
+		}
+	default:
+		return ErrInvalidModType
+	}
+
+	target := opts.Target
+	if target == 0 {
+		target = c.TargetID()
+	}
+	if target == 0 {
+		return ErrInvalidTarget
+	}
+	opts.Target = target
+
+	switch opts.Type {
+	case ModKick:
+		if ok, err := c.CanModerate(opts.Target); !ok {
+			return err
+		}
+		return c.REST.KickMember(c.Context(), *c.GuildID, opts.Target, opts.Reason)
+	case ModBan:
+		if ok, err := c.CanModerate(opts.Target); !ok {
+			return err
+		}
+		sec, err := parseDeleteHistorySeconds(opts.DeleteMessages)
+		if err != nil {
+			return err
+		}
+		return c.REST.BanMember(c.Context(), *c.GuildID, opts.Target, sec, opts.Reason)
+	case ModUnban:
+		return c.REST.UnbanMember(c.Context(), *c.GuildID, opts.Target, opts.Reason)
+	case ModTimeout:
+		if ok, err := c.CanModerate(opts.Target); !ok {
+			return err
+		}
+		until, err := parseTimeoutUntil(opts.Duration)
+		if err != nil {
+			return err
+		}
+		return c.REST.TimeoutMember(c.Context(), *c.GuildID, opts.Target, until, opts.Reason)
+	case ModRemoveTimeout:
+		if ok, err := c.CanModerate(opts.Target); !ok {
+			return err
+		}
+		return c.REST.TimeoutMember(c.Context(), *c.GuildID, opts.Target, nil, opts.Reason)
+	default:
+		return ErrInvalidModType
+	}
+}
+
 type ModAction struct {
 	ctx      *Context
 	targetID types.Snowflake
 }
 
-func (c *Context) Mod(targetID types.Snowflake) ModAction {
+func (c *Context) ModAction(targetID types.Snowflake) ModAction {
 	return ModAction{
 		ctx:      c,
 		targetID: targetID,
@@ -34,63 +202,45 @@ func (c *Context) Mod(targetID types.Snowflake) ModAction {
 }
 
 func (m ModAction) Kick(reason ...string) error {
-	if ok, err := m.ctx.CanModerate(m.targetID); !ok {
-		return err
-	}
-	r := strings.Join(reason, " ")
-	return m.ctx.REST.KickMember(m.ctx.Context(), *m.ctx.GuildID, m.targetID, r)
+	return m.ctx.Mod(ModOptions{
+		Type:   ModKick,
+		Target: m.targetID,
+		Reason: strings.Join(reason, " "),
+	})
 }
 
 func (m ModAction) Ban(deleteHistory any, reason ...string) error {
-	if ok, err := m.ctx.CanModerate(m.targetID); !ok {
-		return err
-	}
-
-	sec, err := parseDeleteHistorySeconds(deleteHistory)
-	if err != nil {
-		return err
-	}
-
-	r := strings.Join(reason, " ")
-	return m.ctx.REST.BanMember(m.ctx.Context(), *m.ctx.GuildID, m.targetID, sec, r)
+	return m.ctx.Mod(ModOptions{
+		Type:           ModBan,
+		Target:         m.targetID,
+		DeleteMessages: deleteHistory,
+		Reason:         strings.Join(reason, " "),
+	})
 }
 
 func (m ModAction) Unban(reason ...string) error {
-	if m.ctx.GuildID == nil {
-		return ErrNotInGuild
-	}
-	if m.ctx.REST == nil {
-		return ErrNoRESTClient
-	}
-	if m.targetID == 0 {
-		return ErrInvalidTarget
-	}
-
-	r := strings.Join(reason, " ")
-	return m.ctx.REST.UnbanMember(m.ctx.Context(), *m.ctx.GuildID, m.targetID, r)
+	return m.ctx.Mod(ModOptions{
+		Type:   ModUnban,
+		Target: m.targetID,
+		Reason: strings.Join(reason, " "),
+	})
 }
 
 func (m ModAction) Timeout(duration any, reason ...string) error {
-	if ok, err := m.ctx.CanModerate(m.targetID); !ok {
-		return err
-	}
-
-	until, err := parseTimeoutUntil(duration)
-	if err != nil {
-		return err
-	}
-
-	r := strings.Join(reason, " ")
-	return m.ctx.REST.TimeoutMember(m.ctx.Context(), *m.ctx.GuildID, m.targetID, until, r)
+	return m.ctx.Mod(ModOptions{
+		Type:     ModTimeout,
+		Target:   m.targetID,
+		Duration: duration,
+		Reason:   strings.Join(reason, " "),
+	})
 }
 
 func (m ModAction) RemoveTimeout(reason ...string) error {
-	if ok, err := m.ctx.CanModerate(m.targetID); !ok {
-		return err
-	}
-
-	r := strings.Join(reason, " ")
-	return m.ctx.REST.TimeoutMember(m.ctx.Context(), *m.ctx.GuildID, m.targetID, nil, r)
+	return m.ctx.Mod(ModOptions{
+		Type:   ModRemoveTimeout,
+		Target: m.targetID,
+		Reason: strings.Join(reason, " "),
+	})
 }
 
 func parseDeleteHistorySeconds(v any) (int, error) {
