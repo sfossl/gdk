@@ -4,9 +4,7 @@ import (
 	stdctx "context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/sfossl/gda/interaction"
@@ -40,44 +38,14 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc(a.config.WebhookPath, func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		sigHex := r.Header.Get("X-Signature-Ed25519")
-		timestamp := r.Header.Get("X-Signature-Timestamp")
-		if sigHex == "" || timestamp == "" {
-			http.Error(w, "invalid request signature", http.StatusUnauthorized)
-			return
-		}
-
-		sec, err := strconv.ParseInt(timestamp, 10, 64)
-		if err != nil {
-			http.Error(w, "invalid request signature", http.StatusUnauthorized)
-			return
-		}
-		diff := time.Since(time.Unix(sec, 0))
-		if diff < -5*time.Minute || diff > 5*time.Minute {
-			http.Error(w, "invalid request signature", http.StatusUnauthorized)
-			return
-		}
-
-		r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, "bad request", http.StatusBadRequest)
-			return
-		}
-
-		if !interaction.VerifySignature(pubKey, sigHex, timestamp, body) {
-			http.Error(w, "invalid request signature", http.StatusUnauthorized)
-			return
-		}
-
 		var in types.Interaction
-		if err := json.Unmarshal(body, &in); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 			http.Error(w, "bad request", http.StatusBadRequest)
 			return
 		}
@@ -114,6 +82,9 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 			return
 		}
 	})
+
+	verify := interaction.VerifyMiddleware(pubKey)
+	mux.Handle(a.config.WebhookPath, verify(handler))
 
 	a.server = &http.Server{
 		Addr:    a.config.WebhookAddr,
