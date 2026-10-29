@@ -25,6 +25,8 @@ var (
 	ErrRequiredOptionAfterOptional = errors.New("required options must precede optional options")
 	ErrDuplicateOptionName         = errors.New("option names must be unique within a command")
 	ErrDuplicateChoiceName         = errors.New("choice names must be unique within an option")
+	ErrContextMenuHasDescription   = errors.New("context menu command cannot have description")
+	ErrContextMenuHasOptions       = errors.New("context menu command cannot have options")
 )
 
 func Validate(cmd Command) error {
@@ -34,6 +36,15 @@ func Validate(cmd Command) error {
 	}
 	if nameLen > 32 {
 		return ErrNameTooLong
+	}
+	if cmd.Type == CommandTypeUser || cmd.Type == CommandTypeMessage {
+		if cmd.Description != "" {
+			return ErrContextMenuHasDescription
+		}
+		if len(cmd.Options) > 0 || len(cmd.Subcommands) > 0 || len(cmd.SubcommandGroups) > 0 {
+			return ErrContextMenuHasOptions
+		}
+		return nil
 	}
 	if !chatInputNamePattern.MatchString(cmd.Name) {
 		return ErrInvalidName

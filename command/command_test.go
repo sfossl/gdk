@@ -273,4 +273,50 @@ func TestValidate_DuplicateSubcommandNames(t *testing.T) {
 	}
 }
 
+func TestValidate_ContextMenuCommands(t *testing.T) {
+	userCmd := Command{
+		Type: CommandTypeUser,
+		Name: "Get Avatar",
+	}
+	if err := Validate(userCmd); err != nil {
+		t.Fatalf("expected valid user command, got %v", err)
+	}
+
+	appCmd := ToApplicationCommand(userCmd)
+	if appCmd.Type != int(CommandTypeUser) || appCmd.Description != "" {
+		t.Fatalf("unexpected appCmd for user command: %+v", appCmd)
+	}
+
+	msgCmd := Command{
+		Type: CommandTypeMessage,
+		Name: "Pin Message",
+	}
+	if err := Validate(msgCmd); err != nil {
+		t.Fatalf("expected valid message command, got %v", err)
+	}
+
+	appMsgCmd := ToApplicationCommand(msgCmd)
+	if appMsgCmd.Type != int(CommandTypeMessage) || appMsgCmd.Description != "" {
+		t.Fatalf("unexpected appMsgCmd for message command: %+v", appMsgCmd)
+	}
+
+	invalidUserCmd := Command{
+		Type:        CommandTypeUser,
+		Name:        "Get Avatar",
+		Description: "should not have description",
+	}
+	if err := Validate(invalidUserCmd); !errors.Is(err, ErrContextMenuHasDescription) {
+		t.Fatalf("expected ErrContextMenuHasDescription, got %v", err)
+	}
+
+	invalidOptionsCmd := Command{
+		Type:    CommandTypeMessage,
+		Name:    "Pin",
+		Options: []Option{StringOption("opt", "invalid")},
+	}
+	if err := Validate(invalidOptionsCmd); !errors.Is(err, ErrContextMenuHasOptions) {
+		t.Fatalf("expected ErrContextMenuHasOptions, got %v", err)
+	}
+}
+
 

@@ -10,6 +10,8 @@ type CommandType int
 
 const (
 	CommandTypeChatInput CommandType = 1
+	CommandTypeUser      CommandType = 2
+	CommandTypeMessage   CommandType = 3
 )
 
 type OptionType int

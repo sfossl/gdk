@@ -21,9 +21,14 @@ func ToApplicationCommand(cmd Command) types.ApplicationCommand {
 		defPerm = &cmd.Permissions
 	}
 
+	desc := cmd.Description
+	if cmdType == int(CommandTypeUser) || cmdType == int(CommandTypeMessage) {
+		desc = ""
+	}
+
 	appCmd := types.ApplicationCommand{
 		Name:                     cmd.Name,
-		Description:              cmd.Description,
+		Description:              desc,
 		Type:                     cmdType,
 		DefaultMemberPermissions: defPerm,
 		DMPermission:             dmPerm,
@@ -37,15 +42,17 @@ func ToApplicationCommand(cmd Command) types.ApplicationCommand {
 		appCmd.GuildID = &cmd.GuildID
 	}
 
-	for _, grp := range cmd.SubcommandGroups {
-		appCmd.Options = append(appCmd.Options, convertSubcommandGroup(grp))
-	}
-	for _, sub := range cmd.Subcommands {
-		appCmd.Options = append(appCmd.Options, convertSubcommand(sub))
-	}
-	if len(cmd.SubcommandGroups) == 0 && len(cmd.Subcommands) == 0 {
-		for _, opt := range cmd.Options {
-			appCmd.Options = append(appCmd.Options, convertOption(opt))
+	if cmdType == int(CommandTypeChatInput) {
+		for _, grp := range cmd.SubcommandGroups {
+			appCmd.Options = append(appCmd.Options, convertSubcommandGroup(grp))
+		}
+		for _, sub := range cmd.Subcommands {
+			appCmd.Options = append(appCmd.Options, convertSubcommand(sub))
+		}
+		if len(cmd.SubcommandGroups) == 0 && len(cmd.Subcommands) == 0 {
+			for _, opt := range cmd.Options {
+				appCmd.Options = append(appCmd.Options, convertOption(opt))
+			}
 		}
 	}
 
