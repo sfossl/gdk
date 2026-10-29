@@ -177,7 +177,9 @@ func (s *CooldownStore) Take(key string, policy Policy) (bool, time.Duration) {
 
 	now := time.Now()
 
-	if len(sh.buckets) > 32 || (!sh.lastSweep.IsZero() && now.Sub(sh.lastSweep) >= time.Minute) || (sh.lastSweep.IsZero() && len(sh.buckets) > 0) {
+	if sh.lastSweep.IsZero() {
+		sh.lastSweep = now
+	} else if now.Sub(sh.lastSweep) >= time.Second || (len(sh.buckets) > 32 && now.Sub(sh.lastSweep) >= 10*time.Millisecond) {
 		sh.lastSweep = now
 		for k, b := range sh.buckets {
 			if now.Sub(b.lastRefill) >= b.duration {

@@ -247,3 +247,18 @@ func TestCooldown_AutoPruneOnTake(t *testing.T) {
 	}
 }
 
+func TestCooldown_SweepThrottlingUnderBurst(t *testing.T) {
+	store := NewCooldownStore()
+	policy := UserCooldown(time.Second)
+
+	start := time.Now()
+	for i := 0; i < 2000; i++ {
+		_, _ = store.Take("burst_user_"+strconv.Itoa(i), policy)
+	}
+	elapsed := time.Since(start)
+
+	if elapsed > 100*time.Millisecond {
+		t.Fatalf("burst of 2000 takes took too long: %v", elapsed)
+	}
+}
+
