@@ -48,14 +48,61 @@ func TestMessageDefaultsAndTargeting(t *testing.T) {
 		t.Fatalf("expected channel id 300, got %v", actCustom.ChannelID())
 	}
 
-	actManage := c.ManageMessage(types.Snowflake(600))
-	if actManage.ID() != types.Snowflake(600) {
-		t.Fatalf("expected message id 600, got %v", actManage.ID())
-	}
-
 	actTarget := c.TargetMessage()
 	if actTarget.ID() != types.Snowflake(777) {
 		t.Fatalf("expected target id 777, got %v", actTarget.ID())
+	}
+}
+
+func TestManageMessage(t *testing.T) {
+	cNoREST := &Context{ChannelID: types.Snowflake(200)}
+	if err := cNoREST.ManageMessage(MessageOptions{Type: MsgPin, MessageID: 100}); !errors.Is(err, ErrNoRESTClient) {
+		t.Fatalf("expected ErrNoRESTClient, got %v", err)
+	}
+
+	c, cleanup := setupMessageTestContext(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPut && r.URL.Path == "/channels/200/pins/100":
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodDelete && r.URL.Path == "/channels/200/pins/100":
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodDelete && r.URL.Path == "/channels/200/messages/100":
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodPost && r.URL.Path == "/channels/300/messages/100/crosspost":
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+	defer cleanup()
+
+	if err := c.ManageMessage(MessageOptions{Type: MsgPin, MessageID: 0}); !errors.Is(err, ErrInvalidMessageID) {
+		t.Fatalf("expected ErrInvalidMessageID, got %v", err)
+	}
+
+	cNoCh := &Context{REST: c.REST}
+	if err := cNoCh.ManageMessage(MessageOptions{Type: MsgPin, MessageID: 100}); !errors.Is(err, ErrInvalidChannelID) {
+		t.Fatalf("expected ErrInvalidChannelID, got %v", err)
+	}
+
+	if err := c.ManageMessage(MessageOptions{Type: MessageAction(999), MessageID: 100}); !errors.Is(err, ErrInvalidMessageAction) {
+		t.Fatalf("expected ErrInvalidMessageAction, got %v", err)
+	}
+
+	if err := c.ManageMessage(MessageOptions{Type: MsgPin, MessageID: 100}); err != nil {
+		t.Fatalf("unexpected error pinning: %v", err)
+	}
+
+	if err := c.ManageMessage(MessageOptions{Type: MsgUnpin, MessageID: 100}); err != nil {
+		t.Fatalf("unexpected error unpinning: %v", err)
+	}
+
+	if err := c.ManageMessage(MessageOptions{Type: MsgDelete, MessageID: 100}); err != nil {
+		t.Fatalf("unexpected error deleting: %v", err)
+	}
+
+	if err := c.ManageMessage(MessageOptions{Type: MsgCrosspost, MessageID: 100, ChannelID: 300}); err != nil {
+		t.Fatalf("unexpected error crossposting: %v", err)
 	}
 }
 
@@ -264,5 +311,79 @@ func TestMessageReactions(t *testing.T) {
 	}
 	if err := act.RemoveReaction("thumbsup", types.Snowflake(999)); err != nil {
 		t.Fatalf("unexpected error removing user reaction: %v", err)
+	}
+}
+
+func TestManageMessage_OptionsAndShortcuts(t *testing.T) {
+	var pinned, deleted bool
+	c, cleanup := setupMessageTestContext(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPut && r.URL.Path == "/channels/200/pins/500":
+			pinned = true
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodDelete && r.URL.Path == "/channels/200/messages/500":
+			deleted = true
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+	defer cleanup()
+
+	err := c.ManageMessage("pin", types.Snowflake(500))
+	if err != nil {
+		t.Fatalf("unexpected pin shortcut error: %v", err)
+	}
+	if !pinned {
+		t.Fatalf("expected pinned true")
+	}
+
+	err = c.ManageMessage(Options{
+		Type:    "delete",
+		Message: types.Snowflake(500),
+	})
+	if err != nil {
+		t.Fatalf("unexpected delete options error: %v", err)
+	}
+	if !deleted {
+		t.Fatalf("expected deleted true")
+	}
+}
+
+func TestManageMessage_AutoResolveTargetMessage(t *testing.T) {
+	var pinned, deleted bool
+	c, cleanup := setupMessageTestContext(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPut && r.URL.Path == "/channels/200/pins/777":
+			pinned = true
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodDelete && r.URL.Path == "/channels/200/messages/777":
+			deleted = true
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+	defer cleanup()
+
+	targetID := types.Snowflake(777)
+	c.Interaction = &types.Interaction{
+		Data: &types.InteractionData{
+			TargetID: &targetID,
+		},
+	}
+
+	if err := c.ManageMessage("pin"); err != nil {
+		t.Fatalf("unexpected error pinning context target: %v", err)
+	}
+	if !pinned {
+		t.Fatal("expected target message 777 to be pinned")
+	}
+
+	if err := c.ManageMessage(Options{Type: "delete"}); err != nil {
+		t.Fatalf("unexpected error deleting context target: %v", err)
+	}
+	if !deleted {
+		t.Fatal("expected target message 777 to be deleted")
 	}
 }
