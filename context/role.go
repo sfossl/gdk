@@ -8,35 +8,207 @@ import (
 	"github.com/sfossl/gda/types"
 )
 
+type RoleAction int
+
+const (
+	RoleCreate RoleAction = iota + 1
+	RoleEdit
+	RoleDelete
+)
+
 var (
 	ErrInvalidRoleID            = errors.New("invalid role id")
 	ErrRoleNotFound             = errors.New("role not found")
 	ErrRoleOutranksBot          = errors.New("role outranks or equals bot in role hierarchy")
 	ErrRoleOutranksUser         = errors.New("role outranks or equals user in role hierarchy")
 	ErrCannotModifyEveryoneRole = errors.New("cannot delete or modify @everyone role")
+	ErrInvalidRoleAction        = errors.New("invalid role action type")
 )
 
-type RoleAction struct {
+type RoleOptions struct {
+	Type        RoleAction
+	RoleID      types.Snowflake
+	Name        string
+	Color       int
+	Permissions *types.Permission
+	Hoist       *bool
+	Mentionable *bool
+	Reason      string
+}
+
+func parseRoleAction(v any) RoleAction {
+	switch val := v.(type) {
+	case RoleAction:
+		return val
+	case string:
+		switch strings.ToLower(strings.TrimSpace(val)) {
+		case "create":
+			return RoleCreate
+		case "edit":
+			return RoleEdit
+		case "delete":
+			return RoleDelete
+		}
+	}
+	return 0
+}
+
+func (c *Context) ManageRole(args ...any) (*types.Role, error) {
+	if c.GuildID == nil {
+		return nil, ErrNotInGuild
+	}
+	if c.REST == nil {
+		return nil, ErrNoRESTClient
+	}
+	if len(args) == 0 {
+		return nil, ErrInvalidRoleAction
+	}
+
+	opts := RoleOptions{}
+	switch v := args[0].(type) {
+	case RoleOptions:
+		opts = v
+	case *RoleOptions:
+		if v != nil {
+			opts = *v
+		}
+	case Options:
+		opts = RoleOptions{
+			Type:        parseRoleAction(v.Type),
+			RoleID:      v.Role,
+			Name:        v.Name,
+			Color:       v.Color,
+			Permissions: v.Permissions,
+			Hoist:       v.Hoist,
+			Mentionable: v.Mentionable,
+			Reason:      v.Reason,
+		}
+	case *Options:
+		if v != nil {
+			opts = RoleOptions{
+				Type:        parseRoleAction(v.Type),
+				RoleID:      v.Role,
+				Name:        v.Name,
+				Color:       v.Color,
+				Permissions: v.Permissions,
+				Hoist:       v.Hoist,
+				Mentionable: v.Mentionable,
+				Reason:      v.Reason,
+			}
+		}
+	case RoleAction:
+		opts.Type = v
+		for _, arg := range args[1:] {
+			switch a := arg.(type) {
+			case types.Snowflake:
+				opts.RoleID = a
+			case string:
+				if opts.Name == "" && opts.Type != RoleDelete {
+					opts.Name = a
+				} else {
+					opts.Reason = a
+				}
+			case int:
+				opts.Color = a
+			}
+		}
+	case string:
+		opts.Type = parseRoleAction(v)
+		for _, arg := range args[1:] {
+			switch a := arg.(type) {
+			case types.Snowflake:
+				opts.RoleID = a
+			case string:
+				if opts.Name == "" && opts.Type != RoleDelete {
+					opts.Name = a
+				} else {
+					opts.Reason = a
+				}
+			case int:
+				opts.Color = a
+			}
+		}
+	default:
+		return nil, ErrInvalidRoleAction
+	}
+
+	switch opts.Type {
+	case RoleCreate:
+		payload := rest.RolePayload{}
+		if opts.Name != "" {
+			payload.Name = &opts.Name
+		}
+		if opts.Color != 0 {
+			payload.Color = &opts.Color
+		}
+		if opts.Permissions != nil {
+			payload.Permissions = opts.Permissions
+		}
+		if opts.Hoist != nil {
+			payload.Hoist = opts.Hoist
+		}
+		if opts.Mentionable != nil {
+			payload.Mentionable = opts.Mentionable
+		}
+		return c.REST.CreateGuildRole(c.Context(), *c.GuildID, payload, opts.Reason)
+
+	case RoleEdit:
+		if opts.RoleID == 0 {
+			return nil, ErrInvalidRoleID
+		}
+		if ok, err := c.CanManageRole(opts.RoleID); !ok {
+			return nil, err
+		}
+		payload := rest.RolePayload{}
+		if opts.Name != "" {
+			payload.Name = &opts.Name
+		}
+		if opts.Color != 0 {
+			payload.Color = &opts.Color
+		}
+		if opts.Permissions != nil {
+			payload.Permissions = opts.Permissions
+		}
+		if opts.Hoist != nil {
+			payload.Hoist = opts.Hoist
+		}
+		if opts.Mentionable != nil {
+			payload.Mentionable = opts.Mentionable
+		}
+		return c.REST.ModifyGuildRole(c.Context(), *c.GuildID, opts.RoleID, payload, opts.Reason)
+
+	case RoleDelete:
+		if opts.RoleID == 0 {
+			return nil, ErrInvalidRoleID
+		}
+		if ok, err := c.CanManageRole(opts.RoleID); !ok {
+			return nil, err
+		}
+		err := c.REST.DeleteGuildRole(c.Context(), *c.GuildID, opts.RoleID, opts.Reason)
+		return nil, err
+
+	default:
+		return nil, ErrInvalidRoleAction
+	}
+}
+
+type RoleSuite struct {
 	ctx    *Context
 	roleID types.Snowflake
 }
 
-func (c *Context) Role(roleID ...types.Snowflake) RoleAction {
+func (c *Context) Role(roleID ...types.Snowflake) RoleSuite {
 	var id types.Snowflake
 	if len(roleID) > 0 {
 		id = roleID[0]
 	}
-	return RoleAction{
+	return RoleSuite{
 		ctx:    c,
 		roleID: id,
 	}
 }
 
-func (c *Context) ManageRole(roleID ...types.Snowflake) RoleAction {
-	return c.Role(roleID...)
-}
-
-func (a RoleAction) ID() types.Snowflake {
+func (a RoleSuite) ID() types.Snowflake {
 	return a.roleID
 }
 
@@ -86,13 +258,12 @@ func (c *Context) CanManageRole(roleID types.Snowflake) (bool, error) {
 	}
 	rolePos := targetRole.Position
 
-	botMember, err := c.REST.GetGuildMember(ctx, guildID, c.AppID)
-	if err != nil {
-		return false, err
-	}
-	botMaxPos := memberMaxRolePosition(botMember.Roles, rolePositions)
-
 	if c.AppID == 0 || c.AppID != guild.OwnerID {
+		botMember, err := c.REST.GetGuildMember(ctx, guildID, c.AppID)
+		if err != nil {
+			return false, err
+		}
+		botMaxPos := memberMaxRolePosition(botMember.Roles, rolePositions)
 		if botMaxPos <= rolePos {
 			return false, ErrRoleOutranksBot
 		}
@@ -125,7 +296,7 @@ func (c *Context) CanManageRole(roleID types.Snowflake) (bool, error) {
 	return true, nil
 }
 
-func (a RoleAction) Get() (*types.Role, error) {
+func (a RoleSuite) Get() (*types.Role, error) {
 	if a.roleID == 0 {
 		return nil, ErrInvalidRoleID
 	}
@@ -148,7 +319,7 @@ func (a RoleAction) Get() (*types.Role, error) {
 	return nil, ErrRoleNotFound
 }
 
-func (a RoleAction) Create(payload rest.RolePayload, reason ...string) (*types.Role, error) {
+func (a RoleSuite) Create(payload rest.RolePayload, reason ...string) (*types.Role, error) {
 	if a.ctx.GuildID == nil {
 		return nil, ErrNotInGuild
 	}
@@ -159,7 +330,7 @@ func (a RoleAction) Create(payload rest.RolePayload, reason ...string) (*types.R
 	return a.ctx.REST.CreateGuildRole(a.ctx.Context(), *a.ctx.GuildID, payload, r)
 }
 
-func (a RoleAction) Edit(payload rest.RolePayload, reason ...string) (*types.Role, error) {
+func (a RoleSuite) Edit(payload rest.RolePayload, reason ...string) (*types.Role, error) {
 	if ok, err := a.ctx.CanManageRole(a.roleID); !ok {
 		return nil, err
 	}
@@ -167,7 +338,7 @@ func (a RoleAction) Edit(payload rest.RolePayload, reason ...string) (*types.Rol
 	return a.ctx.REST.ModifyGuildRole(a.ctx.Context(), *a.ctx.GuildID, a.roleID, payload, r)
 }
 
-func (a RoleAction) Delete(reason ...string) error {
+func (a RoleSuite) Delete(reason ...string) error {
 	if ok, err := a.ctx.CanManageRole(a.roleID); !ok {
 		return err
 	}
@@ -175,27 +346,27 @@ func (a RoleAction) Delete(reason ...string) error {
 	return a.ctx.REST.DeleteGuildRole(a.ctx.Context(), *a.ctx.GuildID, a.roleID, r)
 }
 
-func (a RoleAction) SetName(name string, reason ...string) (*types.Role, error) {
+func (a RoleSuite) SetName(name string, reason ...string) (*types.Role, error) {
 	return a.Edit(rest.RolePayload{Name: &name}, reason...)
 }
 
-func (a RoleAction) SetColor(color int, reason ...string) (*types.Role, error) {
+func (a RoleSuite) SetColor(color int, reason ...string) (*types.Role, error) {
 	return a.Edit(rest.RolePayload{Color: &color}, reason...)
 }
 
-func (a RoleAction) SetPermissions(perms types.Permission, reason ...string) (*types.Role, error) {
+func (a RoleSuite) SetPermissions(perms types.Permission, reason ...string) (*types.Role, error) {
 	return a.Edit(rest.RolePayload{Permissions: &perms}, reason...)
 }
 
-func (a RoleAction) SetHoist(hoist bool, reason ...string) (*types.Role, error) {
+func (a RoleSuite) SetHoist(hoist bool, reason ...string) (*types.Role, error) {
 	return a.Edit(rest.RolePayload{Hoist: &hoist}, reason...)
 }
 
-func (a RoleAction) SetMentionable(mentionable bool, reason ...string) (*types.Role, error) {
+func (a RoleSuite) SetMentionable(mentionable bool, reason ...string) (*types.Role, error) {
 	return a.Edit(rest.RolePayload{Mentionable: &mentionable}, reason...)
 }
 
-func (a RoleAction) Assign(memberID types.Snowflake, reason ...string) error {
+func (a RoleSuite) Assign(memberID types.Snowflake, reason ...string) error {
 	if memberID == 0 {
 		return ErrInvalidTarget
 	}
@@ -206,7 +377,7 @@ func (a RoleAction) Assign(memberID types.Snowflake, reason ...string) error {
 	return a.ctx.REST.AddGuildMemberRole(a.ctx.Context(), *a.ctx.GuildID, memberID, a.roleID, r)
 }
 
-func (a RoleAction) Remove(memberID types.Snowflake, reason ...string) error {
+func (a RoleSuite) Remove(memberID types.Snowflake, reason ...string) error {
 	if memberID == 0 {
 		return ErrInvalidTarget
 	}

@@ -82,11 +82,6 @@ func TestRoleDefaultsAndTargeting(t *testing.T) {
 	if actTarget.ID() != types.Snowflake(20) {
 		t.Fatalf("expected role ID 20, got %v", actTarget.ID())
 	}
-
-	actManage := c.ManageRole(types.Snowflake(30))
-	if actManage.ID() != types.Snowflake(30) {
-		t.Fatalf("expected role ID 30, got %v", actManage.ID())
-	}
 }
 
 func TestRoleValidationErrors(t *testing.T) {
@@ -302,6 +297,114 @@ func TestRoleAssignAndRemove(t *testing.T) {
 	}
 	if err := act.Remove(types.Snowflake(500), "demoted"); err != nil {
 		t.Fatalf("unexpected error on remove: %v", err)
+	}
+}
+
+func TestManageRole_Unified(t *testing.T) {
+	var created, edited, deleted bool
+	var auditReason string
+
+	c, cleanup := setupRoleTestContext(standardRoleGuildHandler(func(w http.ResponseWriter, r *http.Request) bool {
+		auditReason = r.Header.Get("X-Audit-Log-Reason")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/guilds/100/roles":
+			created = true
+			_ = json.NewEncoder(w).Encode(types.Role{ID: types.Snowflake(50), Name: "CreatedRole"})
+			return true
+		case r.Method == http.MethodPatch && r.URL.Path == "/guilds/100/roles/20":
+			edited = true
+			_ = json.NewEncoder(w).Encode(types.Role{ID: types.Snowflake(20), Name: "EditedRole"})
+			return true
+		case r.Method == http.MethodDelete && r.URL.Path == "/guilds/100/roles/20":
+			deleted = true
+			w.WriteHeader(http.StatusNoContent)
+			return true
+		default:
+			return false
+		}
+	}))
+	defer cleanup()
+
+	hoist := true
+	role, err := c.ManageRole(RoleOptions{
+		Type:   RoleCreate,
+		Name:   "CreatedRole",
+		Color:  0x3498DB,
+		Hoist:  &hoist,
+		Reason: "create role",
+	})
+	if err != nil || !created || role == nil || role.Name != "CreatedRole" || auditReason != "create role" {
+		t.Fatalf("RoleCreate failed: err=%v, created=%v, role=%v", err, created, role)
+	}
+
+	role, err = c.ManageRole(RoleOptions{
+		Type:   RoleEdit,
+		RoleID: types.Snowflake(20),
+		Name:   "EditedRole",
+		Reason: "edit role",
+	})
+	if err != nil || !edited || role == nil || role.Name != "EditedRole" || auditReason != "edit role" {
+		t.Fatalf("RoleEdit failed: err=%v, edited=%v, role=%v", err, edited, role)
+	}
+
+	role, err = c.ManageRole(RoleOptions{
+		Type:   RoleDelete,
+		RoleID: types.Snowflake(20),
+		Reason: "delete role",
+	})
+	if err != nil || !deleted || role != nil || auditReason != "delete role" {
+		t.Fatalf("RoleDelete failed: err=%v, deleted=%v", err, deleted)
+	}
+
+	_, err = c.ManageRole(RoleOptions{
+		Type:   RoleEdit,
+		RoleID: 0,
+	})
+	if !errors.Is(err, ErrInvalidRoleID) {
+		t.Fatalf("expected ErrInvalidRoleID, got %v", err)
+	}
+
+	_, err = c.ManageRole(RoleOptions{
+		Type: RoleAction(999),
+	})
+	if !errors.Is(err, ErrInvalidRoleAction) {
+		t.Fatalf("expected ErrInvalidRoleAction, got %v", err)
+	}
+}
+
+func TestManageRole_OptionsAndShortcuts(t *testing.T) {
+	var deleted bool
+	var auditReason string
+	c, cleanup := setupRoleTestContext(standardRoleGuildHandler(func(w http.ResponseWriter, r *http.Request) bool {
+		if r.Method == "DELETE" && r.URL.Path == "/guilds/100/roles/20" {
+			deleted = true
+			auditReason = r.Header.Get("X-Audit-Log-Reason")
+			w.WriteHeader(http.StatusNoContent)
+			return true
+		}
+		return false
+	}))
+	defer cleanup()
+
+	_, err := c.ManageRole("delete", types.Snowflake(20), "cleanup role")
+	if err != nil {
+		t.Fatalf("unexpected role delete shortcut error: %v", err)
+	}
+	if !deleted || auditReason != "cleanup role" {
+		t.Fatalf("expected role delete with reason, got deleted=%v reason=%s", deleted, auditReason)
+	}
+
+	deleted = false
+	_, err = c.ManageRole(Options{
+		Type:   "delete",
+		Role:   types.Snowflake(20),
+		Reason: "options delete",
+	})
+	if err != nil {
+		t.Fatalf("unexpected role delete options error: %v", err)
+	}
+	if !deleted {
+		t.Fatalf("expected deleted true")
 	}
 }
 
