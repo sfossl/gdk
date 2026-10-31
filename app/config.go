@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/defaults"
 )
 
 var (
@@ -55,9 +56,9 @@ func DefaultConfig(token string, appID types.Snowflake) Config {
 		Intents:             types.IntentsDefault,
 		DevMode:             false,
 		AutoDefer:           true,
-		AutoDeferDelay:      2500 * time.Millisecond,
+		AutoDeferDelay:      defaults.AutoDeferDelay,
 		AutoSync:            false,
-		Timeout:             14*time.Minute + 50*time.Second,
+		Timeout:             defaults.Timeout,
 		WebhookAddr:         ":8080",
 		WebhookPath:         "/interactions",
 	}
