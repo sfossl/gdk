@@ -10,6 +10,7 @@ import (
 
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/defaults"
 	"github.com/sfossl/gdk/util/time"
 )
 
@@ -32,7 +33,7 @@ var (
 	ErrInvalidChannelAction = errors.New("invalid channel action type")
 )
 
-const MaxSlowmodeSeconds = 21600
+const MaxSlowmodeSeconds = defaults.MaxSlowmodeSeconds
 
 type ChannelOptions struct {
 	Type       ChannelAction
@@ -72,6 +73,7 @@ func (c *Context) ManageChannel(args ...any) error {
 		return ErrInvalidChannelAction
 	}
 	opts := ChannelOptions{}
+	parseRest := false
 	switch v := args[0].(type) {
 	case ChannelOptions:
 		opts = v
@@ -116,25 +118,18 @@ func (c *Context) ManageChannel(args ...any) error {
 		if v == ChannelLock {
 			opts.Locked = true
 		}
-		for _, arg := range args[1:] {
-			switch a := arg.(type) {
-			case types.Snowflake:
-				opts.ChannelID = a
-			case int:
-				opts.PurgeCount = a
-			case string:
-				if (opts.Type == ChannelCreate || opts.Type == ChannelEdit) && opts.Name == "" {
-					opts.Name = a
-				} else {
-					opts.Reason = a
-				}
-			}
-		}
+		parseRest = true
 	case string:
 		opts.Type = parseChannelAction(v)
 		if strings.ToLower(strings.TrimSpace(v)) == "lock" {
 			opts.Locked = true
 		}
+		parseRest = true
+	default:
+		return ErrInvalidChannelAction
+	}
+
+	if parseRest {
 		for _, arg := range args[1:] {
 			switch a := arg.(type) {
 			case types.Snowflake:
@@ -149,8 +144,6 @@ func (c *Context) ManageChannel(args ...any) error {
 				}
 			}
 		}
-	default:
-		return ErrInvalidChannelAction
 	}
 
 	chID := opts.ChannelID
@@ -293,118 +286,6 @@ func (c *Context) ManageChannel(args ...any) error {
 	default:
 		return ErrInvalidChannelAction
 	}
-}
-
-type ChannelSuite struct {
-	ctx       *Context
-	channelID types.Snowflake
-}
-
-func (c *Context) Channel(channelID ...types.Snowflake) ChannelSuite {
-	chID := c.ChannelID
-	if len(channelID) > 0 && channelID[0] != 0 {
-		chID = channelID[0]
-	}
-	return ChannelSuite{
-		ctx:       c,
-		channelID: chID,
-	}
-}
-
-func (a ChannelSuite) ID() types.Snowflake {
-	return a.channelID
-}
-
-func (a ChannelSuite) Get() (*types.Channel, error) {
-	if a.channelID == 0 {
-		return nil, ErrInvalidChannelID
-	}
-	if a.ctx.REST == nil {
-		return nil, ErrNoRESTClient
-	}
-	return a.ctx.REST.GetChannel(a.ctx.Context(), a.channelID)
-}
-
-func (a ChannelSuite) Delete(reason ...string) error {
-	if a.channelID == 0 {
-		return ErrInvalidChannelID
-	}
-	if a.ctx.REST == nil {
-		return ErrNoRESTClient
-	}
-	r := strings.Join(reason, " ")
-	return a.ctx.REST.DeleteChannel(a.ctx.Context(), a.channelID, r)
-}
-
-func (a ChannelSuite) SetName(name string, reason ...string) (*types.Channel, error) {
-	if a.channelID == 0 {
-		return nil, ErrInvalidChannelID
-	}
-	if a.ctx.REST == nil {
-		return nil, ErrNoRESTClient
-	}
-	if strings.TrimSpace(name) == "" {
-		return nil, ErrChannelNameRequired
-	}
-	r := strings.Join(reason, " ")
-	return a.ctx.REST.ModifyChannel(a.ctx.Context(), a.channelID, rest.ModifyChannelPayload{
-		Name: &name,
-	}, r)
-}
-
-func (a ChannelSuite) SetTopic(topic string, reason ...string) (*types.Channel, error) {
-	if a.channelID == 0 {
-		return nil, ErrInvalidChannelID
-	}
-	if a.ctx.REST == nil {
-		return nil, ErrNoRESTClient
-	}
-	r := strings.Join(reason, " ")
-	return a.ctx.REST.ModifyChannel(a.ctx.Context(), a.channelID, rest.ModifyChannelPayload{
-		Topic: &topic,
-	}, r)
-}
-
-func (a ChannelSuite) SetSlowmode(duration any, reason ...string) (*types.Channel, error) {
-	if a.channelID == 0 {
-		return nil, ErrInvalidChannelID
-	}
-	if a.ctx.REST == nil {
-		return nil, ErrNoRESTClient
-	}
-	sec, err := parseSlowmodeSeconds(duration)
-	if err != nil {
-		return nil, err
-	}
-	r := strings.Join(reason, " ")
-	return a.ctx.REST.ModifyChannel(a.ctx.Context(), a.channelID, rest.ModifyChannelPayload{
-		RateLimitPerUser: &sec,
-	}, r)
-}
-
-func (a ChannelSuite) Edit(payload rest.ModifyChannelPayload, reason ...string) (*types.Channel, error) {
-	if a.channelID == 0 {
-		return nil, ErrInvalidChannelID
-	}
-	if a.ctx.REST == nil {
-		return nil, ErrNoRESTClient
-	}
-	r := strings.Join(reason, " ")
-	return a.ctx.REST.ModifyChannel(a.ctx.Context(), a.channelID, payload, r)
-}
-
-func (a ChannelSuite) Create(payload rest.CreateChannelPayload, reason ...string) (*types.Channel, error) {
-	if a.ctx.GuildID == nil {
-		return nil, ErrNotInGuild
-	}
-	if a.ctx.REST == nil {
-		return nil, ErrNoRESTClient
-	}
-	if strings.TrimSpace(payload.Name) == "" {
-		return nil, ErrChannelNameRequired
-	}
-	r := strings.Join(reason, " ")
-	return a.ctx.REST.CreateGuildChannel(a.ctx.Context(), *a.ctx.GuildID, payload, r)
 }
 
 func parseSlowmodeSeconds(v any) (int, error) {
