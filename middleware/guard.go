@@ -5,6 +5,7 @@ import (
 	"runtime/debug"
 
 	"github.com/sfossl/gdk/context"
+	"github.com/sfossl/gdk/defaults"
 )
 
 var ErrPanicRecovered = errors.New("panic recovered in interaction handler")
@@ -41,7 +42,7 @@ func WithEphemeral(ephemeral bool) GuardOption {
 
 func Guard(opts ...GuardOption) Middleware {
 	cfg := GuardConfig{
-		Message:   "An unexpected error occurred while executing this command.",
+		Message:   defaults.PanicMessage,
 		Ephemeral: true,
 	}
 	for _, opt := range opts {
