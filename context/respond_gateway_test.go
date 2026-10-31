@@ -65,4 +65,26 @@ func TestGatewayMode_NoRESTClientReturnsError(t *testing.T) {
 			t.Fatalf("context state must reset after failed modal")
 		}
 	})
+
+	t.Run("DeferUpdate without REST", func(t *testing.T) {
+		c := NewGatewayContext(context.Background(), in, nil)
+		err := c.DeferUpdate()
+		if !errors.Is(err, ErrNoRESTClient) {
+			t.Fatalf("expected ErrNoRESTClient, got %v", err)
+		}
+		if c.IsAcknowledged() || c.IsDeferred() {
+			t.Fatalf("context state must reset after failed defer update")
+		}
+	})
+
+	t.Run("UpdateMessage without REST", func(t *testing.T) {
+		c := NewGatewayContext(context.Background(), in, nil)
+		_, err := c.UpdateMessage(Response{Content: "edit"})
+		if !errors.Is(err, ErrNoRESTClient) {
+			t.Fatalf("expected ErrNoRESTClient, got %v", err)
+		}
+		if c.IsAcknowledged() {
+			t.Fatalf("context state must reset after failed update message")
+		}
+	})
 }
