@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/defaults"
 	"github.com/sfossl/gdk/util/time"
 )
 
@@ -28,8 +29,8 @@ var (
 )
 
 const (
-	MaxTimeoutDuration = 28 * 24 * time.Hour
-	MaxBanDeleteSec    = 7 * 24 * 60 * 60
+	MaxTimeoutDuration = defaults.MaxTimeoutDuration
+	MaxBanDeleteSec    = defaults.MaxBanDeleteSec
 )
 
 type ModOptions struct {
