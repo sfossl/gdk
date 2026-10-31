@@ -5,20 +5,24 @@ import (
 	"strings"
 
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/defaults"
 )
 
 type Options struct {
 	Type         any
+	Scope        any
 	Target       types.Snowflake
 	Channel      types.Snowflake
 	Role         types.Snowflake
 	Message      types.Snowflake
 	Content      string
 	Reason       string
+	Receipt      string
 	Duration     any
 	Count        int
 	Ephemeral    bool
 	Mention      *bool
+	Typing       bool
 	Embeds       []types.Embed
 	Components   []types.Component
 	Files        []types.File
@@ -37,6 +41,22 @@ type Options struct {
 	VoiceMute    *bool
 	VoiceDeaf    *bool
 	VoiceChannel *types.Snowflake
+}
+
+const (
+	DefaultDMReceipt = defaults.DMReceipt
+)
+
+func (o Options) ResolveScope() string {
+	if o.Scope == nil {
+		return "guild"
+	}
+	switch v := o.Scope.(type) {
+	case string:
+		return strings.ToLower(strings.TrimSpace(v))
+	default:
+		return "guild"
+	}
 }
 
 func (o Options) ResolveType() string {
