@@ -78,11 +78,26 @@ func (a *App) webhookHandler() (http.Handler, error) {
 				w.Header().Set("Content-Type", "application/json")
 				_ = json.NewEncoder(w).Encode(resp)
 			default:
-				_ = gdkCtx.Defer(false)
-				w.Header().Set("Content-Type", "application/json")
-				_ = json.NewEncoder(w).Encode(types.InteractionResponse{
-					Type: types.CallbackTypeDeferredChannelMessageWithSource,
-				})
+				if isDeferrableInteraction(in.Type) {
+					_ = gdkCtx.Defer(false)
+					w.Header().Set("Content-Type", "application/json")
+					_ = json.NewEncoder(w).Encode(types.InteractionResponse{
+						Type: types.CallbackTypeDeferredChannelMessageWithSource,
+					})
+				} else if in.Type == types.InteractionTypeApplicationCommandAutocomplete {
+					_ = gdkCtx.Autocomplete(nil)
+					w.Header().Set("Content-Type", "application/json")
+					_ = json.NewEncoder(w).Encode(types.InteractionResponse{
+						Type: types.CallbackTypeApplicationCommandAutocompleteResult,
+						Data: &types.InteractionResponseData{Choices: []types.Choice{}},
+					})
+				} else if in.Type == types.InteractionTypePing {
+					_ = gdkCtx.Pong()
+					w.Header().Set("Content-Type", "application/json")
+					_ = json.NewEncoder(w).Encode(types.InteractionResponse{
+						Type: types.CallbackTypePong,
+					})
+				}
 			}
 		case <-r.Context().Done():
 			return
