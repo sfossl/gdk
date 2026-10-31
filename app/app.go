@@ -167,7 +167,7 @@ func (a *App) RegisterCommand(cmd command.Command, handler middleware.Handler, m
 					Duration: cmd.Cooldown,
 					Burst:    1,
 				},
-			}),
+			}, middleware.WithKeyPrefix("cmd:"+cmd.Name)),
 		}, middlewares...)
 	}
 
