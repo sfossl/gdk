@@ -77,7 +77,7 @@ func findUserOptionNames(opts []types.ApplicationCommandOption) []string {
 		switch opt.Type {
 		case int(types.OptionTypeSubcommand), int(types.OptionTypeSubcommandGroup):
 			names = append(names, findUserOptionNames(opt.Options)...)
-		case int(types.OptionTypeUser):
+		case int(types.OptionTypeUser), int(types.OptionTypeMentionable):
 			names = append(names, opt.Name)
 		}
 	}
