@@ -246,3 +246,60 @@ func TestContext_SimpleSubcommand(t *testing.T) {
 		t.Fatalf("expected empty subcommand group, got: %s", ctx.SubcommandGroup())
 	}
 }
+
+func TestContext_FocusedOption(t *testing.T) {
+	var nilCtx *Context
+	if nilCtx.FocusedOption() != nil {
+		t.Fatalf("expected nil for nil context")
+	}
+
+	emptyCtx := New(context.Background(), &types.Interaction{}, nil)
+	if emptyCtx.FocusedOption() != nil {
+		t.Fatalf("expected nil for interaction without data")
+	}
+
+	inNone := &types.Interaction{
+		Data: &types.InteractionData{
+			Options: []types.ApplicationCommandOption{
+				{Name: "query", Type: 3, Value: "abc", Focused: false},
+			},
+		},
+	}
+	ctxNone := New(context.Background(), inNone, nil)
+	if ctxNone.FocusedOption() != nil {
+		t.Fatalf("expected nil when no option is focused")
+	}
+
+	inTop := &types.Interaction{
+		Data: &types.InteractionData{
+			Options: []types.ApplicationCommandOption{
+				{Name: "first", Type: 3, Value: "abc"},
+				{Name: "query", Type: 3, Value: "golang", Focused: true},
+			},
+		},
+	}
+	ctxTop := New(context.Background(), inTop, nil)
+	fTop := ctxTop.FocusedOption()
+	if fTop == nil || fTop.Name != "query" || fTop.Value != "golang" {
+		t.Fatalf("expected query option, got %v", fTop)
+	}
+
+	inNested := &types.Interaction{
+		Data: &types.InteractionData{
+			Options: []types.ApplicationCommandOption{
+				{
+					Name: "search",
+					Type: 1,
+					Options: []types.ApplicationCommandOption{
+						{Name: "filter", Type: 3, Value: "docs", Focused: true},
+					},
+				},
+			},
+		},
+	}
+	ctxNested := New(context.Background(), inNested, nil)
+	fNested := ctxNested.FocusedOption()
+	if fNested == nil || fNested.Name != "filter" || fNested.Value != "docs" {
+		t.Fatalf("expected filter option, got %v", fNested)
+	}
+}
