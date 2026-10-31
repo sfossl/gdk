@@ -65,6 +65,7 @@ func (c *Context) ManageRole(args ...any) (*types.Role, error) {
 	}
 
 	opts := RoleOptions{}
+	parseRest := false
 	switch v := args[0].(type) {
 	case RoleOptions:
 		opts = v
@@ -98,22 +99,15 @@ func (c *Context) ManageRole(args ...any) (*types.Role, error) {
 		}
 	case RoleAction:
 		opts.Type = v
-		for _, arg := range args[1:] {
-			switch a := arg.(type) {
-			case types.Snowflake:
-				opts.RoleID = a
-			case string:
-				if opts.Name == "" && opts.Type != RoleDelete {
-					opts.Name = a
-				} else {
-					opts.Reason = a
-				}
-			case int:
-				opts.Color = a
-			}
-		}
+		parseRest = true
 	case string:
 		opts.Type = parseRoleAction(v)
+		parseRest = true
+	default:
+		return nil, ErrInvalidRoleAction
+	}
+
+	if parseRest {
 		for _, arg := range args[1:] {
 			switch a := arg.(type) {
 			case types.Snowflake:
@@ -128,8 +122,6 @@ func (c *Context) ManageRole(args ...any) (*types.Role, error) {
 				opts.Color = a
 			}
 		}
-	default:
-		return nil, ErrInvalidRoleAction
 	}
 
 	switch opts.Type {
