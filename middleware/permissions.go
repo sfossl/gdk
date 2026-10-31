@@ -7,6 +7,7 @@ import (
 
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/context"
+	"github.com/sfossl/gdk/defaults"
 )
 
 var (
@@ -70,9 +71,9 @@ func WithPermissionMessage(fn func(target PermissionTarget, missing []string) st
 func defaultPermissionMessage(target PermissionTarget, missing []string) string {
 	joined := strings.Join(missing, ", ")
 	if target == TargetBot {
-		return fmt.Sprintf("The bot is missing the required permissions to execute this command (%s).", joined)
+		return fmt.Sprintf(defaults.BotMissingPerms, joined)
 	}
-	return fmt.Sprintf("You do not have the required permissions to execute this command (%s).", joined)
+	return fmt.Sprintf(defaults.UserMissingPerms, joined)
 }
 
 func RequireUser(perms types.Permission, opts ...PermissionOption) Middleware {
