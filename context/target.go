@@ -17,11 +17,9 @@ func (c *Context) TargetID() types.Snowflake {
 	if sf := c.Opt("target").Snowflake(); sf != 0 {
 		return sf
 	}
-	for _, opt := range c.Interaction.Data.Options {
-		if opt.Type == int(types.OptionTypeUser) {
-			if sf := c.Opt(opt.Name).Snowflake(); sf != 0 {
-				return sf
-			}
+	for _, name := range findUserOptionNames(c.Interaction.Data.Options) {
+		if sf := c.Opt(name).Snowflake(); sf != 0 {
+			return sf
 		}
 	}
 	return 0
@@ -42,11 +40,9 @@ func (c *Context) TargetUser() *types.User {
 	if u := c.Opt("target").User(); u != nil {
 		return u
 	}
-	for _, opt := range c.Interaction.Data.Options {
-		if opt.Type == int(types.OptionTypeUser) {
-			if u := c.Opt(opt.Name).User(); u != nil {
-				return u
-			}
+	for _, name := range findUserOptionNames(c.Interaction.Data.Options) {
+		if u := c.Opt(name).User(); u != nil {
+			return u
 		}
 	}
 	return nil
@@ -67,14 +63,25 @@ func (c *Context) TargetMember() *types.Member {
 	if m := c.Opt("target").Member(); m != nil {
 		return m
 	}
-	for _, opt := range c.Interaction.Data.Options {
-		if opt.Type == int(types.OptionTypeUser) {
-			if m := c.Opt(opt.Name).Member(); m != nil {
-				return m
-			}
+	for _, name := range findUserOptionNames(c.Interaction.Data.Options) {
+		if m := c.Opt(name).Member(); m != nil {
+			return m
 		}
 	}
 	return nil
+}
+
+func findUserOptionNames(opts []types.ApplicationCommandOption) []string {
+	var names []string
+	for _, opt := range opts {
+		switch opt.Type {
+		case int(types.OptionTypeSubcommand), int(types.OptionTypeSubcommandGroup):
+			names = append(names, findUserOptionNames(opt.Options)...)
+		case int(types.OptionTypeUser):
+			names = append(names, opt.Name)
+		}
+	}
+	return names
 }
 
 func (c *Context) TargetUserID() types.Snowflake {
