@@ -6,6 +6,7 @@ import (
 	"github.com/sfossl/gdk/command"
 	"github.com/sfossl/gdk/component"
 	"github.com/sfossl/gdk/context"
+	"github.com/sfossl/gdk/defaults"
 	"github.com/sfossl/gdk/middleware"
 	"github.com/sfossl/gdk/util/time"
 )
@@ -129,6 +130,12 @@ const (
 	MsgDelete    = context.MsgDelete
 	MsgCrosspost = context.MsgCrosspost
 
+	DefaultDMReceipt        = defaults.DMReceipt
+	DefaultPanicMessage     = defaults.PanicMessage
+	DefaultCooldownMessage  = defaults.CooldownMessage
+	DefaultUserMissingPerms = defaults.UserMissingPerms
+	DefaultBotMissingPerms  = defaults.BotMissingPerms
+
 	ColorBlurple = component.ColorBlurple
 	ColorGreen   = component.ColorGreen
 	ColorYellow  = component.ColorYellow
@@ -242,6 +249,7 @@ var (
 	ErrAlreadyResponded         = context.ErrAlreadyResponded
 	ErrModalAfterDefer          = context.ErrModalAfterDefer
 	ErrNoInteraction            = context.ErrNoInteraction
+	ErrEmptyMessage             = context.ErrEmptyMessage
 	ErrTimeoutTooLong           = context.ErrTimeoutTooLong
 	ErrTimeoutTooShort          = context.ErrTimeoutTooShort
 	ErrBanDeleteTooLong         = context.ErrBanDeleteTooLong
