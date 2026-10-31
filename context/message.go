@@ -56,6 +56,7 @@ func (c *Context) ManageMessage(args ...any) error {
 	}
 
 	opts := MessageOptions{}
+	parseRest := false
 	switch v := args[0].(type) {
 	case MessageOptions:
 		opts = v
@@ -81,20 +82,15 @@ func (c *Context) ManageMessage(args ...any) error {
 		}
 	case MessageAction:
 		opts.Type = v
-		for _, arg := range args[1:] {
-			switch a := arg.(type) {
-			case types.Snowflake:
-				if opts.MessageID == 0 {
-					opts.MessageID = a
-				} else {
-					opts.ChannelID = a
-				}
-			case string:
-				opts.Reason = a
-			}
-		}
+		parseRest = true
 	case string:
 		opts.Type = parseMessageAction(v)
+		parseRest = true
+	default:
+		return ErrInvalidMessageAction
+	}
+
+	if parseRest {
 		for _, arg := range args[1:] {
 			switch a := arg.(type) {
 			case types.Snowflake:
@@ -107,8 +103,6 @@ func (c *Context) ManageMessage(args ...any) error {
 				opts.Reason = a
 			}
 		}
-	default:
-		return ErrInvalidMessageAction
 	}
 
 	if opts.MessageID == 0 && c.Interaction != nil && c.Interaction.Data != nil && c.Interaction.Data.TargetID != nil {
