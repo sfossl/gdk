@@ -166,3 +166,35 @@ func TestContext_TargetUser_NestedSubcommand(t *testing.T) {
 		t.Fatalf("expected member nestednick, got %v", member)
 	}
 }
+
+func TestContext_TargetUser_Mentionable(t *testing.T) {
+	targetID := types.Snowflake(333444555)
+	in := &types.Interaction{
+		Type: types.InteractionTypeApplicationCommand,
+		Data: &types.InteractionData{
+			Type: 1,
+			Options: []types.ApplicationCommandOption{
+				{
+					Name:  "entity",
+					Type:  int(types.OptionTypeMentionable),
+					Value: targetID.String(),
+				},
+			},
+			Resolved: &types.ResolvedData{
+				Users: map[types.Snowflake]types.User{
+					targetID: {ID: targetID, Username: "mentionuser"},
+				},
+			},
+		},
+	}
+
+	ctx := context.New(stdctx.Background(), in, nil)
+
+	if ctx.TargetID() != targetID {
+		t.Fatalf("expected TargetID %v, got %v", targetID, ctx.TargetID())
+	}
+	user := ctx.TargetUser()
+	if user == nil || user.Username != "mentionuser" {
+		t.Fatalf("expected user mentionuser, got %v", user)
+	}
+}
