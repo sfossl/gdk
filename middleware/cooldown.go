@@ -8,6 +8,7 @@ import (
 
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/context"
+	"github.com/sfossl/gdk/defaults"
 	"github.com/sfossl/gdk/util/time"
 )
 
@@ -280,7 +281,7 @@ func Cooldown(policies []Policy, opts ...CooldownOption) Middleware {
 		AutoRespond: true,
 		MessageFn: func(remaining time.Duration, scope Scope) string {
 			formatted := timeutil.FormatDuration(remaining)
-			return fmt.Sprintf("You are on cooldown. Please wait %s before trying again.", formatted)
+			return fmt.Sprintf(defaults.CooldownMessage, formatted)
 		},
 		KeyPrefix: "cmd",
 	}
