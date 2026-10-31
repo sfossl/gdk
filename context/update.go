@@ -167,14 +167,21 @@ func (c *Context) DeferUpdate() error {
 		}
 	}
 
-	if c.REST != nil && c.Interaction != nil {
-		err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
-		if err != nil {
-			c.deferred.Store(false)
-			c.responded.Store(false)
-			return err
-		}
-		return nil
+	if c.REST == nil {
+		c.deferred.Store(false)
+		c.responded.Store(false)
+		return ErrNoRESTClient
+	}
+	if c.Interaction == nil {
+		c.deferred.Store(false)
+		c.responded.Store(false)
+		return ErrNoInteraction
+	}
+	err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
+	if err != nil {
+		c.deferred.Store(false)
+		c.responded.Store(false)
+		return err
 	}
 	return nil
 }
@@ -252,12 +259,18 @@ func (c *Context) UpdateMessage(res Response) (*types.Message, error) {
 		}
 	}
 
-	if c.REST != nil && c.Interaction != nil {
-		err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
-		if err != nil {
-			c.responded.Store(false)
-			return nil, err
-		}
+	if c.REST == nil {
+		c.responded.Store(false)
+		return nil, ErrNoRESTClient
+	}
+	if c.Interaction == nil {
+		c.responded.Store(false)
+		return nil, ErrNoInteraction
+	}
+	err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
+	if err != nil {
+		c.responded.Store(false)
+		return nil, err
 	}
 
 	return nil, nil
