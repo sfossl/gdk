@@ -262,3 +262,144 @@ func TestWebhookServer_PanicCancelsContext(t *testing.T) {
 		t.Fatalf("expected context to be cancelled after panic")
 	}
 }
+
+func TestApp_SubcommandDirectHandlerRouting(t *testing.T) {
+	app, err := New("test-token", 12345)
+	if err != nil {
+		t.Fatalf("failed to create app: %v", err)
+	}
+
+	var getExecuted atomic.Bool
+	var setExecuted atomic.Bool
+
+	cmd := command.Command{
+		Type:        command.CommandTypeChatInput,
+		Name:        "config",
+		Description: "config command",
+		Subcommands: []command.Subcommand{
+			{
+				Name:        "get",
+				Description: "get setting",
+				Handler: func(c *context.Context) error {
+					getExecuted.Store(true)
+					return nil
+				},
+			},
+			{
+				Name:        "set",
+				Description: "set setting",
+				Handler: func(c *context.Context) error {
+					setExecuted.Store(true)
+					return nil
+				},
+			},
+		},
+	}
+
+	err = app.RegisterCommand(cmd, nil)
+	if err != nil {
+		t.Fatalf("failed to register command: %v", err)
+	}
+
+	inGet := &types.Interaction{
+		ID:   1,
+		Type: types.InteractionTypeApplicationCommand,
+		Data: &types.InteractionData{
+			Name: "config",
+			Type: 1,
+			Options: []types.ApplicationCommandOption{
+				{Name: "get", Type: int(types.OptionTypeSubcommand)},
+			},
+		},
+	}
+	ctxGet := context.New(stdctx.Background(), inGet, nil)
+	err = app.Handle(ctxGet)
+	if err != nil {
+		t.Fatalf("handle get failed: %v", err)
+	}
+	if !getExecuted.Load() {
+		t.Fatalf("subcommand get handler was not executed")
+	}
+
+	inSet := &types.Interaction{
+		ID:   2,
+		Type: types.InteractionTypeApplicationCommand,
+		Data: &types.InteractionData{
+			Name: "config",
+			Type: 1,
+			Options: []types.ApplicationCommandOption{
+				{Name: "set", Type: int(types.OptionTypeSubcommand)},
+			},
+		},
+	}
+	ctxSet := context.New(stdctx.Background(), inSet, nil)
+	err = app.Handle(ctxSet)
+	if err != nil {
+		t.Fatalf("handle set failed: %v", err)
+	}
+	if !setExecuted.Load() {
+		t.Fatalf("subcommand set handler was not executed")
+	}
+}
+
+func TestApp_GatewayContextLifecycle(t *testing.T) {
+	app, err := New("token", 123, WithTimeout(1*time.Second))
+	if err != nil {
+		t.Fatalf("failed to create app: %v", err)
+	}
+
+	var bgAlive atomic.Bool
+	var wg sync.WaitGroup
+	wg.Add(1)
+	started := make(chan struct{})
+
+	err = app.RegisterCommand(command.Command{
+		Type:        command.CommandTypeChatInput,
+		Name:        "gwtask",
+		Description: "gw async task",
+	}, func(c *context.Context) error {
+		bgCtx := c.Context()
+		close(started)
+		go func() {
+			defer wg.Done()
+			select {
+			case <-time.After(50 * time.Millisecond):
+				if bgCtx.Err() == nil {
+					bgAlive.Store(true)
+				}
+			case <-bgCtx.Done():
+				bgAlive.Store(false)
+			}
+		}()
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("failed to register command: %v", err)
+	}
+
+	in := &types.Interaction{
+		ID:   10,
+		Type: types.InteractionTypeApplicationCommand,
+		Data: &types.InteractionData{
+			Name: "gwtask",
+			Type: 1,
+		},
+	}
+	rawCtx, cancelRaw := stdctx.WithCancel(stdctx.Background())
+
+	inPayload, _ := json.Marshal(in)
+	app.Dispatcher.Dispatch(rawCtx, types.EventInteractionCreate, inPayload)
+
+	select {
+	case <-started:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatalf("timed out waiting for gateway command handler to start")
+	}
+
+	cancelRaw()
+	wg.Wait()
+
+	if !bgAlive.Load() {
+		t.Fatalf("gateway context was cancelled when connection closed")
+	}
+}
