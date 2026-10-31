@@ -309,6 +309,14 @@ func TestMod_UniversalOptionsAndShortcuts(t *testing.T) {
 			w.WriteHeader(http.StatusNoContent)
 			return true
 		}
+		if r.Method == "PATCH" && r.URL.Path == "/guilds/100/members/3" {
+			lastMethod = r.Method
+			lastPath = r.URL.Path
+			lastReason = r.Header.Get("X-Audit-Log-Reason")
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(types.Member{})
+			return true
+		}
 		return false
 	}))
 	defer cleanup()
@@ -357,5 +365,21 @@ func TestMod_UniversalOptionsAndShortcuts(t *testing.T) {
 	}
 	if lastMethod != "PUT" || lastPath != "/guilds/100/bans/3" || lastReason != "universal options ban" {
 		t.Fatalf("unexpected ban options call: %s %s, reason: %s", lastMethod, lastPath, lastReason)
+	}
+
+	err = c.Mod(ModTimeout, target, "10m", "typed timeout reason")
+	if err != nil {
+		t.Fatalf("unexpected typed ModTimeout error: %v", err)
+	}
+	if lastMethod != "PATCH" || lastPath != "/guilds/100/members/3" || lastReason != "typed timeout reason" {
+		t.Fatalf("unexpected timeout call: %s %s, reason: %s", lastMethod, lastPath, lastReason)
+	}
+
+	err = c.Mod(ModBan, target, "3d", "typed ban reason")
+	if err != nil {
+		t.Fatalf("unexpected typed ModBan error: %v", err)
+	}
+	if lastMethod != "PUT" || lastPath != "/guilds/100/bans/3" || lastReason != "typed ban reason" {
+		t.Fatalf("unexpected ban call: %s %s, reason: %s", lastMethod, lastPath, lastReason)
 	}
 }
