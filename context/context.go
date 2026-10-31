@@ -137,3 +137,24 @@ func (c *Context) Latency() time.Duration {
 	}
 	return 0
 }
+
+func (c *Context) FocusedOption() *types.ApplicationCommandOption {
+	if c == nil || c.Interaction == nil || c.Interaction.Data == nil {
+		return nil
+	}
+	return findFocusedOption(c.Interaction.Data.Options)
+}
+
+func findFocusedOption(opts []types.ApplicationCommandOption) *types.ApplicationCommandOption {
+	for i := range opts {
+		if opts[i].Focused {
+			return &opts[i]
+		}
+		if len(opts[i].Options) > 0 {
+			if f := findFocusedOption(opts[i].Options); f != nil {
+				return f
+			}
+		}
+	}
+	return nil
+}
