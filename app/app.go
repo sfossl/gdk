@@ -197,7 +197,7 @@ func (a *App) Handle(ctx *context.Context) error {
 		return errors.New("interaction context cannot be nil")
 	}
 
-	if a.config.AutoDefer {
+	if a.config.AutoDefer && isDeferrableInteraction(ctx.Interaction.Type) {
 		timer := time.AfterFunc(a.config.AutoDeferDelay, func() {
 			if !ctx.IsAcknowledged() {
 				_ = ctx.Defer(false)
@@ -322,4 +322,23 @@ func (a *App) Run(ctx stdctx.Context) error {
 		return a.runGateway(ctx)
 	}
 }
+
+func (a *App) String() string {
+	if a == nil {
+		return "<nil>"
+	}
+	return a.config.String()
+}
+
+func isDeferrableInteraction(t types.InteractionType) bool {
+	switch t {
+	case types.InteractionTypeApplicationCommand,
+		types.InteractionTypeMessageComponent,
+		types.InteractionTypeModalSubmit:
+		return true
+	default:
+		return false
+	}
+}
+
 
