@@ -27,14 +27,14 @@ func (a *App) runGateway(ctx stdctx.Context) error {
 	}
 }
 
-func (a *App) runWebhook(ctx stdctx.Context) error {
+func (a *App) webhookHandler() (http.Handler, error) {
 	if a.config.PublicKey == "" {
-		return ErrPublicKeyRequired
+		return nil, ErrPublicKeyRequired
 	}
 
 	pubKey, err := interaction.ParsePublicKey(a.config.PublicKey)
 	if err != nil {
-		return ErrInvalidSignature
+		return nil, ErrInvalidSignature
 	}
 
 	mux := http.NewServeMux()
@@ -54,8 +54,15 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 		gdkCtx := context.New(bgCtx, &in, a.REST)
 
 		go func() {
-			defer cancel()
-			_ = a.Handle(gdkCtx)
+			defer func() {
+				if rec := recover(); rec != nil {
+					cancel()
+				}
+			}()
+			err := a.Handle(gdkCtx)
+			if err != nil {
+				cancel()
+			}
 		}()
 
 		timer := time.NewTimer(2800 * time.Millisecond)
@@ -78,17 +85,24 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 				})
 			}
 		case <-r.Context().Done():
-			cancel()
 			return
 		}
 	})
 
 	verify := interaction.VerifyMiddleware(pubKey)
 	mux.Handle(a.config.WebhookPath, verify(handler))
+	return mux, nil
+}
+
+func (a *App) runWebhook(ctx stdctx.Context) error {
+	handler, err := a.webhookHandler()
+	if err != nil {
+		return err
+	}
 
 	a.server = &http.Server{
 		Addr:    a.config.WebhookAddr,
-		Handler: mux,
+		Handler: handler,
 	}
 
 	errCh := make(chan error, 1)
