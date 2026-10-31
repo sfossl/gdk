@@ -123,12 +123,16 @@ func (c *Context) ManageChannel(args ...any) error {
 			case int:
 				opts.PurgeCount = a
 			case string:
-				opts.Reason = a
+				if (opts.Type == ChannelCreate || opts.Type == ChannelEdit) && opts.Name == "" {
+					opts.Name = a
+				} else {
+					opts.Reason = a
+				}
 			}
 		}
 	case string:
 		opts.Type = parseChannelAction(v)
-		if strings.ToLower(strings.TrimSpace(v)) != "unlock" {
+		if strings.ToLower(strings.TrimSpace(v)) == "lock" {
 			opts.Locked = true
 		}
 		for _, arg := range args[1:] {
@@ -138,7 +142,11 @@ func (c *Context) ManageChannel(args ...any) error {
 			case int:
 				opts.PurgeCount = a
 			case string:
-				opts.Reason = a
+				if (opts.Type == ChannelCreate || opts.Type == ChannelEdit) && opts.Name == "" {
+					opts.Name = a
+				} else {
+					opts.Reason = a
+				}
 			}
 		}
 	default:
