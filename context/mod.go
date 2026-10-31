@@ -73,6 +73,7 @@ func (c *Context) Mod(args ...any) error {
 	}
 
 	opts := ModOptions{}
+	parseRest := false
 	switch v := args[0].(type) {
 	case ModOptions:
 		opts = v
@@ -100,24 +101,15 @@ func (c *Context) Mod(args ...any) error {
 		}
 	case ModType:
 		opts.Type = v
-		for _, arg := range args[1:] {
-			switch a := arg.(type) {
-			case types.Snowflake:
-				opts.Target = a
-			case time.Duration:
-				opts.Duration = a
-			case int:
-				if opts.Type == ModBan {
-					opts.DeleteMessages = a
-				} else if opts.Type == ModTimeout {
-					opts.Duration = a
-				}
-			case string:
-				opts.Reason = a
-			}
-		}
+		parseRest = true
 	case string:
 		opts.Type = parseModType(v)
+		parseRest = true
+	default:
+		return ErrInvalidModType
+	}
+
+	if parseRest {
 		for _, arg := range args[1:] {
 			switch a := arg.(type) {
 			case types.Snowflake:
@@ -125,23 +117,31 @@ func (c *Context) Mod(args ...any) error {
 			case time.Duration:
 				opts.Duration = a
 			case int:
-				if opts.Type == ModBan {
+				switch opts.Type {
+				case ModBan:
 					opts.DeleteMessages = a
-				} else if opts.Type == ModTimeout {
+				case ModTimeout:
 					opts.Duration = a
 				}
 			case string:
-				if opts.Type == ModTimeout && opts.Duration == nil {
-					opts.Duration = a
-				} else if opts.Type == ModBan && opts.DeleteMessages == nil && (strings.HasSuffix(a, "d") || strings.HasSuffix(a, "h") || strings.HasSuffix(a, "m") || strings.HasSuffix(a, "s")) {
-					opts.DeleteMessages = a
-				} else {
+				switch opts.Type {
+				case ModTimeout:
+					if opts.Duration == nil {
+						opts.Duration = a
+					} else {
+						opts.Reason = a
+					}
+				case ModBan:
+					if opts.DeleteMessages == nil && (strings.HasSuffix(a, "d") || strings.HasSuffix(a, "h") || strings.HasSuffix(a, "m") || strings.HasSuffix(a, "s")) {
+						opts.DeleteMessages = a
+					} else {
+						opts.Reason = a
+					}
+				default:
 					opts.Reason = a
 				}
 			}
 		}
-	default:
-		return ErrInvalidModType
 	}
 
 	target := opts.Target
