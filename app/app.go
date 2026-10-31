@@ -95,9 +95,18 @@ func New(token string, appID types.Snowflake, opts ...Option) (*App, error) {
 
 func (a *App) initDispatcher() {
 	a.Dispatcher.OnInteractionCreate(func(ctx stdctx.Context, in *types.Interaction) {
-		gdkCtx := context.NewGatewayContext(ctx, in, a.REST)
+		bgCtx, cancel := stdctx.WithTimeout(stdctx.WithoutCancel(ctx), a.config.Timeout)
+		gdkCtx := context.NewGatewayContext(bgCtx, in, a.REST)
 		gdkCtx.Gateway = a.Gateway
-		_ = a.Handle(gdkCtx)
+		defer func() {
+			if rec := recover(); rec != nil {
+				cancel()
+			}
+		}()
+		err := a.Handle(gdkCtx)
+		if err != nil {
+			cancel()
+		}
 	})
 }
 
@@ -236,8 +245,53 @@ func (a *App) handleCommand(ctx *context.Context) error {
 		return ErrCommandNotFound
 	}
 
-	cmdHandler := entry.pipeline.Wrap(entry.handler)
+	targetHandler := entry.handler
+	if subName := ctx.Subcommand(); subName != "" {
+		if subHandler := findSubcommandHandler(entry.cmd, ctx.SubcommandGroup(), subName); subHandler != nil {
+			targetHandler = subHandler
+		}
+	}
+
+	cmdHandler := entry.pipeline.Wrap(targetHandler)
 	return a.globalPipeline.Execute(ctx, cmdHandler)
+}
+
+func findSubcommandHandler(cmd command.Command, group, name string) middleware.Handler {
+	if group != "" {
+		for _, g := range cmd.SubcommandGroups {
+			if g.Name == group {
+				for _, s := range g.Subcommands {
+					if s.Name == name && s.Handler != nil {
+						if h, ok := toMiddlewareHandler(s.Handler); ok {
+							return h
+						}
+					}
+				}
+			}
+		}
+	}
+	for _, s := range cmd.Subcommands {
+		if s.Name == name && s.Handler != nil {
+			if h, ok := toMiddlewareHandler(s.Handler); ok {
+				return h
+			}
+		}
+	}
+	return nil
+}
+
+func toMiddlewareHandler(h any) (middleware.Handler, bool) {
+	if h == nil {
+		return nil, false
+	}
+	switch fn := h.(type) {
+	case middleware.Handler:
+		return fn, true
+	case func(*context.Context) error:
+		return fn, true
+	default:
+		return nil, false
+	}
 }
 
 func (a *App) handleAutocomplete(ctx *context.Context) error {
