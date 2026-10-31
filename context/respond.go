@@ -11,6 +11,7 @@ var (
 	ErrAlreadyResponded = errors.New("interaction already acknowledged")
 	ErrModalAfterDefer  = errors.New("cannot send modal after deferring")
 	ErrNoInteraction    = errors.New("interaction payload missing")
+	ErrEmptyMessage     = errors.New("cannot send an empty message: content, embeds, components, or files required")
 )
 
 type Modal struct {
@@ -66,7 +67,7 @@ func (c *Context) Defer(ephemeral ...bool) error {
 	return nil
 }
 
-func (c *Context) Respond(args ...any) (*types.Message, error) {
+func parseResponseOptions(args ...any) Options {
 	res := Options{}
 	for _, arg := range args {
 		switch v := arg.(type) {
@@ -93,9 +94,98 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 			res.Components = append(res.Components, v...)
 		}
 	}
+	return res
+}
+
+func (c *Context) Respond(args ...any) (*types.Message, error) {
+	res := parseResponseOptions(args...)
 	if res.Deferred {
 		err := c.Defer(res.Ephemeral)
 		return nil, err
+	}
+
+	if res.Content == "" && len(res.Embeds) == 0 && len(res.Components) == 0 && len(res.Files) == 0 {
+		return nil, ErrEmptyMessage
+	}
+
+	if res.Typing && c.REST != nil {
+		targetChan := c.ChannelID
+		if res.Channel != 0 {
+			targetChan = res.Channel
+		}
+		if targetChan != 0 {
+			_ = c.REST.TriggerTyping(c.Context(), targetChan)
+		}
+	}
+
+	if res.ResolveScope() == "dm" {
+		target := res.Target
+		if target == 0 {
+			target = c.TargetID()
+		}
+		if target == 0 && c.Author != nil {
+			target = c.Author.ID
+		}
+		if target == 0 {
+			return nil, ErrInvalidTarget
+		}
+		if c.REST == nil {
+			return nil, ErrNoRESTClient
+		}
+
+		dmChan, err := c.REST.CreateDM(c.Context(), target)
+		if err != nil {
+			return nil, err
+		}
+
+		payload := rest.MessagePayload{
+			Content:    res.Content,
+			Embeds:     res.Embeds,
+			Components: res.Components,
+			TTS:        res.TTS,
+			Files:      res.Files,
+		}
+		msg, err := c.REST.SendMessage(c.Context(), dmChan.ID, payload)
+		if err != nil {
+			return nil, err
+		}
+
+		receipt := res.Receipt
+		if receipt == "" {
+			receipt = DefaultDMReceipt
+		}
+		_ = c.respondReceipt(receipt)
+		return msg, nil
+	}
+
+	if res.ResolveType() == "send" || (res.Channel != 0 && res.Channel != c.ChannelID) {
+		channelID := res.Channel
+		if channelID == 0 {
+			channelID = c.ChannelID
+		}
+		if channelID == 0 {
+			return nil, ErrInvalidChannelID
+		}
+		if c.REST == nil {
+			return nil, ErrNoRESTClient
+		}
+
+		payload := rest.MessagePayload{
+			Content:    res.Content,
+			Embeds:     res.Embeds,
+			Components: res.Components,
+			TTS:        res.TTS,
+			Files:      res.Files,
+		}
+		msg, err := c.REST.SendMessage(c.Context(), channelID, payload)
+		if err != nil {
+			return nil, err
+		}
+
+		if res.Receipt != "" {
+			_ = c.respondReceipt(res.Receipt)
+		}
+		return msg, nil
 	}
 
 	flags := flagsFromEphemeral(res.Ephemeral)
@@ -145,15 +235,23 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 		return c.Respond(res)
 	}
 
+	var allowedMentions any
+	if res.Mention != nil {
+		allowedMentions = map[string]any{
+			"replied_user": *res.Mention,
+		}
+	}
+
 	resp := types.InteractionResponse{
 		Type: types.CallbackTypeChannelMessageWithSource,
 		Data: &types.InteractionResponseData{
-			Content:    res.Content,
-			Embeds:     res.Embeds,
-			Components: res.Components,
-			Flags:      flags,
-			TTS:        res.TTS,
-			Files:      res.Files,
+			Content:         res.Content,
+			Embeds:          res.Embeds,
+			Components:      res.Components,
+			Flags:           flags,
+			TTS:             res.TTS,
+			Files:           res.Files,
+			AllowedMentions: allowedMentions,
 		},
 	}
 
@@ -179,6 +277,62 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 		return nil, err
 	}
 	return nil, nil
+}
+
+func (c *Context) respondReceipt(receipt string) error {
+	if c.Interaction == nil {
+		return nil
+	}
+	if c.deferred.CompareAndSwap(true, false) {
+		if c.REST == nil {
+			c.deferred.Store(true)
+			return ErrNoRESTClient
+		}
+		_, err := c.REST.EditOriginalInteractionResponse(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
+			Content: receipt,
+			Flags:   types.MessageFlagEphemeral,
+		})
+		if err != nil {
+			c.deferred.Store(true)
+			return err
+		}
+		return nil
+	}
+
+	if c.responded.Load() {
+		return nil
+	}
+
+	if !c.responded.CompareAndSwap(false, true) {
+		return nil
+	}
+
+	resp := types.InteractionResponse{
+		Type: types.CallbackTypeChannelMessageWithSource,
+		Data: &types.InteractionResponseData{
+			Content: receipt,
+			Flags:   types.MessageFlagEphemeral,
+		},
+	}
+
+	if !c.gatewayMode && c.responseChan != nil {
+		select {
+		case c.responseChan <- resp:
+			return nil
+		default:
+		}
+	}
+
+	if c.REST == nil {
+		c.responded.Store(false)
+		return ErrNoRESTClient
+	}
+	err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
+	if err != nil {
+		c.responded.Store(false)
+		return err
+	}
+	return nil
 }
 
 func flagsFromEphemeral(ephemeral bool) types.MessageFlag {
