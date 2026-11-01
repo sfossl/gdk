@@ -73,12 +73,12 @@ func standardRoleGuildHandler(extraHandler func(w http.ResponseWriter, r *http.R
 
 func TestRoleDefaultsAndTargeting(t *testing.T) {
 	c := &Context{}
-	act := c.Role()
+	act := c.RoleSuite()
 	if act.ID() != 0 {
 		t.Fatalf("expected role ID 0, got %v", act.ID())
 	}
 
-	actTarget := c.Role(types.Snowflake(20))
+	actTarget := c.RoleSuite(types.Snowflake(20))
 	if actTarget.ID() != types.Snowflake(20) {
 		t.Fatalf("expected role ID 20, got %v", actTarget.ID())
 	}
@@ -142,7 +142,7 @@ func TestRoleGet(t *testing.T) {
 	c, cleanup := setupRoleTestContext(standardRoleGuildHandler(nil))
 	defer cleanup()
 
-	role, err := c.Role(types.Snowflake(20)).Get()
+	role, err := c.RoleSuite(types.Snowflake(20)).Get()
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -150,11 +150,11 @@ func TestRoleGet(t *testing.T) {
 		t.Fatalf("expected Member, got %s", role.Name)
 	}
 
-	if _, err := c.Role(0).Get(); !errors.Is(err, ErrInvalidRoleID) {
+	if _, err := c.RoleSuite(0).Get(); !errors.Is(err, ErrInvalidRoleID) {
 		t.Fatalf("expected ErrInvalidRoleID, got %v", err)
 	}
 
-	if _, err := c.Role(types.Snowflake(888)).Get(); !errors.Is(err, ErrRoleNotFound) {
+	if _, err := c.RoleSuite(types.Snowflake(888)).Get(); !errors.Is(err, ErrRoleNotFound) {
 		t.Fatalf("expected ErrRoleNotFound, got %v", err)
 	}
 }
@@ -176,7 +176,7 @@ func TestRoleCreate(t *testing.T) {
 	}))
 	defer cleanup()
 
-	role, err := c.Role().Create(rest.RolePayload{Name: &name}, "new", "perk")
+	role, err := c.RoleSuite().Create(rest.RolePayload{Name: &name}, "new", "perk")
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -216,7 +216,7 @@ func TestRoleEditAndHelpers(t *testing.T) {
 	}))
 	defer cleanup()
 
-	act := c.Role(types.Snowflake(20))
+	act := c.RoleSuite(types.Snowflake(20))
 
 	rName, err := act.SetName("SuperMember", "role", "tweak")
 	if err != nil || rName.Name != "SuperMember" {
@@ -257,7 +257,7 @@ func TestRoleDelete(t *testing.T) {
 	}))
 	defer cleanup()
 
-	err := c.Role(types.Snowflake(20)).Delete("cleanup", "role")
+	err := c.RoleSuite(types.Snowflake(20)).Delete("cleanup", "role")
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -283,7 +283,7 @@ func TestRoleAssignAndRemove(t *testing.T) {
 	}))
 	defer cleanup()
 
-	act := c.Role(types.Snowflake(20))
+	act := c.RoleSuite(types.Snowflake(20))
 
 	if err := act.Assign(0); !errors.Is(err, ErrInvalidTarget) {
 		t.Fatalf("expected ErrInvalidTarget, got %v", err)
@@ -402,6 +402,28 @@ func TestManageRole_OptionsAndShortcuts(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("unexpected role delete options error: %v", err)
+	}
+	if !deleted {
+		t.Fatalf("expected deleted true")
+	}
+
+	deleted = false
+	_, err = c.Role(Options{
+		Type:   "delete",
+		Role:   types.Snowflake(20),
+		Reason: "c.Role options delete",
+	})
+	if err != nil {
+		t.Fatalf("unexpected c.Role delete options error: %v", err)
+	}
+	if !deleted {
+		t.Fatalf("expected deleted true")
+	}
+
+	deleted = false
+	_, err = c.Role("delete", types.Snowflake(20), "c.Role direct delete")
+	if err != nil {
+		t.Fatalf("unexpected c.Role positional delete error: %v", err)
 	}
 	if !deleted {
 		t.Fatalf("expected deleted true")
