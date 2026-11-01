@@ -27,7 +27,7 @@ func setupModTestContext(handler http.HandlerFunc) (*Context, func()) {
 		AppID:   botAppID,
 		REST:    client,
 		Author:  &types.User{ID: invokerID},
-		Member:  &types.Member{Roles: []types.Snowflake{types.Snowflake(30)}},
+		InvokerMember:  &types.Member{Roles: []types.Snowflake{types.Snowflake(30)}},
 	}
 	return c, ts.Close
 }
