@@ -175,8 +175,8 @@ func TestUpdateValidation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if err := c.Update(UpdateOptions{Target: 123}); err != nil {
-		t.Fatalf("expected no-op when no options set, got: %v", err)
+	if err := c.Update(UpdateOptions{Target: 123}); !errors.Is(err, ErrEmptyMemberUpdate) {
+		t.Fatalf("expected ErrEmptyMemberUpdate when no options set, got: %v", err)
 	}
 }
 
