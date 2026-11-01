@@ -219,7 +219,7 @@ func TestStress_HierarchyBoundaryConditions(t *testing.T) {
 		GuildID: &guildID,
 		REST:    client,
 		Author:  &types.User{ID: adminID},
-		Member: &types.Member{
+		InvokerMember: &types.Member{
 			Roles: []types.Snowflake{30},
 		},
 	}
