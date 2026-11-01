@@ -107,8 +107,14 @@ func TestOpt_ExtractionAndFallbacks(t *testing.T) {
 	if v := ctx.Opt("float_val").Float(); v != 3.14 {
 		t.Errorf("expected 3.14, got %f", v)
 	}
+	if v := ctx.Opt("float_val").Float64(); v != 3.14 {
+		t.Errorf("expected 3.14 from Float64, got %f", v)
+	}
 	if v := ctx.Opt("missing").Float(2.5); v != 2.5 {
 		t.Errorf("expected 2.5, got %f", v)
+	}
+	if v := ctx.Opt("missing").Float64(2.5); v != 2.5 {
+		t.Errorf("expected 2.5 from Float64, got %f", v)
 	}
 
 	if v := ctx.Opt("bool_val").Bool(); !v {
