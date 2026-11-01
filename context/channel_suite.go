@@ -12,7 +12,9 @@ type ChannelSuite struct {
 	channelID types.Snowflake
 }
 
-func (c *Context) Channel(channelID ...types.Snowflake) ChannelSuite {
+type ChannelActionSuite = ChannelSuite
+
+func (c *Context) ChannelSuite(channelID ...types.Snowflake) ChannelSuite {
 	chID := c.ChannelID
 	if len(channelID) > 0 && channelID[0] != 0 {
 		chID = channelID[0]
@@ -21,6 +23,10 @@ func (c *Context) Channel(channelID ...types.Snowflake) ChannelSuite {
 		ctx:       c,
 		channelID: chID,
 	}
+}
+
+func (c *Context) ChannelAction(channelID ...types.Snowflake) ChannelSuite {
+	return c.ChannelSuite(channelID...)
 }
 
 func (a ChannelSuite) ID() types.Snowflake {
@@ -140,6 +146,33 @@ func (a ChannelSuite) Send(args ...any) (*types.Message, error) {
 	return a.ctx.REST.SendMessage(a.ctx.Context(), a.channelID, payload)
 }
 
+func (a ChannelSuite) Lock(reason ...string) error {
+	return a.ctx.Channel(ChannelOptions{
+		Type:      ChannelLock,
+		ChannelID: a.channelID,
+		Locked:    true,
+		Reason:    strings.Join(reason, " "),
+	})
+}
+
+func (a ChannelSuite) Unlock(reason ...string) error {
+	return a.ctx.Channel(ChannelOptions{
+		Type:      ChannelLock,
+		ChannelID: a.channelID,
+		Locked:    false,
+		Reason:    strings.Join(reason, " "),
+	})
+}
+
+func (a ChannelSuite) Purge(count int, reason ...string) error {
+	return a.ctx.Message(MessageOptions{
+		Type:      MsgPurge,
+		ChannelID: a.channelID,
+		Count:     count,
+		Reason:    strings.Join(reason, " "),
+	})
+}
+
 func (a ChannelSuite) Typing() error {
 	if a.channelID == 0 {
 		return ErrInvalidChannelID
@@ -151,5 +184,5 @@ func (a ChannelSuite) Typing() error {
 }
 
 func (c *Context) Typing() error {
-	return c.Channel().Typing()
+	return c.ChannelSuite().Typing()
 }
