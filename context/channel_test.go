@@ -42,12 +42,12 @@ func TestChannelDefaultsAndTargeting(t *testing.T) {
 		ChannelID: types.Snowflake(200),
 	}
 
-	act := c.Channel()
+	act := c.ChannelSuite()
 	if act.ID() != types.Snowflake(200) {
 		t.Fatalf("expected channel id 200, got %v", act.ID())
 	}
 
-	actTarget := c.Channel(types.Snowflake(300))
+	actTarget := c.ChannelSuite(types.Snowflake(300))
 	if actTarget.ID() != types.Snowflake(300) {
 		t.Fatalf("expected channel id 300, got %v", actTarget.ID())
 	}
@@ -55,7 +55,7 @@ func TestChannelDefaultsAndTargeting(t *testing.T) {
 
 func TestChannelValidationErrors(t *testing.T) {
 	cNoTarget := &Context{}
-	actNoTarget := cNoTarget.Channel()
+	actNoTarget := cNoTarget.ChannelSuite()
 
 	if _, err := actNoTarget.Get(); !errors.Is(err, ErrInvalidChannelID) {
 		t.Fatalf("expected ErrInvalidChannelID, got %v", err)
@@ -77,7 +77,7 @@ func TestChannelValidationErrors(t *testing.T) {
 	}
 
 	cNoREST := &Context{ChannelID: types.Snowflake(200)}
-	actNoREST := cNoREST.Channel()
+	actNoREST := cNoREST.ChannelSuite()
 
 	if _, err := actNoREST.Get(); !errors.Is(err, ErrNoRESTClient) {
 		t.Fatalf("expected ErrNoRESTClient, got %v", err)
@@ -128,11 +128,11 @@ func TestChannelCreate(t *testing.T) {
 	})
 	defer cleanup()
 
-	if _, err := c.Channel().Create(rest.CreateChannelPayload{Name: ""}); !errors.Is(err, ErrChannelNameRequired) {
+	if _, err := c.ChannelSuite().Create(rest.CreateChannelPayload{Name: ""}); !errors.Is(err, ErrChannelNameRequired) {
 		t.Fatalf("expected ErrChannelNameRequired, got %v", err)
 	}
 
-	ch, err := c.Channel().Create(rest.CreateChannelPayload{Name: "general"}, "setup", "channels")
+	ch, err := c.ChannelSuite().Create(rest.CreateChannelPayload{Name: "general"}, "setup", "channels")
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -156,7 +156,7 @@ func TestChannelGet(t *testing.T) {
 	})
 	defer cleanup()
 
-	ch, err := c.Channel().Get()
+	ch, err := c.ChannelSuite().Get()
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -180,7 +180,7 @@ func TestChannelDelete(t *testing.T) {
 	})
 	defer cleanup()
 
-	err := c.Channel().Delete("cleanup", "room")
+	err := c.ChannelSuite().Delete("cleanup", "room")
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -206,11 +206,11 @@ func TestChannelSetNameAndTopic(t *testing.T) {
 	})
 	defer cleanup()
 
-	if _, err := c.Channel().SetName(""); !errors.Is(err, ErrChannelNameRequired) {
+	if _, err := c.ChannelSuite().SetName(""); !errors.Is(err, ErrChannelNameRequired) {
 		t.Fatalf("expected ErrChannelNameRequired, got %v", err)
 	}
 
-	ch, err := c.Channel().SetName("updated", "routine", "rename")
+	ch, err := c.ChannelSuite().SetName("updated", "routine", "rename")
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -218,7 +218,7 @@ func TestChannelSetNameAndTopic(t *testing.T) {
 		t.Fatalf("expected updated, got %v", ch.Name)
 	}
 
-	ch2, err := c.Channel().SetTopic("new topic", "audit", "reason")
+	ch2, err := c.ChannelSuite().SetTopic("new topic", "audit", "reason")
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -262,7 +262,7 @@ func TestChannelSetSlowmode(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ch, err := c.Channel().SetSlowmode(tt.input)
+		ch, err := c.ChannelSuite().SetSlowmode(tt.input)
 		if tt.expectedErr != nil {
 			if !errors.Is(err, tt.expectedErr) {
 				t.Fatalf("input %v expected err %v, got %v", tt.input, tt.expectedErr, err)
@@ -299,7 +299,7 @@ func TestChannelEdit(t *testing.T) {
 	defer cleanup()
 
 	isNSFW := true
-	ch, err := c.Channel().Edit(rest.ModifyChannelPayload{
+	ch, err := c.ChannelSuite().Edit(rest.ModifyChannelPayload{
 		NSFW: &isNSFW,
 	}, "full", "update")
 	if err != nil {
