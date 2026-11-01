@@ -42,6 +42,8 @@ type OptionVal = context.OptionVal
 type Options = context.Options
 type Response = context.Response
 type Modal = context.Modal
+type MemberSuite = context.MemberSuite
+type MemberOptions = context.MemberOptions
 type ModType = context.ModType
 type ModOptions = context.ModOptions
 type ModAction = context.ModAction
@@ -250,6 +252,7 @@ var (
 	ErrModalAfterDefer          = context.ErrModalAfterDefer
 	ErrNoInteraction            = context.ErrNoInteraction
 	ErrEmptyMessage             = context.ErrEmptyMessage
+	ErrEmptyMemberUpdate        = context.ErrEmptyMemberUpdate
 	ErrTimeoutTooLong           = context.ErrTimeoutTooLong
 	ErrTimeoutTooShort          = context.ErrTimeoutTooShort
 	ErrBanDeleteTooLong         = context.ErrBanDeleteTooLong
