@@ -26,7 +26,7 @@ func setupRoleTestContext(handler http.HandlerFunc) (*Context, func()) {
 		AppID:   botAppID,
 		REST:    client,
 		Author:  &types.User{ID: invokerID},
-		Member:  &types.Member{Roles: []types.Snowflake{types.Snowflake(30)}},
+		InvokerMember:  &types.Member{Roles: []types.Snowflake{types.Snowflake(30)}},
 	}
 	return c, ts.Close
 }
@@ -131,7 +131,7 @@ func TestRoleHierarchyCheck(t *testing.T) {
 	}
 
 	c.Author = &types.User{ID: types.Snowflake(999)}
-	c.Member = &types.Member{Roles: nil}
+	c.InvokerMember = &types.Member{Roles: nil}
 	ok, err = c.CanManageRole(types.Snowflake(30))
 	if !ok || err != nil {
 		t.Fatalf("expected owner bypass for role 30, got ok %v err %v", ok, err)
