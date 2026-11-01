@@ -127,10 +127,15 @@ const (
 	RoleEdit   = context.RoleEdit
 	RoleDelete = context.RoleDelete
 
-	MsgPin       = context.MsgPin
-	MsgUnpin     = context.MsgUnpin
-	MsgDelete    = context.MsgDelete
-	MsgCrosspost = context.MsgCrosspost
+	MsgPin            = context.MsgPin
+	MsgUnpin          = context.MsgUnpin
+	MsgDelete         = context.MsgDelete
+	MsgCrosspost      = context.MsgCrosspost
+	MsgReact          = context.MsgReact
+	MsgUnreact        = context.MsgUnreact
+	MsgClearReactions = context.MsgClearReactions
+	MsgEdit           = context.MsgEdit
+	MsgPurge          = context.MsgPurge
 
 	DefaultDMReceipt        = defaults.DMReceipt
 	DefaultPanicMessage     = defaults.PanicMessage
