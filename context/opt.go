@@ -123,6 +123,10 @@ func (v OptionVal) Float(fallback ...float64) float64 {
 	return 0
 }
 
+func (v OptionVal) Float64(fallback ...float64) float64 {
+	return v.Float(fallback...)
+}
+
 func (v OptionVal) Bool(fallback ...bool) bool {
 	if !v.exists || v.val == nil {
 		if len(fallback) > 0 {
