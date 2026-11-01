@@ -103,6 +103,9 @@ func TestFacadeAppExports(t *testing.T) {
 	if ErrTokenRequired == nil || ErrAppIDRequired == nil || ErrCommandNotFound == nil {
 		t.Fatal("expected non-nil error sentinels")
 	}
+	if MsgReact == 0 || MsgPurge == 0 || MsgClearReactions == 0 {
+		t.Fatal("expected non-zero message action constants")
+	}
 }
 
 
