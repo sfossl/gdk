@@ -20,7 +20,6 @@ type Modal struct {
 	Components []types.Component
 }
 
-
 type Response = Options
 
 func (c *Context) Defer(ephemeral ...bool) error {
@@ -92,6 +91,10 @@ func parseResponseOptions(args ...any) Options {
 			res.Components = append(res.Components, v)
 		case []types.Component:
 			res.Components = append(res.Components, v...)
+		case types.File:
+			res.Files = append(res.Files, v)
+		case []types.File:
+			res.Files = append(res.Files, v...)
 		}
 	}
 	return res
@@ -150,11 +153,7 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 			return nil, err
 		}
 
-		receipt := res.Receipt
-		if receipt == "" {
-			receipt = DefaultDMReceipt
-		}
-		_ = c.respondReceipt(receipt)
+		_ = c.respondReceipt(DefaultDMReceipt)
 		return msg, nil
 	}
 
@@ -182,9 +181,6 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 			return nil, err
 		}
 
-		if res.Receipt != "" {
-			_ = c.respondReceipt(res.Receipt)
-		}
 		return msg, nil
 	}
 
@@ -460,5 +456,3 @@ func (c *Context) Modal(m Modal) error {
 	}
 	return nil
 }
-
-
