@@ -1,6 +1,7 @@
 package context
 
 import (
+	"context"
 	"errors"
 
 	"github.com/sfossl/gda/rest"
@@ -17,6 +18,51 @@ var (
 	ErrInvalidTarget       = errors.New("invalid target member id")
 )
 
+func (c *Context) getGuildCached(ctx context.Context, guildID types.Snowflake) (*types.Guild, error) {
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
+	if c.cachedGuild != nil {
+		return c.cachedGuild, nil
+	}
+	guild, err := c.REST.GetGuild(ctx, guildID)
+	if err != nil {
+		return nil, err
+	}
+	c.cachedGuild = guild
+	if len(guild.Roles) > 0 {
+		c.cachedRoles = guild.Roles
+	}
+	return guild, nil
+}
+
+func (c *Context) getRolesCached(ctx context.Context, guildID types.Snowflake) ([]types.Role, error) {
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
+	if len(c.cachedRoles) > 0 {
+		return c.cachedRoles, nil
+	}
+	roles, err := c.REST.GetGuildRoles(ctx, guildID)
+	if err != nil {
+		return nil, err
+	}
+	c.cachedRoles = roles
+	return roles, nil
+}
+
+func (c *Context) getBotMemberCached(ctx context.Context, guildID types.Snowflake) (*types.Member, error) {
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
+	if c.cachedBotMem != nil {
+		return c.cachedBotMem, nil
+	}
+	bm, err := c.REST.GetGuildMember(ctx, guildID, c.AppID)
+	if err != nil {
+		return nil, err
+	}
+	c.cachedBotMem = bm
+	return bm, nil
+}
+
 func (c *Context) CanModerate(targetMemberID types.Snowflake) (bool, error) {
 	if targetMemberID == 0 {
 		return false, ErrInvalidTarget
@@ -31,7 +77,7 @@ func (c *Context) CanModerate(targetMemberID types.Snowflake) (bool, error) {
 	guildID := *c.GuildID
 	ctx := c.Context()
 
-	guild, err := c.REST.GetGuild(ctx, guildID)
+	guild, err := c.getGuildCached(ctx, guildID)
 	if err != nil {
 		return false, err
 	}
@@ -53,7 +99,7 @@ func (c *Context) CanModerate(targetMemberID types.Snowflake) (bool, error) {
 
 	roles := guild.Roles
 	if len(roles) == 0 {
-		fetchedRoles, err := c.REST.GetGuildRoles(ctx, guildID)
+		fetchedRoles, err := c.getRolesCached(ctx, guildID)
 		if err != nil {
 			return false, err
 		}
@@ -86,7 +132,7 @@ func (c *Context) CanModerate(targetMemberID types.Snowflake) (bool, error) {
 	targetMaxPos := memberMaxRolePosition(targetRoles, rolePositions)
 
 	if c.AppID == 0 || c.AppID != guild.OwnerID {
-		botMember, err := c.REST.GetGuildMember(ctx, guildID, c.AppID)
+		botMember, err := c.getBotMemberCached(ctx, guildID)
 		if err != nil {
 			return false, err
 		}
@@ -101,8 +147,8 @@ func (c *Context) CanModerate(targetMemberID types.Snowflake) (bool, error) {
 	}
 
 	var invokerRoles []types.Snowflake
-	if c.Member != nil {
-		invokerRoles = c.Member.Roles
+	if c.InvokerMember != nil {
+		invokerRoles = c.InvokerMember.Roles
 	} else if invokerID != 0 {
 		im, err := c.REST.GetGuildMember(ctx, guildID, invokerID)
 		if err != nil {
