@@ -221,14 +221,14 @@ func (c *Context) CanManageRole(roleID types.Snowflake) (bool, error) {
 	}
 
 	ctx := c.Context()
-	guild, err := c.REST.GetGuild(ctx, guildID)
+	guild, err := c.getGuildCached(ctx, guildID)
 	if err != nil {
 		return false, err
 	}
 
 	roles := guild.Roles
 	if len(roles) == 0 {
-		fetchedRoles, err := c.REST.GetGuildRoles(ctx, guildID)
+		fetchedRoles, err := c.getRolesCached(ctx, guildID)
 		if err != nil {
 			return false, err
 		}
@@ -251,7 +251,7 @@ func (c *Context) CanManageRole(roleID types.Snowflake) (bool, error) {
 	rolePos := targetRole.Position
 
 	if c.AppID == 0 || c.AppID != guild.OwnerID {
-		botMember, err := c.REST.GetGuildMember(ctx, guildID, c.AppID)
+		botMember, err := c.getBotMemberCached(ctx, guildID)
 		if err != nil {
 			return false, err
 		}
@@ -270,8 +270,8 @@ func (c *Context) CanManageRole(roleID types.Snowflake) (bool, error) {
 	}
 
 	var invokerRoles []types.Snowflake
-	if c.Member != nil {
-		invokerRoles = c.Member.Roles
+	if c.InvokerMember != nil {
+		invokerRoles = c.InvokerMember.Roles
 	} else if invokerID != 0 {
 		im, err := c.REST.GetGuildMember(ctx, guildID, invokerID)
 		if err != nil {
