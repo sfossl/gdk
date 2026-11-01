@@ -109,11 +109,11 @@ func RequirePermissions(userPerms, botPerms types.Permission, opts ...Permission
 				if ctx.GuildID == nil {
 					return ErrNotInGuild
 				}
-				if ctx.Member == nil {
+				if ctx.InvokerMember == nil {
 					return ErrNoMemberPermissions
 				}
 
-				effective := ctx.Member.Permissions
+				effective := ctx.InvokerMember.Permissions
 				if (effective & types.PermissionAdministrator) != types.PermissionAdministrator {
 					if (effective & userPerms) != userPerms {
 						missing := userPerms &^ effective
