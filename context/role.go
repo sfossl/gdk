@@ -53,7 +53,7 @@ func parseRoleAction(v any) RoleAction {
 	return 0
 }
 
-func (c *Context) ManageRole(args ...any) (*types.Role, error) {
+func (c *Context) Role(args ...any) (*types.Role, error) {
 	if c.GuildID == nil {
 		return nil, ErrNotInGuild
 	}
@@ -74,9 +74,13 @@ func (c *Context) ManageRole(args ...any) (*types.Role, error) {
 			opts = *v
 		}
 	case Options:
+		roleID := v.Role
+		if roleID == 0 {
+			roleID = v.Target
+		}
 		opts = RoleOptions{
 			Type:        parseRoleAction(v.Type),
-			RoleID:      v.Role,
+			RoleID:      roleID,
 			Name:        v.Name,
 			Color:       v.Color,
 			Permissions: v.Permissions,
@@ -86,9 +90,13 @@ func (c *Context) ManageRole(args ...any) (*types.Role, error) {
 		}
 	case *Options:
 		if v != nil {
+			roleID := v.Role
+			if roleID == 0 {
+				roleID = v.Target
+			}
 			opts = RoleOptions{
 				Type:        parseRoleAction(v.Type),
-				RoleID:      v.Role,
+				RoleID:      roleID,
 				Name:        v.Name,
 				Color:       v.Color,
 				Permissions: v.Permissions,
@@ -99,6 +107,15 @@ func (c *Context) ManageRole(args ...any) (*types.Role, error) {
 		}
 	case RoleAction:
 		opts.Type = v
+		parseRest = true
+	case types.Snowflake:
+		opts.RoleID = v
+		parseRest = true
+	case int:
+		opts.RoleID = types.Snowflake(v)
+		parseRest = true
+	case int64:
+		opts.RoleID = types.Snowflake(v)
 		parseRest = true
 	case string:
 		opts.Type = parseRoleAction(v)
@@ -112,14 +129,29 @@ func (c *Context) ManageRole(args ...any) (*types.Role, error) {
 			switch a := arg.(type) {
 			case types.Snowflake:
 				opts.RoleID = a
+			case int:
+				if opts.RoleID == 0 && opts.Type != RoleCreate {
+					opts.RoleID = types.Snowflake(a)
+				} else {
+					opts.Color = a
+				}
+			case int64:
+				opts.RoleID = types.Snowflake(a)
+			case RoleAction:
+				opts.Type = a
 			case string:
+				if opts.Type == 0 {
+					act := parseRoleAction(a)
+					if act != 0 {
+						opts.Type = act
+						continue
+					}
+				}
 				if opts.Name == "" && opts.Type != RoleDelete {
 					opts.Name = a
 				} else {
 					opts.Reason = a
 				}
-			case int:
-				opts.Color = a
 			}
 		}
 	}
@@ -184,12 +216,18 @@ func (c *Context) ManageRole(args ...any) (*types.Role, error) {
 	}
 }
 
+func (c *Context) ManageRole(args ...any) (*types.Role, error) {
+	return c.Role(args...)
+}
+
 type RoleSuite struct {
 	ctx    *Context
 	roleID types.Snowflake
 }
 
-func (c *Context) Role(roleID ...types.Snowflake) RoleSuite {
+type RoleActionSuite = RoleSuite
+
+func (c *Context) RoleSuite(roleID ...types.Snowflake) RoleSuite {
 	var id types.Snowflake
 	if len(roleID) > 0 {
 		id = roleID[0]
@@ -198,6 +236,10 @@ func (c *Context) Role(roleID ...types.Snowflake) RoleSuite {
 		ctx:    c,
 		roleID: id,
 	}
+}
+
+func (c *Context) RoleAction(roleID ...types.Snowflake) RoleSuite {
+	return c.RoleSuite(roleID...)
 }
 
 func (a RoleSuite) ID() types.Snowflake {
