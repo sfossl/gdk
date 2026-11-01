@@ -48,10 +48,7 @@ const (
 	ChannelTypeGuildMedia         ChannelType = 16
 )
 
-type Choice struct {
-	Name  string
-	Value any
-}
+type Choice = types.Choice
 
 type Option struct {
 	Type         OptionType
