@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/sfossl/gda/rest"
@@ -35,7 +36,7 @@ func TestMessageDefaultsAndTargeting(t *testing.T) {
 		},
 	}
 
-	act := c.Message(types.Snowflake(500))
+	act := c.MessageSuite(types.Snowflake(500))
 	if act.ID() != types.Snowflake(500) {
 		t.Fatalf("expected message id 500, got %v", act.ID())
 	}
@@ -43,7 +44,7 @@ func TestMessageDefaultsAndTargeting(t *testing.T) {
 		t.Fatalf("expected channel id 200, got %v", act.ChannelID())
 	}
 
-	actCustom := c.Message(types.Snowflake(500), types.Snowflake(300))
+	actCustom := c.MessageSuite(types.Snowflake(500), types.Snowflake(300))
 	if actCustom.ChannelID() != types.Snowflake(300) {
 		t.Fatalf("expected channel id 300, got %v", actCustom.ChannelID())
 	}
@@ -108,7 +109,7 @@ func TestManageMessage(t *testing.T) {
 
 func TestMessageValidationErrors(t *testing.T) {
 	cNoREST := &Context{ChannelID: types.Snowflake(200)}
-	actNoREST := cNoREST.Message(types.Snowflake(500))
+	actNoREST := cNoREST.MessageSuite(types.Snowflake(500))
 
 	if _, err := actNoREST.Get(); !errors.Is(err, ErrNoRESTClient) {
 		t.Fatalf("expected ErrNoRESTClient, got %v", err)
@@ -135,7 +136,7 @@ func TestMessageValidationErrors(t *testing.T) {
 	c, cleanup := setupMessageTestContext(func(w http.ResponseWriter, r *http.Request) {})
 	defer cleanup()
 
-	actZeroMsg := c.Message(0)
+	actZeroMsg := c.MessageSuite(0)
 	if _, err := actZeroMsg.Get(); !errors.Is(err, ErrInvalidMessageID) {
 		t.Fatalf("expected ErrInvalidMessageID, got %v", err)
 	}
@@ -158,7 +159,7 @@ func TestMessageValidationErrors(t *testing.T) {
 		t.Fatalf("expected ErrInvalidMessageID, got %v", err)
 	}
 
-	actZeroCh := c.Message(types.Snowflake(500))
+	actZeroCh := c.MessageSuite(types.Snowflake(500))
 	actZeroCh.channelID = 0
 	if _, err := actZeroCh.Get(); !errors.Is(err, ErrInvalidChannelID) {
 		t.Fatalf("expected ErrInvalidChannelID, got %v", err)
@@ -182,7 +183,7 @@ func TestMessageValidationErrors(t *testing.T) {
 		t.Fatalf("expected ErrInvalidChannelID, got %v", err)
 	}
 
-	actValid := c.Message(types.Snowflake(500))
+	actValid := c.MessageSuite(types.Snowflake(500))
 	if err := actValid.React(""); !errors.Is(err, ErrEmojiRequired) {
 		t.Fatalf("expected ErrEmojiRequired, got %v", err)
 	}
@@ -217,7 +218,7 @@ func TestMessageGetAndEdit(t *testing.T) {
 	})
 	defer cleanup()
 
-	act := c.Message(types.Snowflake(500))
+	act := c.MessageSuite(types.Snowflake(500))
 
 	msg, err := act.Get()
 	if err != nil {
@@ -270,7 +271,7 @@ func TestMessageDeleteAndPins(t *testing.T) {
 	})
 	defer cleanup()
 
-	act := c.Message(types.Snowflake(500))
+	act := c.MessageSuite(types.Snowflake(500))
 
 	if err := act.Delete("spam", "purge"); err != nil {
 		t.Fatalf("unexpected error deleting message: %v", err)
@@ -301,7 +302,7 @@ func TestMessageReactions(t *testing.T) {
 	})
 	defer cleanup()
 
-	act := c.Message(types.Snowflake(500))
+	act := c.MessageSuite(types.Snowflake(500))
 
 	if err := act.React("thumbsup"); err != nil {
 		t.Fatalf("unexpected error adding reaction: %v", err)
@@ -385,5 +386,99 @@ func TestManageMessage_AutoResolveTargetMessage(t *testing.T) {
 	}
 	if !deleted {
 		t.Fatal("expected target message 777 to be deleted")
+	}
+}
+
+func TestMessage_ReactionsAndEditing(t *testing.T) {
+	var reacted []string
+	var unreacted []string
+	var clearedAll, clearedEmoji bool
+	var editedContent string
+
+	c, cleanup := setupMessageTestContext(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPut && strings.Contains(r.URL.Path, "/reactions/"):
+			parts := strings.Split(r.URL.Path, "/")
+			if len(parts) >= 7 {
+				reacted = append(reacted, parts[6])
+			}
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodDelete && strings.HasSuffix(r.URL.Path, "/@me"):
+			parts := strings.Split(r.URL.Path, "/")
+			if len(parts) >= 7 {
+				unreacted = append(unreacted, parts[6])
+			}
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodDelete && r.URL.Path == "/channels/200/messages/500/reactions":
+			clearedAll = true
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodDelete && strings.Contains(r.URL.Path, "/reactions/"):
+			clearedEmoji = true
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodPatch && r.URL.Path == "/channels/200/messages/500":
+			var p rest.MessagePayload
+			_ = json.NewDecoder(r.Body).Decode(&p)
+			editedContent = p.Content
+			_ = json.NewEncoder(w).Encode(types.Message{ID: 500, Content: p.Content})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+	defer cleanup()
+
+	err := c.Message(Options{
+		Target: 500,
+		Type:   "react",
+		Emoji:  []string{"star", "<:pepe_cool:12345>", "<a:pepe_dance:67890>"},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(reacted) != 3 || reacted[0] != "star" || reacted[1] != "pepe_cool:12345" || reacted[2] != "pepe_dance:67890" {
+		t.Fatalf("unexpected reactions: %v", reacted)
+	}
+
+	err = c.Message(500, "unreact", "star")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(unreacted) != 1 || unreacted[0] != "star" {
+		t.Fatalf("unexpected unreact: %v", unreacted)
+	}
+
+	err = c.Message(500, "clearreactions")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !clearedAll {
+		t.Fatalf("expected clear all reactions")
+	}
+
+	err = c.Message(500, "clearreactions", "star")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !clearedEmoji {
+		t.Fatalf("expected clear specific emoji")
+	}
+
+	err = c.Message(Options{
+		Target:  500,
+		Type:    "edit",
+		Content: "edited message text",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if editedContent != "edited message text" {
+		t.Fatalf("expected edited message text, got %s", editedContent)
+	}
+
+	err = c.Message(500, "edit", "positional edit text")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if editedContent != "positional edit text" {
+		t.Fatalf("expected positional edit text, got %s", editedContent)
 	}
 }
