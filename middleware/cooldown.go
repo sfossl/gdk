@@ -352,8 +352,8 @@ func resolveCooldownKey(prefix string, ctx *context.Context, scope Scope) (strin
 		var uid types.Snowflake
 		if ctx.Author != nil {
 			uid = ctx.Author.ID
-		} else if ctx.Member != nil && ctx.Member.User != nil {
-			uid = ctx.Member.User.ID
+		} else if ctx.InvokerMember != nil && ctx.InvokerMember.User != nil {
+			uid = ctx.InvokerMember.User.ID
 		}
 		if uid == 0 {
 			return "", errors.New("missing user id")
