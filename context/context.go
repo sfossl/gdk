@@ -21,7 +21,7 @@ type Context struct {
 	GuildID         *types.Snowflake
 	ChannelID       types.Snowflake
 	Author          *types.User
-	Member          *types.Member
+	InvokerMember   *types.Member
 	responded       atomic.Bool
 	deferred        atomic.Bool
 	gatewayMode     bool
@@ -32,6 +32,10 @@ type Context struct {
 	optsMap         map[string]OptionVal
 	subcommand      string
 	subcommandGroup string
+	cacheMu         sync.Mutex
+	cachedGuild     *types.Guild
+	cachedRoles     []types.Role
+	cachedBotMem    *types.Member
 }
 
 func New(ctx context.Context, in *types.Interaction, restClient *rest.Client) *Context {
@@ -76,7 +80,7 @@ func (c *Context) initFields(in *types.Interaction) {
 		c.Author = in.Member.User
 	}
 
-	c.Member = in.Member
+	c.InvokerMember = in.Member
 
 	if in.Data != nil && len(in.Data.Options) > 0 {
 		first := in.Data.Options[0]
