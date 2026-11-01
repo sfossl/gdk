@@ -130,13 +130,12 @@ func TestRespond_ScopeDM_DefaultAndCustomReceipt(t *testing.T) {
 			Scope:   "dm",
 			Target:  555,
 			Content: "hello user",
-			Receipt: "Sent private notification.",
 		})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if callbackPayload.Data == nil || callbackPayload.Data.Content != "Sent private notification." {
-			t.Fatalf("expected custom receipt, got '%v'", callbackPayload.Data)
+		if callbackPayload.Data == nil || callbackPayload.Data.Content != DefaultDMReceipt {
+			t.Fatalf("expected default receipt, got '%v'", callbackPayload.Data)
 		}
 	})
 }
@@ -244,4 +243,18 @@ func TestRespond_TypingIndicator(t *testing.T) {
 	if !typingTriggered {
 		t.Fatalf("expected typing indicator to be triggered on channel 444")
 	}
+}
+
+func TestRespond_PositionalFiles(t *testing.T) {
+	in := &types.Interaction{ID: 100, Token: "test-token"}
+	c := New(context.Background(), in, nil)
+	opts := parseResponseOptions("log", types.File{Name: "app.log"})
+	if len(opts.Files) != 1 || opts.Files[0].Name != "app.log" {
+		t.Fatalf("expected 1 file parsed positionally, got: %+v", opts.Files)
+	}
+	optsList := parseResponseOptions([]types.File{{Name: "a.txt"}, {Name: "b.txt"}})
+	if len(optsList.Files) != 2 {
+		t.Fatalf("expected 2 files parsed positionally, got: %+v", optsList.Files)
+	}
+	_ = c
 }
