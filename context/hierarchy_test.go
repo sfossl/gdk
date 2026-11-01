@@ -127,7 +127,7 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 			AppID:   botAppID,
 			REST:    client,
 			Author:  &types.User{ID: invokerID},
-			Member:  &types.Member{Roles: specs[invokerID].roles},
+			InvokerMember:  &types.Member{Roles: specs[invokerID].roles},
 		}
 
 		ok, err := c.CanModerate(targetID)
@@ -146,7 +146,7 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 			AppID:   botAppID,
 			REST:    client,
 			Author:  &types.User{ID: invokerID},
-			Member:  &types.Member{Roles: []types.Snowflake{roleHigh.ID}},
+			InvokerMember:  &types.Member{Roles: []types.Snowflake{roleHigh.ID}},
 		}
 
 		ok, err := c.CanModerate(targetID)
@@ -166,7 +166,7 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 			AppID:   botAppID,
 			REST:    client,
 			Author:  &types.User{ID: invokerID},
-			Member:  &types.Member{Roles: specs[invokerID].roles},
+			InvokerMember:  &types.Member{Roles: specs[invokerID].roles},
 		}
 
 		ok, err := c.CanModerate(targetID)
@@ -185,7 +185,7 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 			AppID:   botAppID,
 			REST:    client,
 			Author:  &types.User{ID: ownerID},
-			Member:  &types.Member{Roles: []types.Snowflake{}},
+			InvokerMember:  &types.Member{Roles: []types.Snowflake{}},
 		}
 
 		ok, err := c.CanModerate(targetID)
@@ -204,7 +204,7 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 			AppID:   botAppID,
 			REST:    client,
 			Author:  &types.User{ID: invokerID},
-			Member:  &types.Member{Roles: []types.Snowflake{roleMid.ID}},
+			InvokerMember:  &types.Member{Roles: []types.Snowflake{roleMid.ID}},
 			Interaction: &types.Interaction{
 				Data: &types.InteractionData{
 					Resolved: &types.ResolvedData{
@@ -232,7 +232,7 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 			AppID:   botAppID,
 			REST:    client,
 			Author:  &types.User{ID: invokerID},
-			Member:  &types.Member{Roles: []types.Snowflake{roleMid.ID}},
+			InvokerMember:  &types.Member{Roles: []types.Snowflake{roleMid.ID}},
 			Interaction: &types.Interaction{
 				Data: &types.InteractionData{
 					Resolved: &types.ResolvedData{
