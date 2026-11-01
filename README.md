@@ -67,6 +67,7 @@ go get github.com/sfossl/gdk
 - [Getting Started](.docs/getting-started.md)
 - [Slash Commands](.docs/commands.md)
 - [Execution Context](.docs/context.md)
+- [Unified Modules](.docs/modules/index.md)
 - [Components & Modals](.docs/components.md)
 - [Middleware](.docs/middleware.md)
 - [Command Synchronization](.docs/sync.md)
