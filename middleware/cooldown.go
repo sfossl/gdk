@@ -303,7 +303,7 @@ func Cooldown(policies []Policy, opts ...CooldownOption) Middleware {
 
 			now := time.Now()
 			for _, policy := range cfg.Policies {
-				if policy.Duration < 0 || policy.Burst < 0 {
+				if policy.Duration <= 0 || policy.Burst <= 0 {
 					return ErrInvalidCooldown
 				}
 
