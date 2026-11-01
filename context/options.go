@@ -17,6 +17,7 @@ type Options struct {
 	Message      types.Snowflake
 	Content      string
 	Reason       string
+	Emoji        any
 	Duration     any
 	Count        int
 	Ephemeral    bool
@@ -138,6 +139,9 @@ func (o Options) ResolveChannel(c *Context) types.Snowflake {
 }
 
 func (o Options) ResolveMessage(c *Context) types.Snowflake {
+	if o.Target != 0 {
+		return o.Target
+	}
 	if o.Message != 0 {
 		return o.Message
 	}
