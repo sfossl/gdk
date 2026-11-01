@@ -17,7 +17,6 @@ type Options struct {
 	Message      types.Snowflake
 	Content      string
 	Reason       string
-	Receipt      string
 	Duration     any
 	Count        int
 	Ephemeral    bool
