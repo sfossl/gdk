@@ -1,9 +1,7 @@
 package context
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -29,7 +27,6 @@ var (
 	ErrChannelNameRequired  = errors.New("channel name is required")
 	ErrSlowmodeTooLong      = errors.New("slowmode duration exceeds maximum 6 hours")
 	ErrSlowmodeNegative     = errors.New("slowmode duration cannot be negative")
-	ErrInvalidPurgeCount    = errors.New("purge count must be between 2 and 100")
 	ErrInvalidChannelAction = errors.New("invalid channel action type")
 )
 
@@ -68,7 +65,31 @@ func parseChannelAction(v any) ChannelAction {
 	return 0
 }
 
-func (c *Context) ManageChannel(args ...any) error {
+func channelOptionsFromOptions(v Options, c *Context) ChannelOptions {
+	locked := true
+	if s, ok := v.Type.(string); ok && strings.ToLower(strings.TrimSpace(s)) == "unlock" {
+		locked = false
+	}
+	chID := v.Channel
+	if chID == 0 {
+		chID = v.Target
+	}
+	if chID == 0 {
+		chID = v.ResolveChannel(c)
+	}
+	return ChannelOptions{
+		Type:       parseChannelAction(v.Type),
+		ChannelID:  chID,
+		Name:       v.Name,
+		Topic:      v.Topic,
+		Slowmode:   v.Slowmode,
+		PurgeCount: v.Count,
+		Locked:     locked,
+		Reason:     v.Reason,
+	}
+}
+
+func (c *Context) Channel(args ...any) error {
 	if len(args) == 0 {
 		return ErrInvalidChannelAction
 	}
@@ -82,42 +103,25 @@ func (c *Context) ManageChannel(args ...any) error {
 			opts = *v
 		}
 	case Options:
-		locked := true
-		if s, ok := v.Type.(string); ok && strings.ToLower(strings.TrimSpace(s)) == "unlock" {
-			locked = false
-		}
-		opts = ChannelOptions{
-			Type:       parseChannelAction(v.Type),
-			ChannelID:  v.ResolveChannel(c),
-			Name:       v.Name,
-			Topic:      v.Topic,
-			Slowmode:   v.Slowmode,
-			PurgeCount: v.Count,
-			Locked:     locked,
-			Reason:     v.Reason,
-		}
+		opts = channelOptionsFromOptions(v, c)
 	case *Options:
 		if v != nil {
-			locked := true
-			if s, ok := v.Type.(string); ok && strings.ToLower(strings.TrimSpace(s)) == "unlock" {
-				locked = false
-			}
-			opts = ChannelOptions{
-				Type:       parseChannelAction(v.Type),
-				ChannelID:  v.ResolveChannel(c),
-				Name:       v.Name,
-				Topic:      v.Topic,
-				Slowmode:   v.Slowmode,
-				PurgeCount: v.Count,
-				Locked:     locked,
-				Reason:     v.Reason,
-			}
+			opts = channelOptionsFromOptions(*v, c)
 		}
 	case ChannelAction:
 		opts.Type = v
 		if v == ChannelLock {
 			opts.Locked = true
 		}
+		parseRest = true
+	case types.Snowflake:
+		opts.ChannelID = v
+		parseRest = true
+	case int:
+		opts.ChannelID = types.Snowflake(v)
+		parseRest = true
+	case int64:
+		opts.ChannelID = types.Snowflake(v)
 		parseRest = true
 	case string:
 		opts.Type = parseChannelAction(v)
@@ -234,58 +238,20 @@ func (c *Context) ManageChannel(args ...any) error {
 		return err
 
 	case ChannelPurge:
-		if chID == 0 {
-			return ErrInvalidChannelID
-		}
-		if opts.PurgeCount < 2 || opts.PurgeCount > 100 {
-			return ErrInvalidPurgeCount
-		}
-		endpoint := rest.Endpoint{
-			Method: "GET",
-			Path:   fmt.Sprintf("/channels/%s/messages?limit=%d", chID, opts.PurgeCount),
-			Key:    fmt.Sprintf("GET:/channels/%s/messages", chID),
-		}
-		data, err := c.REST.Do(c.Context(), rest.Request{Endpoint: endpoint})
-		if err != nil {
-			return err
-		}
-		var msgs []types.Message
-		if err := json.Unmarshal(data, &msgs); err != nil {
-			return err
-		}
-		if len(msgs) == 0 {
-			return nil
-		}
-		if len(msgs) == 1 {
-			return c.REST.DeleteMessage(c.Context(), chID, msgs[0].ID, opts.Reason)
-		}
-		msgIDs := make([]types.Snowflake, len(msgs))
-		for i, m := range msgs {
-			msgIDs[i] = m.ID
-		}
-		bulkEndpoint := rest.Endpoint{
-			Method: "POST",
-			Path:   fmt.Sprintf("/channels/%s/messages/bulk-delete", chID),
-			Key:    fmt.Sprintf("POST:/channels/%s/messages/bulk-delete", chID),
-		}
-		bulkPayload := struct {
-			Messages []types.Snowflake `json:"messages"`
-		}{
-			Messages: msgIDs,
-		}
-		req := rest.Request{
-			Endpoint: bulkEndpoint,
-			Body:     bulkPayload,
-		}
-		if opts.Reason != "" {
-			req.Headers = http.Header{"X-Audit-Log-Reason": []string{opts.Reason}}
-		}
-		_, err = c.REST.Do(c.Context(), req)
-		return err
+		return c.Message(MessageOptions{
+			Type:      MsgPurge,
+			ChannelID: chID,
+			Count:     opts.PurgeCount,
+			Reason:    opts.Reason,
+		})
 
 	default:
 		return ErrInvalidChannelAction
 	}
+}
+
+func (c *Context) ManageChannel(args ...any) error {
+	return c.Channel(args...)
 }
 
 func parseSlowmodeSeconds(v any) (int, error) {
