@@ -115,3 +115,18 @@ func TestOptionsPointer_UnifiedMethods(t *testing.T) {
 	}
 }
 
+func TestOptionsResolveType(t *testing.T) {
+	optSend := Options{Type: "SEND"}
+	if optSend.ResolveType() != "send" {
+		t.Fatalf("expected send, got %s", optSend.ResolveType())
+	}
+	optNil := Options{Type: nil}
+	if optNil.ResolveType() != "" {
+		t.Fatalf("expected empty, got %s", optNil.ResolveType())
+	}
+	optInt := Options{Type: 123}
+	if optInt.ResolveType() != "" {
+		t.Fatalf("expected empty, got %s", optInt.ResolveType())
+	}
+}
+
