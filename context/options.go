@@ -22,6 +22,7 @@ type Options struct {
 	Ephemeral    bool
 	Mention      *bool
 	Typing       bool
+	Embed        any
 	Embeds       []types.Embed
 	Components   []types.Component
 	Files        []types.File
