@@ -1,7 +1,6 @@
 package context
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/sfossl/gda/types"
@@ -30,7 +29,7 @@ type Options struct {
 	Deferred     bool
 	Name         string
 	Topic        string
-	Slowmode     int
+	Slowmode     any
 	Color        int
 	Permissions  *types.Permission
 	Hoist        *bool
@@ -66,54 +65,6 @@ func (o Options) ResolveType() string {
 	switch v := o.Type.(type) {
 	case string:
 		return strings.ToLower(strings.TrimSpace(v))
-	case ModType:
-		switch v {
-		case ModKick:
-			return "kick"
-		case ModBan:
-			return "ban"
-		case ModUnban:
-			return "unban"
-		case ModTimeout:
-			return "timeout"
-		case ModRemoveTimeout:
-			return "removetimeout"
-		}
-	case ChannelAction:
-		switch v {
-		case ChannelCreate:
-			return "create"
-		case ChannelEdit:
-			return "edit"
-		case ChannelDelete:
-			return "delete"
-		case ChannelPurge:
-			return "purge"
-		case ChannelLock:
-			return "lock"
-		}
-	case RoleAction:
-		switch v {
-		case RoleCreate:
-			return "create"
-		case RoleEdit:
-			return "edit"
-		case RoleDelete:
-			return "delete"
-		}
-	case MessageAction:
-		switch v {
-		case MsgPin:
-			return "pin"
-		case MsgUnpin:
-			return "unpin"
-		case MsgDelete:
-			return "delete"
-		case MsgCrosspost:
-			return "crosspost"
-		}
-	case int:
-		return strconv.Itoa(v)
 	}
 	return ""
 }
