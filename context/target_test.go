@@ -198,3 +198,49 @@ func TestContext_TargetUser_Mentionable(t *testing.T) {
 		t.Fatalf("expected user mentionuser, got %v", user)
 	}
 }
+
+func TestContext_TargetMember_AvatarURL(t *testing.T) {
+	targetID := types.Snowflake(11223344)
+	guildID := types.Snowflake(99887766)
+	uHash := "useravatarhash"
+	mHash := "memberavatarhash"
+
+	in := &types.Interaction{
+		Type:    2,
+		GuildID: &guildID,
+		Data: &types.InteractionData{
+			Type:     2,
+			TargetID: &targetID,
+			Resolved: &types.ResolvedData{
+				Users: map[types.Snowflake]types.User{
+					targetID: {ID: targetID, Username: "avataruser", Avatar: &uHash},
+				},
+				Members: map[types.Snowflake]types.Member{
+					targetID: {Avatar: &mHash},
+				},
+			},
+		},
+	}
+
+	ctx := context.New(stdctx.Background(), in, nil)
+	member := ctx.TargetMember()
+	if member == nil {
+		t.Fatalf("expected member")
+	}
+
+	guildAvatar := member.AvatarURL()
+	if guildAvatar != "https://cdn.discordapp.com/guilds/99887766/users/11223344/avatars/memberavatarhash.png?size=512" {
+		t.Fatalf("unexpected guild avatar: %s", guildAvatar)
+	}
+
+	globalAvatar := member.AvatarURL(true, 256)
+	if globalAvatar != "https://cdn.discordapp.com/avatars/11223344/useravatarhash.png?size=256" {
+		t.Fatalf("unexpected global avatar: %s", globalAvatar)
+	}
+
+	member.Avatar = nil
+	fallbackGlobal := member.AvatarURL(false, 128)
+	if fallbackGlobal != "https://cdn.discordapp.com/avatars/11223344/useravatarhash.png?size=128" {
+		t.Fatalf("unexpected fallback global avatar: %s", fallbackGlobal)
+	}
+}
