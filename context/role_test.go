@@ -376,6 +376,16 @@ func TestManageRole_OptionsAndShortcuts(t *testing.T) {
 	var deleted bool
 	var auditReason string
 	c, cleanup := setupRoleTestContext(standardRoleGuildHandler(func(w http.ResponseWriter, r *http.Request) bool {
+		if r.Method == "POST" && r.URL.Path == "/guilds/100/roles" {
+			var payload rest.RolePayload
+			_ = json.NewDecoder(r.Body).Decode(&payload)
+			name := ""
+			if payload.Name != nil {
+				name = *payload.Name
+			}
+			_ = json.NewEncoder(w).Encode(types.Role{ID: types.Snowflake(50), Name: name})
+			return true
+		}
 		if r.Method == "DELETE" && r.URL.Path == "/guilds/100/roles/20" {
 			deleted = true
 			auditReason = r.Header.Get("X-Audit-Log-Reason")
@@ -427,6 +437,14 @@ func TestManageRole_OptionsAndShortcuts(t *testing.T) {
 	}
 	if !deleted {
 		t.Fatalf("expected deleted true")
+	}
+
+	newRole, err := c.Role("Moderator", RoleCreate)
+	if err != nil {
+		t.Fatalf("unexpected c.Role inverted create error: %v", err)
+	}
+	if newRole == nil || newRole.Name != "Moderator" {
+		t.Fatalf("expected role name Moderator, got %v", newRole)
 	}
 }
 
