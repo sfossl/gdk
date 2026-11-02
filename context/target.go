@@ -52,23 +52,35 @@ func (c *Context) TargetMember() *types.Member {
 	if c.Interaction == nil || c.Interaction.Data == nil {
 		return nil
 	}
+	var m *types.Member
 	if c.Interaction.Data.TargetID != nil && c.Interaction.Data.Resolved != nil {
-		if m, ok := c.Interaction.Data.Resolved.Members[*c.Interaction.Data.TargetID]; ok {
-			return &m
+		if resM, ok := c.Interaction.Data.Resolved.Members[*c.Interaction.Data.TargetID]; ok {
+			m = &resM
+			if m.User == nil && c.Interaction.Data.Resolved.Users != nil {
+				if u, okU := c.Interaction.Data.Resolved.Users[*c.Interaction.Data.TargetID]; okU {
+					m.User = &u
+				}
+			}
 		}
 	}
-	if m := c.Opt("user").Member(); m != nil {
-		return m
-	}
-	if m := c.Opt("target").Member(); m != nil {
-		return m
-	}
-	for _, name := range findUserOptionNames(c.Interaction.Data.Options) {
-		if m := c.Opt(name).Member(); m != nil {
-			return m
+	if m == nil {
+		if optM := c.Opt("user").Member(); optM != nil {
+			m = optM
+		} else if optM := c.Opt("target").Member(); optM != nil {
+			m = optM
+		} else {
+			for _, name := range findUserOptionNames(c.Interaction.Data.Options) {
+				if optM := c.Opt(name).Member(); optM != nil {
+					m = optM
+					break
+				}
+			}
 		}
 	}
-	return nil
+	if m != nil && m.GuildID == 0 && c.Interaction.GuildID != nil {
+		m.GuildID = *c.Interaction.GuildID
+	}
+	return m
 }
 
 func findUserOptionNames(opts []types.ApplicationCommandOption) []string {
