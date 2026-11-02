@@ -118,7 +118,12 @@ func (c *Context) Role(args ...any) (*types.Role, error) {
 		opts.RoleID = types.Snowflake(v)
 		parseRest = true
 	case string:
-		opts.Type = parseRoleAction(v)
+		action := parseRoleAction(v)
+		if action != 0 {
+			opts.Type = action
+		} else {
+			opts.Name = v
+		}
 		parseRest = true
 	default:
 		return nil, ErrInvalidRoleAction
