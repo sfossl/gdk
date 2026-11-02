@@ -71,10 +71,41 @@ func parseResponseOptions(args ...any) Options {
 	for _, arg := range args {
 		switch v := arg.(type) {
 		case Options:
+			if v.Content == "" {
+				v.Content = res.Content
+			}
+			if !v.Ephemeral {
+				v.Ephemeral = res.Ephemeral
+			}
+			if len(v.Embeds) == 0 {
+				v.Embeds = res.Embeds
+			}
+			if len(v.Components) == 0 {
+				v.Components = res.Components
+			}
+			if len(v.Files) == 0 {
+				v.Files = res.Files
+			}
 			res = v
 		case *Options:
 			if v != nil {
-				res = *v
+				opt := *v
+				if opt.Content == "" {
+					opt.Content = res.Content
+				}
+				if !opt.Ephemeral {
+					opt.Ephemeral = res.Ephemeral
+				}
+				if len(opt.Embeds) == 0 {
+					opt.Embeds = res.Embeds
+				}
+				if len(opt.Components) == 0 {
+					opt.Components = res.Components
+				}
+				if len(opt.Files) == 0 {
+					opt.Files = res.Files
+				}
+				res = opt
 			}
 		case string:
 			res.Content = v
