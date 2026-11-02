@@ -425,6 +425,26 @@ func TestRespond_Tier1Shortcuts(t *testing.T) {
 			t.Fatalf("expected response on channel")
 		}
 	})
+
+	t.Run("merged string and options", func(t *testing.T) {
+		in := &types.Interaction{ID: 101, Token: "token"}
+		c := New(context.Background(), in, nil)
+		_, err := c.Respond("hello world", Options{Ephemeral: true})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		select {
+		case res := <-c.ResponseChannel():
+			if res.Data == nil || res.Data.Content != "hello world" {
+				t.Fatalf("expected 'hello world', got %+v", res.Data)
+			}
+			if res.Data.Flags != types.MessageFlagEphemeral {
+				t.Fatalf("expected ephemeral flag, got %d", res.Data.Flags)
+			}
+		default:
+			t.Fatalf("expected response on channel")
+		}
+	})
 }
 
 
