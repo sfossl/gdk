@@ -45,7 +45,8 @@ func (c *Context) DeferUpdate() error {
 	return nil
 }
 
-func (c *Context) UpdateMessage(res Response) (*types.Message, error) {
+func (c *Context) UpdateMessage(args ...any) (*types.Message, error) {
+	res := parseResponseOptions(args...)
 	if res.Deferred {
 		err := c.DeferUpdate()
 		return nil, err
@@ -74,6 +75,7 @@ func (c *Context) UpdateMessage(res Response) (*types.Message, error) {
 			c.deferred.Store(true)
 			return nil, err
 		}
+		c.scheduleLifecycleTimers(res, msg)
 		return msg, nil
 	}
 
@@ -84,7 +86,7 @@ func (c *Context) UpdateMessage(res Response) (*types.Message, error) {
 		if c.Interaction == nil {
 			return nil, ErrNoInteraction
 		}
-		return c.REST.EditOriginalInteractionResponse(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
+		msg, err := c.REST.EditOriginalInteractionResponse(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
 			Content:    res.Content,
 			Embeds:     res.Embeds,
 			Components: res.Components,
@@ -92,6 +94,11 @@ func (c *Context) UpdateMessage(res Response) (*types.Message, error) {
 			TTS:        res.TTS,
 			Files:      res.Files,
 		})
+		if err != nil {
+			return nil, err
+		}
+		c.scheduleLifecycleTimers(res, msg)
+		return msg, nil
 	}
 
 	if !c.responded.CompareAndSwap(false, true) {
@@ -113,6 +120,7 @@ func (c *Context) UpdateMessage(res Response) (*types.Message, error) {
 	if !c.gatewayMode && c.responseChan != nil {
 		select {
 		case c.responseChan <- resp:
+			c.scheduleLifecycleTimers(res, nil)
 			return nil, nil
 		default:
 		}
@@ -131,7 +139,7 @@ func (c *Context) UpdateMessage(res Response) (*types.Message, error) {
 		c.responded.Store(false)
 		return nil, err
 	}
-
+	c.scheduleLifecycleTimers(res, nil)
 	return nil, nil
 }
 
