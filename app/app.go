@@ -177,12 +177,43 @@ func (a *App) RegisterCommand(cmd command.Command, handler middleware.Handler, m
 	return nil
 }
 
-func (a *App) Command(cmd command.Command, handler middleware.Handler, middlewares ...middleware.Middleware) *App {
-	if a.initErr != nil {
+func (a *App) Command(cmd command.Command, args ...any) *App {
+	if a.initErr != nil || cmd.Disabled {
 		return a
 	}
-	if err := a.RegisterCommand(cmd, handler, middlewares...); err != nil {
+	var handler middleware.Handler
+	var mws []middleware.Middleware
+
+	if cmd.Execute != nil {
+		if h, ok := cmd.Execute.(middleware.Handler); ok {
+			handler = h
+		} else if h, ok := cmd.Execute.(func(*context.Context) error); ok {
+			handler = h
+		}
+	}
+
+	for _, arg := range args {
+		switch v := arg.(type) {
+		case middleware.Handler:
+			handler = v
+		case func(*context.Context) error:
+			handler = v
+		case middleware.Middleware:
+			mws = append(mws, v)
+		case []middleware.Middleware:
+			mws = append(mws, v...)
+		}
+	}
+
+	if err := a.RegisterCommand(cmd, handler, mws...); err != nil {
 		a.initErr = err
+	}
+	return a
+}
+
+func (a *App) Commands(cmds ...command.Command) *App {
+	for _, cmd := range cmds {
+		a.Command(cmd)
 	}
 	return a
 }
@@ -261,8 +292,8 @@ func findSubcommandHandler(cmd command.Command, group, name string) middleware.H
 		for _, g := range cmd.SubcommandGroups {
 			if g.Name == group {
 				for _, s := range g.Subcommands {
-					if s.Name == name && s.Handler != nil {
-						if h, ok := toMiddlewareHandler(s.Handler); ok {
+					if s.Name == name && s.Execute != nil {
+						if h, ok := toMiddlewareHandler(s.Execute); ok {
 							return h
 						}
 					}
@@ -271,8 +302,8 @@ func findSubcommandHandler(cmd command.Command, group, name string) middleware.H
 		}
 	}
 	for _, s := range cmd.Subcommands {
-		if s.Name == name && s.Handler != nil {
-			if h, ok := toMiddlewareHandler(s.Handler); ok {
+		if s.Name == name && s.Execute != nil {
+			if h, ok := toMiddlewareHandler(s.Execute); ok {
 				return h
 			}
 		}
