@@ -82,6 +82,12 @@ func mergeOptions(base, override Options) Options {
 	if len(override.Files) == 0 {
 		override.Files = base.Files
 	}
+	if override.ComponentTimeout == nil && base.ComponentTimeout != nil {
+		override.ComponentTimeout = base.ComponentTimeout
+	}
+	if override.DeleteAfter == nil && base.DeleteAfter != nil {
+		override.DeleteAfter = base.DeleteAfter
+	}
 	return override
 }
 
@@ -240,6 +246,7 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 			c.deferred.Store(true)
 			return nil, err
 		}
+		c.scheduleLifecycleTimers(res, msg)
 		return msg, nil
 	}
 
@@ -250,7 +257,7 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 		if c.Interaction == nil {
 			return nil, ErrNoInteraction
 		}
-		return c.REST.CreateFollowupMessage(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
+		msg, err := c.REST.CreateFollowupMessage(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
 			Content:    res.Content,
 			Embeds:     res.Embeds,
 			Components: res.Components,
@@ -258,6 +265,11 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 			TTS:        res.TTS,
 			Files:      res.Files,
 		})
+		if err != nil {
+			return nil, err
+		}
+		c.scheduleLifecycleTimers(res, msg)
+		return msg, nil
 	}
 
 	if !c.responded.CompareAndSwap(false, true) {
@@ -287,6 +299,7 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 	if !c.gatewayMode && c.responseChan != nil {
 		select {
 		case c.responseChan <- resp:
+			c.scheduleLifecycleTimers(res, nil)
 			return nil, nil
 		default:
 		}
@@ -305,6 +318,7 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 		c.responded.Store(false)
 		return nil, err
 	}
+	c.scheduleLifecycleTimers(res, nil)
 	return nil, nil
 }
 
