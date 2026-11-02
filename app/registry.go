@@ -4,11 +4,20 @@ import (
 	"sync"
 
 	"github.com/sfossl/gdk/command"
+	"github.com/sfossl/gdk/middleware"
 )
+
+type ComponentRegistration struct {
+	CustomID string
+	Handler  middleware.Handler
+}
 
 var (
 	regMu      sync.RWMutex
 	registered []command.Command
+
+	compMu   sync.RWMutex
+	regComps []ComponentRegistration
 )
 
 func Register(cmd command.Command) {
@@ -28,7 +37,24 @@ func RegisteredCommands() []command.Command {
 	return out
 }
 
-func (a *App) MountRegistered() *App {
-	return a.Commands(RegisteredCommands()...)
+func RegisterComponent(customID string, handler middleware.Handler) {
+	compMu.Lock()
+	defer compMu.Unlock()
+	regComps = append(regComps, ComponentRegistration{CustomID: customID, Handler: handler})
 }
 
+func RegisteredComponents() []ComponentRegistration {
+	compMu.RLock()
+	defer compMu.RUnlock()
+	out := make([]ComponentRegistration, len(regComps))
+	copy(out, regComps)
+	return out
+}
+
+func (a *App) MountRegistered() *App {
+	a.Commands(RegisteredCommands()...)
+	for _, c := range RegisteredComponents() {
+		a.Component(c.CustomID, c.Handler)
+	}
+	return a
+}
