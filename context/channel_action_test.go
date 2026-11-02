@@ -101,3 +101,74 @@ func TestManageChannel_Tier1_LockUnlock(t *testing.T) {
 		t.Fatalf("expected DELETE method for unlock, got %s", lastMethod)
 	}
 }
+
+func TestChannelInvertedName(t *testing.T) {
+	var createdName string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/guilds/100/channels" {
+			var payload rest.CreateChannelPayload
+			_ = json.NewDecoder(r.Body).Decode(&payload)
+			createdName = payload.Name
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(types.Channel{ID: 300, Name: &payload.Name})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer ts.Close()
+
+	client := rest.NewClient("test-token", rest.WithBaseURL(ts.URL))
+	guildID := types.Snowflake(100)
+	c := &Context{
+		ctx:       context.Background(),
+		GuildID:   &guildID,
+		ChannelID: 200,
+		REST:      client,
+	}
+
+	err := c.Channel("announcements", ChannelCreate)
+	if err != nil {
+		t.Fatalf("unexpected inverted channel create error: %v", err)
+	}
+	if createdName != "announcements" {
+		t.Fatalf("expected channel name announcements, got %s", createdName)
+	}
+}
+
+func TestChannelOptionsSlowmodeAny(t *testing.T) {
+	var slowmode int
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPatch && r.URL.Path == "/channels/200" {
+			var payload rest.ModifyChannelPayload
+			_ = json.NewDecoder(r.Body).Decode(&payload)
+			if payload.RateLimitPerUser != nil {
+				slowmode = *payload.RateLimitPerUser
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(types.Channel{ID: 200})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer ts.Close()
+
+	client := rest.NewClient("test-token", rest.WithBaseURL(ts.URL))
+	guildID := types.Snowflake(100)
+	c := &Context{
+		ctx:       context.Background(),
+		GuildID:   &guildID,
+		ChannelID: 200,
+		REST:      client,
+	}
+
+	err := c.Channel(Options{
+		Type:     "edit",
+		Slowmode: "30s",
+	})
+	if err != nil {
+		t.Fatalf("unexpected channel options slowmode error: %v", err)
+	}
+	if slowmode != 30 {
+		t.Fatalf("expected slowmode 30, got %d", slowmode)
+	}
+}
