@@ -8,9 +8,10 @@ import (
 )
 
 type OptionVal struct {
-	val    any
-	res    *types.ResolvedData
-	exists bool
+	val     any
+	res     *types.ResolvedData
+	guildID types.Snowflake
+	exists  bool
 }
 
 func (v OptionVal) Exists() bool {
@@ -202,6 +203,9 @@ func (v OptionVal) Member() *types.Member {
 		return nil
 	}
 	if m, ok := v.res.Members[sf]; ok {
+		if m.GuildID == 0 {
+			m.GuildID = v.guildID
+		}
 		if m.User == nil && v.res.Users != nil {
 			if u, okU := v.res.Users[sf]; okU {
 				m.User = &u
@@ -276,21 +280,26 @@ func (c *Context) Opt(name string) OptionVal {
 	}
 
 	res := c.Interaction.Data.Resolved
-	extractLeafOptions(c.Interaction.Data.Options, res, c.optsMap)
+	var guildID types.Snowflake
+	if c.Interaction.GuildID != nil {
+		guildID = *c.Interaction.GuildID
+	}
+	extractLeafOptions(c.Interaction.Data.Options, res, guildID, c.optsMap)
 
 	return c.optsMap[name]
 }
 
-func extractLeafOptions(opts []types.ApplicationCommandOption, res *types.ResolvedData, target map[string]OptionVal) {
+func extractLeafOptions(opts []types.ApplicationCommandOption, res *types.ResolvedData, guildID types.Snowflake, target map[string]OptionVal) {
 	for _, opt := range opts {
 		switch opt.Type {
 		case int(types.OptionTypeSubcommand), int(types.OptionTypeSubcommandGroup):
-			extractLeafOptions(opt.Options, res, target)
+			extractLeafOptions(opt.Options, res, guildID, target)
 		default:
 			target[opt.Name] = OptionVal{
-				val:    opt.Value,
-				res:    res,
-				exists: true,
+				val:     opt.Value,
+				res:     res,
+				guildID: guildID,
+				exists:  true,
 			}
 		}
 	}
