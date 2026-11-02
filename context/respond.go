@@ -66,46 +66,34 @@ func (c *Context) Defer(ephemeral ...bool) error {
 	return nil
 }
 
+func mergeOptions(base, override Options) Options {
+	if override.Content == "" {
+		override.Content = base.Content
+	}
+	if !override.Ephemeral {
+		override.Ephemeral = base.Ephemeral
+	}
+	if len(override.Embeds) == 0 {
+		override.Embeds = base.Embeds
+	}
+	if len(override.Components) == 0 {
+		override.Components = base.Components
+	}
+	if len(override.Files) == 0 {
+		override.Files = base.Files
+	}
+	return override
+}
+
 func parseResponseOptions(args ...any) Options {
 	res := Options{}
 	for _, arg := range args {
 		switch v := arg.(type) {
 		case Options:
-			if v.Content == "" {
-				v.Content = res.Content
-			}
-			if !v.Ephemeral {
-				v.Ephemeral = res.Ephemeral
-			}
-			if len(v.Embeds) == 0 {
-				v.Embeds = res.Embeds
-			}
-			if len(v.Components) == 0 {
-				v.Components = res.Components
-			}
-			if len(v.Files) == 0 {
-				v.Files = res.Files
-			}
-			res = v
+			res = mergeOptions(res, v)
 		case *Options:
 			if v != nil {
-				opt := *v
-				if opt.Content == "" {
-					opt.Content = res.Content
-				}
-				if !opt.Ephemeral {
-					opt.Ephemeral = res.Ephemeral
-				}
-				if len(opt.Embeds) == 0 {
-					opt.Embeds = res.Embeds
-				}
-				if len(opt.Components) == 0 {
-					opt.Components = res.Components
-				}
-				if len(opt.Files) == 0 {
-					opt.Files = res.Files
-				}
-				res = opt
+				res = mergeOptions(res, *v)
 			}
 		case string:
 			res.Content = v
@@ -116,6 +104,10 @@ func parseResponseOptions(args ...any) Options {
 			res.Ephemeral = true
 		case types.Embed:
 			res.Embeds = append(res.Embeds, v)
+		case *types.Embed:
+			if v != nil {
+				res.Embeds = append(res.Embeds, *v)
+			}
 		case []types.Embed:
 			res.Embeds = append(res.Embeds, v...)
 		case types.Component:
@@ -126,6 +118,16 @@ func parseResponseOptions(args ...any) Options {
 			res.Files = append(res.Files, v)
 		case []types.File:
 			res.Files = append(res.Files, v...)
+		}
+	}
+	if res.Embed != nil {
+		switch e := res.Embed.(type) {
+		case types.Embed:
+			res.Embeds = append(res.Embeds, e)
+		case *types.Embed:
+			if e != nil {
+				res.Embeds = append(res.Embeds, *e)
+			}
 		}
 	}
 	return res
