@@ -42,6 +42,34 @@ func TestButtons(t *testing.T) {
 	}
 }
 
+func TestButton_Unified(t *testing.T) {
+	b1 := Button("primary", "btn_1", "Click Me")
+	if b1.Style != ButtonStylePrimary || b1.CustomID != "btn_1" || b1.Label != "Click Me" {
+		t.Fatalf("unexpected b1: %v", b1)
+	}
+
+	b2 := Button("danger", "btn_2", "Delete", true)
+	if b2.Style != ButtonStyleDanger || b2.CustomID != "btn_2" || !b2.Disabled {
+		t.Fatalf("unexpected b2: %v", b2)
+	}
+
+	b3 := Button("link", "https://example.com", "Visit")
+	if b3.Style != ButtonStyleLink || b3.URL != "https://example.com" || b3.Label != "Visit" {
+		t.Fatalf("unexpected b3: %v", b3)
+	}
+
+	bOpts := Button(ButtonOptions{
+		Style:    "success",
+		CustomID: "btn_opts",
+		Label:    "Confirm",
+		Emoji:    "✅",
+		Disabled: false,
+	})
+	if bOpts.Style != ButtonStyleSuccess || bOpts.CustomID != "btn_opts" || bOpts.Emoji == nil || bOpts.Emoji.Name != "✅" {
+		t.Fatalf("unexpected bOpts: %v", bOpts)
+	}
+}
+
 func TestSelectMenus(t *testing.T) {
 	opts := []types.SelectOption{
 		Option("Choice 1", "val_1", "First description"),
