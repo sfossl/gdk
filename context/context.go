@@ -36,6 +36,12 @@ type Context struct {
 	cachedGuild     *types.Guild
 	cachedRoles     []types.Role
 	cachedBotMem    *types.Member
+	lifecycleMu      sync.Mutex
+	isDeleted        bool
+	compTimeoutTimer *time.Timer
+	deleteAfterTimer *time.Timer
+	activeComponents []types.Component
+	msgID            types.Snowflake
 }
 
 func New(ctx context.Context, in *types.Interaction, restClient *rest.Client) *Context {
