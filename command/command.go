@@ -68,7 +68,7 @@ type Subcommand struct {
 	Name        string
 	Description string
 	Options     []Option
-	Handler     any
+	Execute     any
 }
 
 type SubcommandGroup struct {
@@ -94,10 +94,11 @@ type Command struct {
 	DefaultMemberPermissions *types.Permission
 	DMPermission             *bool
 	NSFW                     bool
+	Disabled                 bool
 	Options                  []Option
 	Subcommands              []Subcommand
 	SubcommandGroups         []SubcommandGroup
-	Handler                  any
+	Execute                  any
 	AutocompleteHandler      any
 	Permissions              types.Permission
 	GuildOnly                bool
