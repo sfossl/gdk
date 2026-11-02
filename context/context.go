@@ -80,6 +80,9 @@ func (c *Context) initFields(in *types.Interaction) {
 		c.Author = in.Member.User
 	}
 
+	if in.Member != nil && in.GuildID != nil && in.Member.GuildID == 0 {
+		in.Member.GuildID = *in.GuildID
+	}
 	c.InvokerMember = in.Member
 
 	if in.Data != nil && len(in.Data.Options) > 0 {
