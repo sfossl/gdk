@@ -392,6 +392,9 @@ var (
 	WithTimeout   = app.WithTimeout
 	WithWebhook   = app.WithWebhook
 
+	Register           = app.Register
+	RegisteredCommands = app.RegisteredCommands
+
 	ErrTokenRequired     = app.ErrTokenRequired
 	ErrAppIDRequired     = app.ErrAppIDRequired
 	ErrCommandNotFound   = app.ErrCommandNotFound
