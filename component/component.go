@@ -1,6 +1,8 @@
 package component
 
 import (
+	"strings"
+
 	"github.com/sfossl/gda/types"
 )
 
@@ -37,6 +39,115 @@ func WithButtonDisabled(disabled bool) ButtonOpt {
 	return func(c *types.Component) {
 		c.Disabled = disabled
 	}
+}
+
+type ButtonOptions struct {
+	Style    any
+	CustomID string
+	Label    string
+	URL      string
+	Emoji    any
+	Disabled bool
+}
+
+func parseButtonStyle(s any) int {
+	switch v := s.(type) {
+	case int:
+		if v >= 1 && v <= 5 {
+			return v
+		}
+	case string:
+		switch strings.ToLower(strings.TrimSpace(v)) {
+		case "primary", "blurple":
+			return ButtonStylePrimary
+		case "secondary", "grey", "gray":
+			return ButtonStyleSecondary
+		case "success", "green":
+			return ButtonStyleSuccess
+		case "danger", "red":
+			return ButtonStyleDanger
+		case "link", "url":
+			return ButtonStyleLink
+		}
+	}
+	return ButtonStylePrimary
+}
+
+func Button(args ...any) types.Component {
+	if len(args) == 0 {
+		return types.Component{Type: types.ComponentTypeButton, Style: ButtonStylePrimary}
+	}
+
+	if opts, ok := args[0].(ButtonOptions); ok {
+		return buttonFromOptions(opts)
+	}
+	if opts, ok := args[0].(*ButtonOptions); ok && opts != nil {
+		return buttonFromOptions(*opts)
+	}
+
+	style := ButtonStylePrimary
+	customID := ""
+	label := ""
+	var buttonOpts []ButtonOpt
+
+	if len(args) > 0 {
+		style = parseButtonStyle(args[0])
+	}
+	if len(args) > 1 {
+		if s, ok := args[1].(string); ok {
+			customID = s
+		}
+	}
+	if len(args) > 2 {
+		if s, ok := args[2].(string); ok {
+			label = s
+		}
+	}
+	for i := 3; i < len(args); i++ {
+		if opt, ok := args[i].(ButtonOpt); ok && opt != nil {
+			buttonOpts = append(buttonOpts, opt)
+		} else if b, ok := args[i].(bool); ok {
+			buttonOpts = append(buttonOpts, WithButtonDisabled(b))
+		}
+	}
+
+	url := ""
+	if style == ButtonStyleLink {
+		url = customID
+		customID = ""
+	}
+
+	return newButton(types.ComponentTypeButton, style, customID, label, url, buttonOpts...)
+}
+
+func buttonFromOptions(opts ButtonOptions) types.Component {
+	style := parseButtonStyle(opts.Style)
+	url := opts.URL
+	customID := opts.CustomID
+
+	if style == ButtonStyleLink && url == "" {
+		url = customID
+		customID = ""
+	}
+
+	var buttonOpts []ButtonOpt
+	if opts.Disabled {
+		buttonOpts = append(buttonOpts, WithButtonDisabled(true))
+	}
+	if opts.Emoji != nil {
+		switch em := opts.Emoji.(type) {
+		case string:
+			buttonOpts = append(buttonOpts, WithButtonEmoji(em))
+		case types.ComponentEmoji:
+			buttonOpts = append(buttonOpts, func(c *types.Component) { c.Emoji = &em })
+		case *types.ComponentEmoji:
+			if em != nil {
+				buttonOpts = append(buttonOpts, func(c *types.Component) { c.Emoji = em })
+			}
+		}
+	}
+
+	return newButton(types.ComponentTypeButton, style, customID, opts.Label, url, buttonOpts...)
 }
 
 func Primary(customID, label string, opts ...ButtonOpt) types.Component {
