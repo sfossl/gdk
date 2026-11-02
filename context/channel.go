@@ -124,9 +124,14 @@ func (c *Context) Channel(args ...any) error {
 		opts.ChannelID = types.Snowflake(v)
 		parseRest = true
 	case string:
-		opts.Type = parseChannelAction(v)
-		if strings.ToLower(strings.TrimSpace(v)) == "lock" {
-			opts.Locked = true
+		action := parseChannelAction(v)
+		if action != 0 {
+			opts.Type = action
+			if strings.ToLower(strings.TrimSpace(v)) == "lock" {
+				opts.Locked = true
+			}
+		} else {
+			opts.Name = v
 		}
 		parseRest = true
 	default:
@@ -136,6 +141,11 @@ func (c *Context) Channel(args ...any) error {
 	if parseRest {
 		for _, arg := range args[1:] {
 			switch a := arg.(type) {
+			case ChannelAction:
+				opts.Type = a
+				if a == ChannelLock {
+					opts.Locked = true
+				}
 			case types.Snowflake:
 				opts.ChannelID = a
 			case int:
