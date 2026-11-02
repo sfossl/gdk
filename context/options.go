@@ -2,45 +2,74 @@ package context
 
 import (
 	"strings"
+	"time"
 
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/defaults"
 )
 
 type Options struct {
-	Type         any
-	Scope        any
-	Target       types.Snowflake
-	Channel      types.Snowflake
-	Role         types.Snowflake
-	Message      types.Snowflake
-	Content      string
-	Reason       string
-	Emoji        any
-	Duration     any
-	Count        int
-	Ephemeral    bool
-	Mention      *bool
-	Typing       bool
-	Embed        any
-	Embeds       []types.Embed
-	Components   []types.Component
-	Files        []types.File
-	TTS          bool
-	Deferred     bool
-	Name         string
-	Topic        string
-	Slowmode     any
-	Color        int
-	Permissions  *types.Permission
-	Hoist        *bool
-	Mentionable  *bool
-	AddRoles     []types.Snowflake
-	RemoveRoles  []types.Snowflake
-	Nickname     *string
-	VoiceMute    *bool
-	VoiceDeaf    *bool
-	VoiceChannel *types.Snowflake
+	Type             any
+	Scope            any
+	Target           types.Snowflake
+	Channel          types.Snowflake
+	Role             types.Snowflake
+	Message          types.Snowflake
+	Content          string
+	Reason           string
+	Emoji            any
+	Duration         any
+	Count            int
+	Ephemeral        bool
+	Mention          *bool
+	Typing           bool
+	Embed            any
+	Embeds           []types.Embed
+	Components       []types.Component
+	Files            []types.File
+	TTS              bool
+	Deferred         bool
+	ComponentTimeout any
+	DeleteAfter      any
+	Name             string
+	Topic            string
+	Slowmode         any
+	Color            int
+	Permissions      *types.Permission
+	Hoist            *bool
+	Mentionable      *bool
+	AddRoles         []types.Snowflake
+	RemoveRoles      []types.Snowflake
+	Nickname         *string
+	VoiceMute        *bool
+	VoiceDeaf        *bool
+	VoiceChannel     *types.Snowflake
+}
+
+func (o Options) ResolveComponentTimeout() time.Duration {
+	return parseDuration(o.ComponentTimeout)
+}
+
+func (o Options) ResolveDeleteAfter() time.Duration {
+	return parseDuration(o.DeleteAfter)
+}
+
+func parseDuration(v any) time.Duration {
+	switch d := v.(type) {
+	case time.Duration:
+		return d
+	case int:
+		return time.Duration(d) * time.Millisecond
+	case int64:
+		return time.Duration(d) * time.Millisecond
+	case float64:
+		return time.Duration(d * float64(time.Millisecond))
+	case string:
+		if parsed, err := time.ParseDuration(d); err == nil {
+			return parsed
+		}
+	}
+	return 0
 }
 
 const (
