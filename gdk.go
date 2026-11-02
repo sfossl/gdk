@@ -67,6 +67,7 @@ type Choice = command.Choice
 type Subcommand = command.Subcommand
 type SubcommandGroup = command.SubcommandGroup
 type EmbedBuilder = component.EmbedBuilder
+type ButtonOptions = component.ButtonOptions
 type ButtonOpt = component.ButtonOpt
 type SelectOpt = component.SelectOpt
 type TextInputOpt = component.TextInputOpt
@@ -293,6 +294,7 @@ var (
 	Hex          = component.Hex
 	ResolveColor = component.ResolveColor
 
+	Button             = component.Button
 	Primary            = component.Primary
 	Secondary          = component.Secondary
 	Success            = component.Success
@@ -393,8 +395,10 @@ var (
 	WithTimeout   = app.WithTimeout
 	WithWebhook   = app.WithWebhook
 
-	Register           = app.Register
-	RegisteredCommands = app.RegisteredCommands
+	Register             = app.Register
+	RegisteredCommands   = app.RegisteredCommands
+	RegisterComponent    = app.RegisterComponent
+	RegisteredComponents = app.RegisteredComponents
 
 	ErrTokenRequired     = app.ErrTokenRequired
 	ErrAppIDRequired     = app.ErrAppIDRequired
