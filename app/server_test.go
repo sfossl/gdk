@@ -280,7 +280,7 @@ func TestApp_SubcommandDirectHandlerRouting(t *testing.T) {
 			{
 				Name:        "get",
 				Description: "get setting",
-				Handler: func(c *context.Context) error {
+				Execute: func(c *context.Context) error {
 					getExecuted.Store(true)
 					return nil
 				},
@@ -288,7 +288,7 @@ func TestApp_SubcommandDirectHandlerRouting(t *testing.T) {
 			{
 				Name:        "set",
 				Description: "set setting",
-				Handler: func(c *context.Context) error {
+				Execute: func(c *context.Context) error {
 					setExecuted.Store(true)
 					return nil
 				},

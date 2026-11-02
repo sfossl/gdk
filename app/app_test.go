@@ -169,6 +169,39 @@ func TestApp_ComponentAndModalRegistration(t *testing.T) {
 	}
 }
 
+func TestApp_CommandExecuteAndDisabled(t *testing.T) {
+	app, _ := New("token", 12345)
+	called := false
+	execCmd := command.Command{
+		Name:        "exec_cmd",
+		Description: "test exec",
+		Execute: func(c *context.Context) error {
+			called = true
+			return nil
+		},
+	}
+	app.Command(execCmd)
+	entry := app.lookupCommand(int(command.CommandTypeChatInput), "exec_cmd")
+	if entry == nil {
+		t.Fatal("expected command registered with Execute")
+	}
+	_ = entry.handler(nil)
+	if !called {
+		t.Fatal("expected Execute handler to be called")
+	}
+
+	disCmd := command.Command{
+		Name:        "disabled_cmd",
+		Description: "test disabled",
+		Disabled:    true,
+		Execute:     func(c *context.Context) error { return nil },
+	}
+	app.Command(disCmd)
+	if app.lookupCommand(int(command.CommandTypeChatInput), "disabled_cmd") != nil {
+		t.Fatal("expected disabled command to be skipped")
+	}
+}
+
 func TestApp_Handle_NilContext(t *testing.T) {
 	app, _ := New("token", 12345)
 	if err := app.Handle(nil); err == nil {
