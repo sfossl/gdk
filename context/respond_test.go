@@ -445,6 +445,24 @@ func TestRespond_Tier1Shortcuts(t *testing.T) {
 			t.Fatalf("expected response on channel")
 		}
 	})
+
+	t.Run("single embed option and pointer", func(t *testing.T) {
+		in := &types.Interaction{ID: 102, Token: "token"}
+		c := New(context.Background(), in, nil)
+		emb := types.Embed{Title: "Embed Title"}
+		_, err := c.Respond(Options{Embed: &emb})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		select {
+		case res := <-c.ResponseChannel():
+			if res.Data == nil || len(res.Data.Embeds) != 1 || res.Data.Embeds[0].Title != "Embed Title" {
+				t.Fatalf("expected single embed, got %+v", res.Data)
+			}
+		default:
+			t.Fatalf("expected response on channel")
+		}
+	})
 }
 
 
