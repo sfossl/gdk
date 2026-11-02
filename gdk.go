@@ -20,6 +20,7 @@ type ComponentType = types.ComponentType
 type Message = types.Message
 type User = types.User
 type Member = types.Member
+type AvatarOptions = types.AvatarOptions
 type Role = types.Role
 type Channel = types.Channel
 type Guild = types.Guild
