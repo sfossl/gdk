@@ -8,7 +8,7 @@ import (
 	"github.com/sfossl/gdk/context"
 	"github.com/sfossl/gdk/defaults"
 	"github.com/sfossl/gdk/middleware"
-	"github.com/sfossl/gdk/util/time"
+	"github.com/sfossl/gdk/util"
 )
 
 type Snowflake = types.Snowflake
@@ -58,7 +58,7 @@ type MessageAction = context.MessageAction
 type MessageOptions = context.MessageOptions
 type MessageSuite = context.MessageSuite
 type UpdateOptions = context.UpdateOptions
-type TimeItem = timeutil.Item
+type TimeItem = util.Item
 type Command = command.Command
 type CommandType = command.CommandType
 type Option = command.Option
@@ -112,6 +112,10 @@ const (
 	MaxTimeoutDuration = context.MaxTimeoutDuration
 	MaxBanDeleteSec    = context.MaxBanDeleteSec
 	MaxSlowmodeSeconds = context.MaxSlowmodeSeconds
+
+	Day   = util.Day
+	Month = util.Month
+	Year  = util.Year
 
 	ModKick          = context.ModKick
 	ModBan           = context.ModBan
@@ -280,15 +284,16 @@ var (
 	ErrInvalidMessageAction     = context.ErrInvalidMessageAction
 	ErrEmojiRequired            = context.ErrEmojiRequired
 
-	Time                = timeutil.New
-	FormatTime          = timeutil.Format
-	ParseDuration       = timeutil.ParseDuration
-	FormatDuration      = timeutil.FormatDuration
-	FormatDurationHuman = timeutil.FormatDurationHuman
-	ErrInvalidDuration  = timeutil.ErrInvalidDuration
-	ErrEmptyDuration    = timeutil.ErrEmptyDuration
-	ErrUnknownUnit      = timeutil.ErrUnknownUnit
-	ErrInvalidTime      = timeutil.ErrInvalidTime
+	Time                = util.New
+	FormatTime          = util.Format
+	ParseDuration       = util.ParseDuration
+	FormatDuration      = util.FormatDuration
+	FormatDurationHuman = util.FormatDurationHuman
+	ErrInvalidDuration  = util.ErrInvalidDuration
+	ErrEmptyDuration    = util.ErrEmptyDuration
+	ErrUnknownUnit      = util.ErrUnknownUnit
+	ErrInvalidTime      = util.ErrInvalidTime
+	ErrUnsupportedType  = util.ErrUnsupportedType
 
 	NewEmbed     = component.NewEmbed
 	RGB          = component.RGB
@@ -410,3 +415,8 @@ var (
 	ErrDevGuildRequired  = app.ErrDevGuildRequired
 	ErrNilModule         = app.ErrNilModule
 )
+
+func Ptr[T any](v T) *T {
+	return util.Ptr(v)
+}
+
