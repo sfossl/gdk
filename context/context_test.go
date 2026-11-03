@@ -48,6 +48,16 @@ func TestContext_Initialization(t *testing.T) {
 	if mCtx.Author == nil || mCtx.Author.Username != "memberuser" {
 		t.Fatalf("member user fallback failed")
 	}
+
+	msgIn := &types.Interaction{
+		Message: &types.Message{
+			ID: types.Snowflake(999),
+		},
+	}
+	msgCtx := New(context.Background(), msgIn, nil)
+	if msgCtx.msgID != 999 {
+		t.Fatalf("expected msgID 999, got %v", msgCtx.msgID)
+	}
 }
 
 func TestContext_StoreConcurrency(t *testing.T) {
