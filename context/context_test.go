@@ -319,3 +319,27 @@ func TestContext_FocusedOption(t *testing.T) {
 		t.Fatalf("expected filter option, got %v", fNested)
 	}
 }
+
+func TestContext_Values(t *testing.T) {
+	in := &types.Interaction{
+		Data: &types.InteractionData{
+			Values: []string{"opt_a", "opt_b"},
+		},
+	}
+	ctx := New(context.Background(), in, nil)
+	vals := ctx.Values()
+	if len(vals) != 2 || vals[0] != "opt_a" || vals[1] != "opt_b" {
+		t.Fatalf("unexpected values: %v", vals)
+	}
+	if ctx.Value() != "opt_a" {
+		t.Fatalf("expected opt_a, got %s", ctx.Value())
+	}
+
+	emptyCtx := New(context.Background(), &types.Interaction{}, nil)
+	if emptyCtx.Values() != nil {
+		t.Fatalf("expected nil values for empty interaction")
+	}
+	if emptyCtx.Value() != "" {
+		t.Fatalf("expected empty string for empty interaction")
+	}
+}

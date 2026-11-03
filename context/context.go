@@ -122,6 +122,21 @@ func (c *Context) LastPurged() int {
 	return c.lastPurged
 }
 
+func (c *Context) Values() []string {
+	if c.Interaction != nil && c.Interaction.Data != nil {
+		return c.Interaction.Data.Values
+	}
+	return nil
+}
+
+func (c *Context) Value() string {
+	vals := c.Values()
+	if len(vals) > 0 {
+		return vals[0]
+	}
+	return ""
+}
+
 func (c *Context) Context() context.Context {
 	if c.ctx == nil {
 		return context.Background()
