@@ -167,6 +167,16 @@ func TestApp_ComponentAndModalRegistration(t *testing.T) {
 	if app.modals["modal_feedback"] == nil {
 		t.Fatal("expected modal handler registered")
 	}
+
+	RegisterComponent("test_reg_comp", h)
+	RegisterModal("test_reg_modal", h)
+	app.MountRegistered()
+	if app.components["test_reg_comp"] == nil {
+		t.Fatal("expected test_reg_comp mounted")
+	}
+	if app.modals["test_reg_modal"] == nil {
+		t.Fatal("expected test_reg_modal mounted")
+	}
 }
 
 func TestApp_CommandExecuteAndDisabled(t *testing.T) {
