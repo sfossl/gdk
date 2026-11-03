@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
@@ -30,7 +31,7 @@ var (
 	ErrInvalidMessageID     = errors.New("invalid message id")
 	ErrEmojiRequired        = errors.New("reaction emoji is required")
 	ErrInvalidMessageAction = errors.New("invalid message action type")
-	ErrInvalidPurgeCount    = errors.New("purge count must be between 2 and 100")
+	ErrInvalidPurgeCount    = errors.New("purge count must be between 1 and 100")
 )
 
 type MessageOptions struct {
@@ -309,7 +310,7 @@ func (c *Context) Message(args ...any) error {
 		_, err := c.REST.EditMessage(c.Context(), chID, opts.MessageID, payload)
 		return err
 	case MsgPurge:
-		if opts.Count < 2 || opts.Count > 100 {
+		if opts.Count < 1 || opts.Count > 100 {
 			return ErrInvalidPurgeCount
 		}
 		endpoint := rest.Endpoint{
@@ -325,15 +326,18 @@ func (c *Context) Message(args ...any) error {
 		if err := json.Unmarshal(data, &msgs); err != nil {
 			return err
 		}
-		if len(msgs) == 0 {
+		cutoff := time.Now().Add(-14 * 24 * time.Hour)
+		var validIDs []types.Snowflake
+		for _, m := range msgs {
+			if m.ID>>22 == 0 || m.ID.Time().After(cutoff) {
+				validIDs = append(validIDs, m.ID)
+			}
+		}
+		if len(validIDs) == 0 {
 			return nil
 		}
-		if len(msgs) == 1 {
-			return c.REST.DeleteMessage(c.Context(), chID, msgs[0].ID, opts.Reason)
-		}
-		msgIDs := make([]types.Snowflake, len(msgs))
-		for i, m := range msgs {
-			msgIDs[i] = m.ID
+		if len(validIDs) == 1 {
+			return c.REST.DeleteMessage(c.Context(), chID, validIDs[0], opts.Reason)
 		}
 		bulkEndpoint := rest.Endpoint{
 			Method: "POST",
@@ -343,7 +347,7 @@ func (c *Context) Message(args ...any) error {
 		bulkPayload := struct {
 			Messages []types.Snowflake `json:"messages"`
 		}{
-			Messages: msgIDs,
+			Messages: validIDs,
 		}
 		req := rest.Request{
 			Endpoint: bulkEndpoint,
