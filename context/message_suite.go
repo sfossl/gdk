@@ -87,17 +87,12 @@ func (a MessageSuite) Delete(reason ...string) error {
 	})
 }
 
-func (a MessageSuite) Purge(count int, reason ...string) error {
+func (a MessageSuite) Purge(count int, reason ...string) (int, error) {
 	chID := a.channelID
 	if chID == 0 {
-		return ErrInvalidChannelID
+		return 0, ErrInvalidChannelID
 	}
-	return a.ctx.Message(MessageOptions{
-		Type:      MsgPurge,
-		ChannelID: chID,
-		Count:     count,
-		Reason:    strings.Join(reason, " "),
-	})
+	return a.ctx.purgeMessages(chID, count, strings.Join(reason, " "))
 }
 
 func (a MessageSuite) Pin(reason ...string) error {
