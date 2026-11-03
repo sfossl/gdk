@@ -318,15 +318,8 @@ func (c *Context) Message(args ...any) error {
 	}
 }
 
-func (c *Context) Purge(count int, reason ...string) (int, error) {
-	var r string
-	if len(reason) > 0 {
-		r = reason[0]
-	}
-	return c.purgeMessages(c.ChannelID, count, r)
-}
-
 func (c *Context) purgeMessages(chID types.Snowflake, count int, reason string) (int, error) {
+	c.lastPurged = 0
 	if count < 2 || count > 100 {
 		return 0, ErrInvalidPurgeCount
 	}
@@ -369,6 +362,7 @@ func (c *Context) purgeMessages(chID types.Snowflake, count int, reason string) 
 		if err := c.REST.DeleteMessage(c.Context(), chID, validIDs[0], reason); err != nil {
 			return 0, err
 		}
+		c.lastPurged = 1
 		return 1, nil
 	}
 	bulkEndpoint := rest.Endpoint{
@@ -391,6 +385,7 @@ func (c *Context) purgeMessages(chID types.Snowflake, count int, reason string) 
 	if _, err := c.REST.Do(c.Context(), req); err != nil {
 		return 0, err
 	}
+	c.lastPurged = len(validIDs)
 	return len(validIDs), nil
 }
 
