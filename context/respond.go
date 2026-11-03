@@ -422,6 +422,9 @@ func (c *Context) Pong() error {
 }
 
 func (c *Context) Autocomplete(choices []types.Choice) error {
+	if len(choices) > 25 {
+		choices = choices[:25]
+	}
 	if c.responded.Load() {
 		return ErrAlreadyResponded
 	}
