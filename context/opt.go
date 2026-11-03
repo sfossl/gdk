@@ -285,6 +285,7 @@ func (c *Context) Opt(name string) OptionVal {
 		guildID = *c.Interaction.GuildID
 	}
 	extractLeafOptions(c.Interaction.Data.Options, res, guildID, c.optsMap)
+	extractModalComponents(c.Interaction.Data.Components, c.optsMap)
 
 	return c.optsMap[name]
 }
@@ -300,6 +301,19 @@ func extractLeafOptions(opts []types.ApplicationCommandOption, res *types.Resolv
 				res:     res,
 				guildID: guildID,
 				exists:  true,
+			}
+		}
+	}
+}
+
+func extractModalComponents(rows []types.Component, target map[string]OptionVal) {
+	for _, row := range rows {
+		for _, comp := range row.Components {
+			if comp.CustomID != "" {
+				target[comp.CustomID] = OptionVal{
+					val:    comp.Value,
+					exists: true,
+				}
 			}
 		}
 	}
