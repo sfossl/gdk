@@ -2,6 +2,7 @@ package gdk
 
 import (
 	"testing"
+	"time"
 )
 
 func TestFacadeExports(t *testing.T) {
@@ -105,6 +106,33 @@ func TestFacadeAppExports(t *testing.T) {
 	}
 	if MsgReact == 0 || MsgPurge == 0 || MsgClearReactions == 0 {
 		t.Fatal("expected non-zero message action constants")
+	}
+}
+
+func TestFacadeUtilExports(t *testing.T) {
+	ptr := Ptr(10)
+	if ptr == nil || *ptr != 10 {
+		t.Fatalf("unexpected Ptr result: %v", ptr)
+	}
+
+	d, err := ParseDuration("1h 30m")
+	if err != nil || d != 90*time.Minute {
+		t.Fatalf("unexpected ParseDuration: %v, err: %v", d, err)
+	}
+
+	if Day != 24*time.Hour || Month != 30*Day || Year != 365*Day {
+		t.Fatalf("unexpected Day/Month/Year constants")
+	}
+
+	now := time.Now().UTC()
+	item := Time(now)
+	if item.Unix() != now.Unix() {
+		t.Fatalf("unexpected Time item: %v", item)
+	}
+
+	tag, err := FormatTime(now, "D")
+	if err != nil || tag != item.Discord("D") {
+		t.Fatalf("unexpected FormatTime tag: %s, err: %v", tag, err)
 	}
 }
 
