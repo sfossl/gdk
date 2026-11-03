@@ -296,11 +296,6 @@ var (
 	ResolveColor = component.ResolveColor
 
 	Button             = component.Button
-	Primary            = component.Primary
-	Secondary          = component.Secondary
-	Success            = component.Success
-	Danger             = component.Danger
-	Link               = component.Link
 	WithButtonEmoji    = component.WithButtonEmoji
 	WithButtonDisabled = component.WithButtonDisabled
 
