@@ -9,7 +9,7 @@ import (
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/context"
 	"github.com/sfossl/gdk/defaults"
-	"github.com/sfossl/gdk/util/time"
+	"github.com/sfossl/gdk/util"
 )
 
 var (
@@ -112,7 +112,7 @@ func parseCooldownDuration(v any) time.Duration {
 		}
 		return time.Duration(val) * time.Second
 	case string:
-		item := timeutil.New(val)
+		item := util.New(val)
 		if item.Error() == nil && item.Duration() > 0 {
 			return item.Duration()
 		}
@@ -280,7 +280,7 @@ func Cooldown(policies []Policy, opts ...CooldownOption) Middleware {
 		Policies:    policies,
 		AutoRespond: true,
 		MessageFn: func(remaining time.Duration, scope Scope) string {
-			formatted := timeutil.FormatDuration(remaining)
+			formatted := util.FormatDuration(remaining)
 			return fmt.Sprintf(defaults.CooldownMessage, formatted)
 		},
 		KeyPrefix: "cmd",
