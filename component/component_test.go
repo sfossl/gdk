@@ -7,28 +7,28 @@ import (
 )
 
 func TestButtons(t *testing.T) {
-	p := Primary("btn_1", "Primary", WithButtonDisabled(true))
+	p := Button("primary", "btn_1", "Primary", WithButtonDisabled(true))
 	if p.Type != types.ComponentTypeButton || p.Style != ButtonStylePrimary || p.CustomID != "btn_1" || p.Label != "Primary" || !p.Disabled {
 		t.Fatalf("unexpected primary button %v", p)
 	}
 
-	sec := Secondary("btn_2", "Secondary")
+	sec := Button("secondary", "btn_2", "Secondary")
 	if sec.Style != ButtonStyleSecondary || sec.CustomID != "btn_2" {
 		t.Fatalf("unexpected secondary button %v", sec)
 	}
 
-	succ := Success("btn_3", "Success")
+	succ := Button("success", "btn_3", "Success")
 	if succ.Style != ButtonStyleSuccess || succ.CustomID != "btn_3" {
 		t.Fatalf("unexpected success button %v", succ)
 	}
 
-	d := Danger("btn_4", "Danger")
+	d := Button("danger", "btn_4", "Danger")
 	if d.Style != ButtonStyleDanger || d.CustomID != "btn_4" {
 		t.Fatalf("unexpected danger button %v", d)
 	}
 
 	emojiID := types.Snowflake(123456789)
-	link := Link("https://example.com", "Visit", WithButtonEmoji("custom", emojiID))
+	link := Button("link", "https://example.com", "Visit", WithButtonEmoji("custom", emojiID))
 	if link.Style != ButtonStyleLink || link.URL != "https://example.com" || link.Label != "Visit" {
 		t.Fatalf("unexpected link button %v", link)
 	}
@@ -36,7 +36,7 @@ func TestButtons(t *testing.T) {
 		t.Fatalf("unexpected button emoji %v", link.Emoji)
 	}
 
-	uni := Primary("btn_5", "Unicode", WithButtonEmoji("👍"))
+	uni := Button("primary", "btn_5", "Unicode", WithButtonEmoji("👍"))
 	if uni.Emoji == nil || uni.Emoji.Name != "👍" || uni.Emoji.ID != nil {
 		t.Fatalf("unexpected unicode emoji %v", uni.Emoji)
 	}

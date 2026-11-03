@@ -102,7 +102,7 @@ func TestStress_EmbedFieldCountLimit(t *testing.T) {
 func TestStress_PackRows_25Buttons(t *testing.T) {
 	var buttons []types.Component
 	for i := 0; i < 30; i++ {
-		buttons = append(buttons, Primary(fmt.Sprintf("btn_%d", i), fmt.Sprintf("Btn %d", i)))
+		buttons = append(buttons, Button("primary", fmt.Sprintf("btn_%d", i), fmt.Sprintf("Btn %d", i)))
 	}
 
 	rows := PackRows(buttons...)

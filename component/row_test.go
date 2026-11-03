@@ -9,8 +9,8 @@ import (
 )
 
 func TestActionRowConstructors(t *testing.T) {
-	b1 := Primary("b1", "Button 1")
-	b2 := Secondary("b2", "Button 2")
+	b1 := Button("primary", "b1", "Button 1")
+	b2 := Button("secondary", "b2", "Button 2")
 
 	row := ActionRow(b1, b2)
 	if row.Type != types.ComponentTypeActionRow || len(row.Components) != 2 {
@@ -26,7 +26,7 @@ func TestActionRowConstructors(t *testing.T) {
 func TestPackRows_ButtonsOnly(t *testing.T) {
 	var btns []types.Component
 	for i := 0; i < 7; i++ {
-		btns = append(btns, Primary(fmt.Sprintf("b_%d", i), fmt.Sprintf("B%d", i)))
+		btns = append(btns, Button("primary", fmt.Sprintf("b_%d", i), fmt.Sprintf("B%d", i)))
 	}
 
 	rows := PackRows(btns...)
@@ -48,7 +48,7 @@ func TestPackRows_ButtonsOnly(t *testing.T) {
 func TestPackRows_FailSoftTruncation(t *testing.T) {
 	var btns []types.Component
 	for i := 0; i < 30; i++ {
-		btns = append(btns, Primary(fmt.Sprintf("b_%d", i), fmt.Sprintf("B%d", i)))
+		btns = append(btns, Button("primary", fmt.Sprintf("b_%d", i), fmt.Sprintf("B%d", i)))
 	}
 
 	rows := PackRows(btns...)
@@ -70,11 +70,11 @@ func TestPackRows_FailSoftTruncation(t *testing.T) {
 }
 
 func TestPackRows_MixedButtonsAndSelects(t *testing.T) {
-	b1 := Primary("b1", "B1")
-	b2 := Primary("b2", "B2")
+	b1 := Button("primary", "b1", "B1")
+	b2 := Button("primary", "b2", "B2")
 	sel := StringSelect("sel_1", "Choose", Option("O1", "v1"))
-	b3 := Primary("b3", "B3")
-	b4 := Primary("b4", "B4")
+	b3 := Button("primary", "b3", "B3")
+	b4 := Button("primary", "b4", "B4")
 
 	rows := PackRows(b1, b2, sel, b3, b4)
 	if len(rows) != 3 {
@@ -97,9 +97,9 @@ func TestPackRows_MixedButtonsAndSelects(t *testing.T) {
 }
 
 func TestPackRows_PreExistingActionRow(t *testing.T) {
-	b1 := Primary("b1", "B1")
-	preRow := ActionRow(Secondary("b2", "B2"))
-	b3 := Primary("b3", "B3")
+	b1 := Button("primary", "b1", "B1")
+	preRow := ActionRow(Button("secondary", "b2", "B2"))
+	b3 := Button("primary", "b3", "B3")
 
 	rows := PackRows(b1, preRow, b3)
 	if len(rows) != 3 {
@@ -110,13 +110,13 @@ func TestPackRows_PreExistingActionRow(t *testing.T) {
 func TestValidateRows_Errors(t *testing.T) {
 	var rows6 []types.Component
 	for i := 0; i < 6; i++ {
-		rows6 = append(rows6, ActionRow(Primary(fmt.Sprintf("b%d", i), "B")))
+		rows6 = append(rows6, ActionRow(Button("primary", fmt.Sprintf("b%d", i), "B")))
 	}
 	if err := ValidateRows(rows6); !errors.Is(err, ErrTooManyActionRows) {
 		t.Fatalf("expected ErrTooManyActionRows, got %v", err)
 	}
 
-	notRow := []types.Component{Primary("b1", "B")}
+	notRow := []types.Component{Button("primary", "b1", "B")}
 	if err := ValidateRows(notRow); !errors.Is(err, ErrNonActionRowAtRoot) {
 		t.Fatalf("expected ErrNonActionRowAtRoot, got %v", err)
 	}
@@ -128,14 +128,14 @@ func TestValidateRows_Errors(t *testing.T) {
 
 	var btns6 []types.Component
 	for i := 0; i < 6; i++ {
-		btns6 = append(btns6, Primary(fmt.Sprintf("b%d", i), "B"))
+		btns6 = append(btns6, Button("primary", fmt.Sprintf("b%d", i), "B"))
 	}
 	tooManyBtns := []types.Component{ActionRow(btns6...)}
 	if err := ValidateRows(tooManyBtns); !errors.Is(err, ErrRowTooManyButtons) {
 		t.Fatalf("expected ErrRowTooManyButtons, got %v", err)
 	}
 
-	mixed := []types.Component{ActionRow(Primary("b1", "B"), StringSelect("s1", "S"))}
+	mixed := []types.Component{ActionRow(Button("primary", "b1", "B"), StringSelect("s1", "S"))}
 	if err := ValidateRows(mixed); !errors.Is(err, ErrRowMixedComponents) {
 		t.Fatalf("expected ErrRowMixedComponents, got %v", err)
 	}

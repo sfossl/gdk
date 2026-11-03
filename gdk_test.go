@@ -27,7 +27,7 @@ func TestFacadeExports(t *testing.T) {
 		t.Fatalf("unexpected Hex result %d err %v", hexVal, err)
 	}
 
-	btn := Primary("btn_id", "Label", WithButtonDisabled(true))
+	btn := Button("primary", "btn_id", "Label", WithButtonDisabled(true))
 	if btn.CustomID != "btn_id" || !btn.Disabled {
 		t.Fatalf("unexpected button %v", btn)
 	}
