@@ -45,6 +45,17 @@ func TestResolveOptions(t *testing.T) {
 	if opts.ResolveDeleteAfter() != 15*time.Second {
 		t.Fatalf("expected 15s, got %v", opts.ResolveDeleteAfter())
 	}
+
+	optsCompound := Options{
+		ComponentTimeout: "1d",
+		DeleteAfter:      "1h 30m",
+	}
+	if optsCompound.ResolveComponentTimeout() != 24*time.Hour {
+		t.Fatalf("expected 24h for 1d, got %v", optsCompound.ResolveComponentTimeout())
+	}
+	if optsCompound.ResolveDeleteAfter() != 90*time.Minute {
+		t.Fatalf("expected 90m for 1h 30m, got %v", optsCompound.ResolveDeleteAfter())
+	}
 }
 
 func TestLifecycle_ConflictResolution(t *testing.T) {
