@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -495,17 +494,10 @@ func TestMessagePurge_FilteringAndSingle(t *testing.T) {
 	recentID2 := recentID1 + 1
 
 	var bulkDeleted []types.Snowflake
-	var singleDeleted types.Snowflake
 
 	c, cleanup := setupMessageTestContext(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == "GET" && r.URL.Path == "/channels/200/messages":
-			if r.URL.Query().Get("limit") == "1" {
-				_ = json.NewEncoder(w).Encode([]types.Message{
-					{ID: recentID1},
-				})
-				return
-			}
 			_ = json.NewEncoder(w).Encode([]types.Message{
 				{ID: oldID},
 				{ID: recentID1},
@@ -518,27 +510,23 @@ func TestMessagePurge_FilteringAndSingle(t *testing.T) {
 			_ = json.NewDecoder(r.Body).Decode(&payload)
 			bulkDeleted = payload.Messages
 			w.WriteHeader(http.StatusNoContent)
-		case r.Method == "DELETE" && strings.HasPrefix(r.URL.Path, "/channels/200/messages/"):
-			parts := strings.Split(r.URL.Path, "/")
-			if len(parts) == 5 {
-				id, _ := strconv.ParseUint(parts[4], 10, 64)
-				singleDeleted = types.Snowflake(id)
-			}
-			w.WriteHeader(http.StatusNoContent)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
 	})
 	defer cleanup()
 
-	err := c.Message("purge", 0)
+	err := c.Message("purge", 1)
 	if !errors.Is(err, ErrInvalidPurgeCount) {
-		t.Fatalf("expected ErrInvalidPurgeCount for 0, got %v", err)
+		t.Fatalf("expected ErrInvalidPurgeCount for 1, got %v", err)
 	}
 
-	err = c.Message("purge", 3)
+	deleted, err := c.Purge(3)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if deleted != 2 {
+		t.Fatalf("expected deleted count 2, got %d", deleted)
 	}
 	if len(bulkDeleted) != 2 {
 		t.Fatalf("expected 2 messages in bulk delete (excluding old message), got %d", len(bulkDeleted))
@@ -549,11 +537,20 @@ func TestMessagePurge_FilteringAndSingle(t *testing.T) {
 		}
 	}
 
-	err = c.Message("purge", 1)
-	if err != nil {
-		t.Fatalf("unexpected error on single purge: %v", err)
-	}
-	if singleDeleted != recentID1 {
-		t.Fatalf("expected single delete to be called for %v, got %v", recentID1, singleDeleted)
+	cAllOld, cleanupAllOld := setupMessageTestContext(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/channels/200/messages":
+			_ = json.NewEncoder(w).Encode([]types.Message{
+				{ID: oldID},
+			})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+	defer cleanupAllOld()
+
+	_, errAllOld := cAllOld.Purge(2)
+	if !errors.Is(errAllOld, ErrMessagesTooOld) {
+		t.Fatalf("expected ErrMessagesTooOld, got %v", errAllOld)
 	}
 }
