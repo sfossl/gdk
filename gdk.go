@@ -395,6 +395,8 @@ var (
 	RegisteredCommands   = app.RegisteredCommands
 	RegisterComponent    = app.RegisterComponent
 	RegisteredComponents = app.RegisteredComponents
+	RegisterModal        = app.RegisterModal
+	RegisteredModals     = app.RegisteredModals
 
 	ErrTokenRequired     = app.ErrTokenRequired
 	ErrAppIDRequired     = app.ErrAppIDRequired
