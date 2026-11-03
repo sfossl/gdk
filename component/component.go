@@ -150,26 +150,6 @@ func buttonFromOptions(opts ButtonOptions) types.Component {
 	return newButton(types.ComponentTypeButton, style, customID, opts.Label, url, buttonOpts...)
 }
 
-func Primary(customID, label string, opts ...ButtonOpt) types.Component {
-	return newButton(types.ComponentTypeButton, ButtonStylePrimary, customID, label, "", opts...)
-}
-
-func Secondary(customID, label string, opts ...ButtonOpt) types.Component {
-	return newButton(types.ComponentTypeButton, ButtonStyleSecondary, customID, label, "", opts...)
-}
-
-func Success(customID, label string, opts ...ButtonOpt) types.Component {
-	return newButton(types.ComponentTypeButton, ButtonStyleSuccess, customID, label, "", opts...)
-}
-
-func Danger(customID, label string, opts ...ButtonOpt) types.Component {
-	return newButton(types.ComponentTypeButton, ButtonStyleDanger, customID, label, "", opts...)
-}
-
-func Link(url, label string, opts ...ButtonOpt) types.Component {
-	return newButton(types.ComponentTypeButton, ButtonStyleLink, "", label, url, opts...)
-}
-
 func newButton(typ types.ComponentType, style int, customID, label, url string, opts ...ButtonOpt) types.Component {
 	c := types.Component{
 		Type:     typ,
