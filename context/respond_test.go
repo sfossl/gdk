@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -463,6 +464,30 @@ func TestRespond_Tier1Shortcuts(t *testing.T) {
 			t.Fatalf("expected response on channel")
 		}
 	})
+}
+
+func TestContext_Autocomplete_Cap25(t *testing.T) {
+	in := &types.Interaction{ID: 100, Token: "token"}
+	c := New(context.Background(), in, nil)
+	var choices []types.Choice
+	for i := 0; i < 30; i++ {
+		choices = append(choices, types.Choice{Name: fmt.Sprintf("C%d", i), Value: fmt.Sprintf("V%d", i)})
+	}
+	err := c.Autocomplete(choices)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	select {
+	case res := <-c.ResponseChannel():
+		if res.Type != types.CallbackTypeApplicationCommandAutocompleteResult {
+			t.Fatalf("expected autocomplete result type %d, got %d", types.CallbackTypeApplicationCommandAutocompleteResult, res.Type)
+		}
+		if res.Data == nil || len(res.Data.Choices) != 25 {
+			t.Fatalf("expected choices to be capped at 25, got %d", len(res.Data.Choices))
+		}
+	default:
+		t.Fatalf("expected response on channel")
+	}
 }
 
 
