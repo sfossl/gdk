@@ -42,6 +42,7 @@ type Context struct {
 	deleteAfterTimer *time.Timer
 	activeComponents []types.Component
 	msgID            types.Snowflake
+	lastPurged       int
 }
 
 func New(ctx context.Context, in *types.Interaction, restClient *rest.Client) *Context {
@@ -115,6 +116,10 @@ func (c *Context) Subcommand() string {
 
 func (c *Context) SubcommandGroup() string {
 	return c.subcommandGroup
+}
+
+func (c *Context) LastPurged() int {
+	return c.lastPurged
 }
 
 func (c *Context) Context() context.Context {
