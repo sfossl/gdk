@@ -6,8 +6,10 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
@@ -480,5 +482,78 @@ func TestMessage_ReactionsAndEditing(t *testing.T) {
 	}
 	if editedContent != "positional edit text" {
 		t.Fatalf("expected positional edit text, got %s", editedContent)
+	}
+}
+
+func TestMessagePurge_FilteringAndSingle(t *testing.T) {
+	now := time.Now()
+	oldTime := now.Add(-15 * 24 * time.Hour)
+	oldID := types.Snowflake((oldTime.UnixMilli() - types.DiscordEpoch) << 22)
+
+	recentTime := now.Add(-1 * time.Hour)
+	recentID1 := types.Snowflake((recentTime.UnixMilli() - types.DiscordEpoch) << 22)
+	recentID2 := recentID1 + 1
+
+	var bulkDeleted []types.Snowflake
+	var singleDeleted types.Snowflake
+
+	c, cleanup := setupMessageTestContext(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/channels/200/messages":
+			if r.URL.Query().Get("limit") == "1" {
+				_ = json.NewEncoder(w).Encode([]types.Message{
+					{ID: recentID1},
+				})
+				return
+			}
+			_ = json.NewEncoder(w).Encode([]types.Message{
+				{ID: oldID},
+				{ID: recentID1},
+				{ID: recentID2},
+			})
+		case r.Method == "POST" && r.URL.Path == "/channels/200/messages/bulk-delete":
+			var payload struct {
+				Messages []types.Snowflake `json:"messages"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&payload)
+			bulkDeleted = payload.Messages
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == "DELETE" && strings.HasPrefix(r.URL.Path, "/channels/200/messages/"):
+			parts := strings.Split(r.URL.Path, "/")
+			if len(parts) == 5 {
+				id, _ := strconv.ParseUint(parts[4], 10, 64)
+				singleDeleted = types.Snowflake(id)
+			}
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+	defer cleanup()
+
+	err := c.Message("purge", 0)
+	if !errors.Is(err, ErrInvalidPurgeCount) {
+		t.Fatalf("expected ErrInvalidPurgeCount for 0, got %v", err)
+	}
+
+	err = c.Message("purge", 3)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(bulkDeleted) != 2 {
+		t.Fatalf("expected 2 messages in bulk delete (excluding old message), got %d", len(bulkDeleted))
+	}
+	for _, id := range bulkDeleted {
+		if id == oldID {
+			t.Fatalf("expected old message %v to be filtered out", oldID)
+		}
+	}
+
+	err = c.Message("purge", 1)
+	if err != nil {
+		t.Fatalf("unexpected error on single purge: %v", err)
+	}
+	if singleDeleted != recentID1 {
+		t.Fatalf("expected single delete to be called for %v, got %v", recentID1, singleDeleted)
 	}
 }
