@@ -6,6 +6,7 @@ import (
 
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/defaults"
+	"github.com/sfossl/gdk/util"
 )
 
 type Options struct {
@@ -65,7 +66,7 @@ func parseDuration(v any) time.Duration {
 	case float64:
 		return time.Duration(d * float64(time.Millisecond))
 	case string:
-		if parsed, err := time.ParseDuration(d); err == nil {
+		if parsed, err := util.ParseDuration(d); err == nil {
 			return parsed
 		}
 	}
