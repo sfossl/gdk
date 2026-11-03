@@ -318,6 +318,15 @@ func TestContext_FocusedOption(t *testing.T) {
 	if fNested == nil || fNested.Name != "filter" || fNested.Value != "docs" {
 		t.Fatalf("expected filter option, got %v", fNested)
 	}
+	if ctxNested.FocusedValue() != "docs" {
+		t.Fatalf("expected 'docs', got %s", ctxNested.FocusedValue())
+	}
+	if ctxNested.FocusedName() != "filter" {
+		t.Fatalf("expected 'filter', got %s", ctxNested.FocusedName())
+	}
+	if (&Context{}).FocusedValue() != "" || (&Context{}).FocusedName() != "" {
+		t.Fatalf("expected empty strings for nil context focused helpers")
+	}
 }
 
 func TestContext_Values(t *testing.T) {
