@@ -391,7 +391,7 @@ func TestManageChannel_Unified(t *testing.T) {
 
 	err = c.ManageChannel(ChannelOptions{
 		Type:       ChannelPurge,
-		PurgeCount: 1,
+		PurgeCount: 0,
 	})
 	if !errors.Is(err, ErrInvalidPurgeCount) {
 		t.Fatalf("expected ErrInvalidPurgeCount, got %v", err)
