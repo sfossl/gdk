@@ -96,18 +96,6 @@ func TestLifecycle_ConflictResolution(t *testing.T) {
 }
 
 func TestLifecycle_DisableComponents(t *testing.T) {
-	var patchCalled atomic.Bool
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	restClient := rest.NewClient("token", rest.WithBaseURL(server.URL))
 	btn := types.Component{Type: types.ComponentTypeButton, CustomID: "b1"}
 	row := types.Component{Type: types.ComponentTypeActionRow, Components: []types.Component{btn}}
 
@@ -121,11 +109,22 @@ func TestLifecycle_DisableComponents(t *testing.T) {
 		},
 	}
 
-	ctx := New(stdctx.Background(), in, restClient)
+	ctx := New(stdctx.Background(), in, nil)
 	err := ctx.DisableComponents()
 	if err != nil {
 		t.Fatalf("unexpected error disabling components: %v", err)
 	}
-	_ = patchCalled
+
+	select {
+	case res := <-ctx.ResponseChannel():
+		if res.Type != types.CallbackTypeUpdateMessage {
+			t.Fatalf("expected callback type %d, got %d", types.CallbackTypeUpdateMessage, res.Type)
+		}
+		if len(res.Data.Components) == 0 || len(res.Data.Components[0].Components) == 0 || !res.Data.Components[0].Components[0].Disabled {
+			t.Fatal("expected button component to be disabled")
+		}
+	default:
+		t.Fatal("expected disable call to produce update message on channel")
+	}
 }
 
