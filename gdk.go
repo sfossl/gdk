@@ -268,6 +268,7 @@ var (
 	ErrSlowmodeTooLong          = context.ErrSlowmodeTooLong
 	ErrSlowmodeNegative         = context.ErrSlowmodeNegative
 	ErrInvalidPurgeCount        = context.ErrInvalidPurgeCount
+	ErrMessagesTooOld           = context.ErrMessagesTooOld
 	ErrInvalidChannelAction     = context.ErrInvalidChannelAction
 	ErrInvalidRoleID            = context.ErrInvalidRoleID
 	ErrRoleNotFound             = context.ErrRoleNotFound
