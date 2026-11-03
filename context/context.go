@@ -2,6 +2,7 @@ package context
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -184,6 +185,25 @@ func (c *Context) FocusedOption() *types.ApplicationCommandOption {
 		return nil
 	}
 	return findFocusedOption(c.Interaction.Data.Options)
+}
+
+func (c *Context) FocusedValue() string {
+	f := c.FocusedOption()
+	if f == nil || f.Value == nil {
+		return ""
+	}
+	if s, ok := f.Value.(string); ok {
+		return s
+	}
+	return fmt.Sprint(f.Value)
+}
+
+func (c *Context) FocusedName() string {
+	f := c.FocusedOption()
+	if f == nil {
+		return ""
+	}
+	return f.Name
 }
 
 func findFocusedOption(opts []types.ApplicationCommandOption) *types.ApplicationCommandOption {
