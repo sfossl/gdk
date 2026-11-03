@@ -343,3 +343,44 @@ func TestContext_Values(t *testing.T) {
 		t.Fatalf("expected empty string for empty interaction")
 	}
 }
+
+func TestContext_ModalInput(t *testing.T) {
+	in := &types.Interaction{
+		Type: types.InteractionTypeModalSubmit,
+		Data: &types.InteractionData{
+			CustomID: "feedback_modal",
+			Components: []types.Component{
+				{
+					Type: types.ComponentTypeActionRow,
+					Components: []types.Component{
+						{
+							Type:     types.ComponentTypeTextInput,
+							CustomID: "title",
+							Value:    "My Title",
+						},
+					},
+				},
+				{
+					Type: types.ComponentTypeActionRow,
+					Components: []types.Component{
+						{
+							Type:     types.ComponentTypeTextInput,
+							CustomID: "details",
+							Value:    "Detailed feedback",
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := New(context.Background(), in, nil)
+	if v := ctx.Input("title"); v != "My Title" {
+		t.Fatalf("expected 'My Title', got %s", v)
+	}
+	if v := ctx.Opt("details").String(); v != "Detailed feedback" {
+		t.Fatalf("expected 'Detailed feedback', got %s", v)
+	}
+	if v := ctx.Input("missing"); v != "" {
+		t.Fatalf("expected empty string for missing input, got %s", v)
+	}
+}
