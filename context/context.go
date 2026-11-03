@@ -91,6 +91,10 @@ func (c *Context) initFields(in *types.Interaction) {
 	}
 	c.InvokerMember = in.Member
 
+	if in.Message != nil && in.Message.ID != 0 {
+		c.msgID = in.Message.ID
+	}
+
 	if in.Data != nil && len(in.Data.Options) > 0 {
 		first := in.Data.Options[0]
 		switch first.Type {
