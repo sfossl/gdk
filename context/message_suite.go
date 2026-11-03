@@ -13,14 +13,18 @@ type MessageSuite struct {
 	channelID types.Snowflake
 }
 
-func (c *Context) MessageSuite(messageID types.Snowflake, channelID ...types.Snowflake) MessageSuite {
+func (c *Context) MessageSuite(target ...types.Snowflake) MessageSuite {
+	var msgID types.Snowflake
 	chID := c.ChannelID
-	if len(channelID) > 0 && channelID[0] != 0 {
-		chID = channelID[0]
+	if len(target) > 0 {
+		msgID = target[0]
+	}
+	if len(target) > 1 && target[1] != 0 {
+		chID = target[1]
 	}
 	return MessageSuite{
 		ctx:       c,
-		messageID: messageID,
+		messageID: msgID,
 		channelID: chID,
 	}
 }
