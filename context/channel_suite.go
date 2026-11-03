@@ -164,13 +164,8 @@ func (a ChannelSuite) Unlock(reason ...string) error {
 	})
 }
 
-func (a ChannelSuite) Purge(count int, reason ...string) error {
-	return a.ctx.Message(MessageOptions{
-		Type:      MsgPurge,
-		ChannelID: a.channelID,
-		Count:     count,
-		Reason:    strings.Join(reason, " "),
-	})
+func (a ChannelSuite) Purge(count int, reason ...string) (int, error) {
+	return a.ctx.purgeMessages(a.channelID, count, strings.Join(reason, " "))
 }
 
 func (a ChannelSuite) Typing() error {
