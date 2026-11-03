@@ -7,7 +7,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/sfossl/gda/types"
-	"github.com/sfossl/gdk/util/time"
+	"github.com/sfossl/gdk/util"
 )
 
 var (
@@ -78,7 +78,7 @@ func (b *EmbedBuilder) SetTimestamp(t any) *EmbedBuilder {
 			b.embed.Timestamp = nil
 		}
 	default:
-		item := timeutil.New(val)
+		item := util.New(val)
 		if item.Error() != nil {
 			b.err = item.Error()
 			return b
