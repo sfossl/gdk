@@ -137,6 +137,10 @@ func (c *Context) Value() string {
 	return ""
 }
 
+func (c *Context) Input(name string) string {
+	return c.Opt(name).String()
+}
+
 func (c *Context) Context() context.Context {
 	if c.ctx == nil {
 		return context.Background()
