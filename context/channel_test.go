@@ -391,7 +391,7 @@ func TestManageChannel_Unified(t *testing.T) {
 
 	err = c.ManageChannel(ChannelOptions{
 		Type:       ChannelPurge,
-		PurgeCount: 0,
+		PurgeCount: 1,
 	})
 	if !errors.Is(err, ErrInvalidPurgeCount) {
 		t.Fatalf("expected ErrInvalidPurgeCount, got %v", err)
@@ -482,6 +482,31 @@ func TestManageChannel_PurgeSingleMessage(t *testing.T) {
 	}
 	if auditReason != "purge single" {
 		t.Fatalf("expected audit reason 'purge single', got '%s'", auditReason)
+	}
+}
+
+func TestChannelSuite_Purge(t *testing.T) {
+	c, cleanup := setupChannelTestContext(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "GET" && r.URL.Path == "/channels/200/messages":
+			_ = json.NewEncoder(w).Encode([]types.Message{
+				{ID: types.Snowflake(1001)},
+				{ID: types.Snowflake(1002)},
+			})
+		case r.Method == "POST" && r.URL.Path == "/channels/200/messages/bulk-delete":
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+	defer cleanup()
+
+	deleted, err := c.ChannelSuite(types.Snowflake(200)).Purge(2, "suite purge")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if deleted != 2 {
+		t.Fatalf("expected 2 deleted, got %d", deleted)
 	}
 }
 
