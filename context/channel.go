@@ -9,7 +9,7 @@ import (
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/defaults"
-	"github.com/sfossl/gdk/util/time"
+	"github.com/sfossl/gdk/util"
 )
 
 type ChannelAction int
@@ -298,7 +298,7 @@ func parseSlowmodeSeconds(v any) (int, error) {
 		if val == "" || val == "0" || val == "0s" {
 			return 0, nil
 		}
-		d, err := timeutil.ParseDuration(val)
+		d, err := util.ParseDuration(val)
 		if err != nil {
 			return 0, err
 		}
