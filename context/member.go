@@ -9,7 +9,7 @@ import (
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/defaults"
-	"github.com/sfossl/gdk/util/time"
+	"github.com/sfossl/gdk/util"
 )
 
 type ModType int
@@ -396,7 +396,7 @@ func parseDeleteHistorySeconds(v any) (int, error) {
 		if val == "" {
 			return 0, nil
 		}
-		d, err := timeutil.ParseDuration(val)
+		d, err := util.ParseDuration(val)
 		if err != nil {
 			return 0, err
 		}
@@ -429,7 +429,7 @@ func parseTimeoutUntil(v any) (*time.Time, error) {
 		}
 		until = now.Add(val)
 	case string:
-		item := timeutil.New(val)
+		item := util.New(val)
 		if item.Error() != nil {
 			return nil, item.Error()
 		}
