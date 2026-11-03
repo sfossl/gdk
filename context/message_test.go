@@ -521,12 +521,12 @@ func TestMessagePurge_FilteringAndSingle(t *testing.T) {
 		t.Fatalf("expected ErrInvalidPurgeCount for 1, got %v", err)
 	}
 
-	deleted, err := c.Purge(3)
+	err = c.Message("purge", 3)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if deleted != 2 {
-		t.Fatalf("expected deleted count 2, got %d", deleted)
+	if c.LastPurged() != 2 {
+		t.Fatalf("expected LastPurged count 2, got %d", c.LastPurged())
 	}
 	if len(bulkDeleted) != 2 {
 		t.Fatalf("expected 2 messages in bulk delete (excluding old message), got %d", len(bulkDeleted))
@@ -535,6 +535,14 @@ func TestMessagePurge_FilteringAndSingle(t *testing.T) {
 		if id == oldID {
 			t.Fatalf("expected old message %v to be filtered out", oldID)
 		}
+	}
+
+	suiteDeleted, err := c.MessageSuite().Purge(3)
+	if err != nil {
+		t.Fatalf("unexpected error on suite purge: %v", err)
+	}
+	if suiteDeleted != 2 {
+		t.Fatalf("expected suiteDeleted 2, got %d", suiteDeleted)
 	}
 
 	cAllOld, cleanupAllOld := setupMessageTestContext(func(w http.ResponseWriter, r *http.Request) {
@@ -549,8 +557,11 @@ func TestMessagePurge_FilteringAndSingle(t *testing.T) {
 	})
 	defer cleanupAllOld()
 
-	_, errAllOld := cAllOld.Purge(2)
+	errAllOld := cAllOld.Message("purge", 2)
 	if !errors.Is(errAllOld, ErrMessagesTooOld) {
 		t.Fatalf("expected ErrMessagesTooOld, got %v", errAllOld)
+	}
+	if cAllOld.LastPurged() != 0 {
+		t.Fatalf("expected LastPurged 0 on error, got %d", cAllOld.LastPurged())
 	}
 }
