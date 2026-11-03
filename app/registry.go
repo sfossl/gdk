@@ -12,12 +12,20 @@ type ComponentRegistration struct {
 	Handler  middleware.Handler
 }
 
+type ModalRegistration struct {
+	CustomID string
+	Handler  middleware.Handler
+}
+
 var (
 	regMu      sync.RWMutex
 	registered []command.Command
 
 	compMu   sync.RWMutex
 	regComps []ComponentRegistration
+
+	modalMu   sync.RWMutex
+	regModals []ModalRegistration
 )
 
 func Register(cmd command.Command) {
@@ -51,10 +59,27 @@ func RegisteredComponents() []ComponentRegistration {
 	return out
 }
 
+func RegisterModal(customID string, handler middleware.Handler) {
+	modalMu.Lock()
+	defer modalMu.Unlock()
+	regModals = append(regModals, ModalRegistration{CustomID: customID, Handler: handler})
+}
+
+func RegisteredModals() []ModalRegistration {
+	modalMu.RLock()
+	defer modalMu.RUnlock()
+	out := make([]ModalRegistration, len(regModals))
+	copy(out, regModals)
+	return out
+}
+
 func (a *App) MountRegistered() *App {
 	a.Commands(RegisteredCommands()...)
 	for _, c := range RegisteredComponents() {
 		a.Component(c.CustomID, c.Handler)
+	}
+	for _, m := range RegisteredModals() {
+		a.Modal(m.CustomID, m.Handler)
 	}
 	return a
 }
