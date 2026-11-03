@@ -31,7 +31,8 @@ var (
 	ErrInvalidMessageID     = errors.New("invalid message id")
 	ErrEmojiRequired        = errors.New("reaction emoji is required")
 	ErrInvalidMessageAction = errors.New("invalid message action type")
-	ErrInvalidPurgeCount    = errors.New("purge count must be between 1 and 100")
+	ErrInvalidPurgeCount    = errors.New("purge count must be between 2 and 100")
+	ErrMessagesTooOld       = errors.New("messages are older than 14 days and cannot be purged")
 )
 
 type MessageOptions struct {
@@ -310,57 +311,87 @@ func (c *Context) Message(args ...any) error {
 		_, err := c.REST.EditMessage(c.Context(), chID, opts.MessageID, payload)
 		return err
 	case MsgPurge:
-		if opts.Count < 1 || opts.Count > 100 {
-			return ErrInvalidPurgeCount
-		}
-		endpoint := rest.Endpoint{
-			Method: "GET",
-			Path:   fmt.Sprintf("/channels/%s/messages?limit=%d", chID, opts.Count),
-			Key:    fmt.Sprintf("GET:/channels/%s/messages", chID),
-		}
-		data, err := c.REST.Do(c.Context(), rest.Request{Endpoint: endpoint})
-		if err != nil {
-			return err
-		}
-		var msgs []types.Message
-		if err := json.Unmarshal(data, &msgs); err != nil {
-			return err
-		}
-		cutoff := time.Now().Add(-14 * 24 * time.Hour)
-		var validIDs []types.Snowflake
-		for _, m := range msgs {
-			if m.ID>>22 == 0 || m.ID.Time().After(cutoff) {
-				validIDs = append(validIDs, m.ID)
-			}
-		}
-		if len(validIDs) == 0 {
-			return nil
-		}
-		if len(validIDs) == 1 {
-			return c.REST.DeleteMessage(c.Context(), chID, validIDs[0], opts.Reason)
-		}
-		bulkEndpoint := rest.Endpoint{
-			Method: "POST",
-			Path:   fmt.Sprintf("/channels/%s/messages/bulk-delete", chID),
-			Key:    fmt.Sprintf("POST:/channels/%s/messages/bulk-delete", chID),
-		}
-		bulkPayload := struct {
-			Messages []types.Snowflake `json:"messages"`
-		}{
-			Messages: validIDs,
-		}
-		req := rest.Request{
-			Endpoint: bulkEndpoint,
-			Body:     bulkPayload,
-		}
-		if opts.Reason != "" {
-			req.Headers = http.Header{"X-Audit-Log-Reason": []string{opts.Reason}}
-		}
-		_, err = c.REST.Do(c.Context(), req)
+		_, err := c.purgeMessages(chID, opts.Count, opts.Reason)
 		return err
 	default:
 		return ErrInvalidMessageAction
 	}
+}
+
+func (c *Context) Purge(count int, reason ...string) (int, error) {
+	var r string
+	if len(reason) > 0 {
+		r = reason[0]
+	}
+	return c.purgeMessages(c.ChannelID, count, r)
+}
+
+func (c *Context) purgeMessages(chID types.Snowflake, count int, reason string) (int, error) {
+	if count < 2 || count > 100 {
+		return 0, ErrInvalidPurgeCount
+	}
+	if chID == 0 {
+		chID = c.ChannelID
+	}
+	if chID == 0 {
+		return 0, ErrInvalidChannelID
+	}
+	if c.REST == nil {
+		return 0, ErrNoRESTClient
+	}
+	endpoint := rest.Endpoint{
+		Method: "GET",
+		Path:   fmt.Sprintf("/channels/%s/messages?limit=%d", chID, count),
+		Key:    fmt.Sprintf("GET:/channels/%s/messages", chID),
+	}
+	data, err := c.REST.Do(c.Context(), rest.Request{Endpoint: endpoint})
+	if err != nil {
+		return 0, err
+	}
+	var msgs []types.Message
+	if err := json.Unmarshal(data, &msgs); err != nil {
+		return 0, err
+	}
+	if len(msgs) == 0 {
+		return 0, nil
+	}
+	cutoff := time.Now().Add(-14 * 24 * time.Hour)
+	var validIDs []types.Snowflake
+	for _, m := range msgs {
+		if m.ID>>22 == 0 || m.ID.Time().After(cutoff) {
+			validIDs = append(validIDs, m.ID)
+		}
+	}
+	if len(validIDs) == 0 {
+		return 0, ErrMessagesTooOld
+	}
+	if len(validIDs) == 1 {
+		if err := c.REST.DeleteMessage(c.Context(), chID, validIDs[0], reason); err != nil {
+			return 0, err
+		}
+		return 1, nil
+	}
+	bulkEndpoint := rest.Endpoint{
+		Method: "POST",
+		Path:   fmt.Sprintf("/channels/%s/messages/bulk-delete", chID),
+		Key:    fmt.Sprintf("POST:/channels/%s/messages/bulk-delete", chID),
+	}
+	bulkPayload := struct {
+		Messages []types.Snowflake `json:"messages"`
+	}{
+		Messages: validIDs,
+	}
+	req := rest.Request{
+		Endpoint: bulkEndpoint,
+		Body:     bulkPayload,
+	}
+	if reason != "" {
+		req.Headers = http.Header{"X-Audit-Log-Reason": []string{reason}}
+	}
+	if _, err := c.REST.Do(c.Context(), req); err != nil {
+		return 0, err
+	}
+	return len(validIDs), nil
 }
 
 func (c *Context) ManageMessage(args ...any) error {
