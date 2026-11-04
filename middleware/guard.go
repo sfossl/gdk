@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"errors"
+	"log"
 	"runtime/debug"
 
 	"github.com/sfossl/gdk/context"
@@ -14,8 +15,13 @@ type Handler func(ctx *context.Context) error
 type Middleware func(next Handler) Handler
 type PanicHandler func(ctx *context.Context, recovered any, stack []byte)
 
+type CrashLogger interface {
+	Crash(msg string, recovered any, stack []byte)
+}
+
 type GuardConfig struct {
 	OnPanic   PanicHandler
+	Logger    CrashLogger
 	Message   string
 	Ephemeral bool
 }
@@ -25,6 +31,12 @@ type GuardOption func(*GuardConfig)
 func WithPanicHandler(fn PanicHandler) GuardOption {
 	return func(c *GuardConfig) {
 		c.OnPanic = fn
+	}
+}
+
+func WithGuardLogger(l CrashLogger) GuardOption {
+	return func(c *GuardConfig) {
+		c.Logger = l
 	}
 }
 
@@ -63,6 +75,10 @@ func Guard(opts ...GuardOption) Middleware {
 							}()
 							cfg.OnPanic(ctx, r, stack)
 						}()
+					} else if cfg.Logger != nil {
+						cfg.Logger.Crash("panic recovered in interaction handler", r, stack)
+					} else {
+						log.Printf("[gdk/guard] panic recovered: %v\nstack:\n%s", r, string(stack))
 					}
 
 					if ctx != nil && (!ctx.IsAcknowledged() || ctx.IsDeferred()) {
