@@ -122,6 +122,12 @@ func TestFacadeAppExports(t *testing.T) {
 	if MsgReact == 0 || MsgPurge == 0 || MsgClearReactions == 0 {
 		t.Fatal("expected non-zero message action constants")
 	}
+
+	var compReg ComponentRegistration
+	compReg.CustomID = "btn"
+	var modalReg ModalRegistration
+	modalReg.CustomID = "modal"
+	var _ CrashLogger = (*FileLogger)(nil)
 }
 
 func TestFacadeCommandValidationErrors(t *testing.T) {
