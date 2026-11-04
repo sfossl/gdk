@@ -403,3 +403,78 @@ func TestApp_GatewayContextLifecycle(t *testing.T) {
 		t.Fatalf("gateway context was cancelled when connection closed")
 	}
 }
+
+func TestApp_CloseCancelsInteractionContexts(t *testing.T) {
+	app, err := New("token", 123, WithTimeout(5*time.Second))
+	if err != nil {
+		t.Fatalf("failed to create app: %v", err)
+	}
+
+	var ctxCancelled atomic.Bool
+	started := make(chan struct{})
+	done := make(chan struct{})
+
+	err = app.RegisterCommand(command.Command{
+		Type:        command.CommandTypeChatInput,
+		Name:        "shutdowntask",
+		Description: "task during shutdown",
+	}, func(c *context.Context) error {
+		close(started)
+		go func() {
+			<-c.Context().Done()
+			ctxCancelled.Store(true)
+			close(done)
+		}()
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("failed to register command: %v", err)
+	}
+
+	in := &types.Interaction{
+		ID:   11,
+		Type: types.InteractionTypeApplicationCommand,
+		Data: &types.InteractionData{
+			Name: "shutdowntask",
+			Type: 1,
+		},
+	}
+	inPayload, _ := json.Marshal(in)
+	app.Dispatcher.Dispatch(stdctx.Background(), types.EventInteractionCreate, inPayload)
+
+	select {
+	case <-started:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatalf("timed out waiting for command to start")
+	}
+
+	if err := app.Close(); err != nil {
+		t.Fatalf("unexpected error closing app: %v", err)
+	}
+
+	select {
+	case <-done:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatalf("timed out waiting for context cancellation on app.Close")
+	}
+
+	if !ctxCancelled.Load() {
+		t.Fatalf("expected context to be cancelled after app.Close")
+	}
+}
+
+func TestContext_ExplicitCancel(t *testing.T) {
+	rawCtx, cancel := stdctx.WithCancel(stdctx.Background())
+	c := context.New(rawCtx, &types.Interaction{}, nil, cancel)
+
+	if c.Context().Err() != nil {
+		t.Fatalf("expected context to be active")
+	}
+
+	c.Cancel()
+
+	if c.Context().Err() == nil {
+		t.Fatalf("expected context to be cancelled after c.Cancel()")
+	}
+}
+
