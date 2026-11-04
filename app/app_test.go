@@ -534,3 +534,63 @@ func TestApp_RunAndClose(t *testing.T) {
 		t.Fatalf("unexpected error closing app: %v", err)
 	}
 }
+
+func TestApp_CommandPermissionsAutoAttached(t *testing.T) {
+	app, _ := New("token", 12345)
+	executed := false
+	cmd := command.Command{
+		Name:        "adminonly",
+		Description: "admin command",
+		Permissions: types.Permission(1 << 3),
+		Execute: func(ctx *context.Context) error {
+			executed = true
+			return nil
+		},
+	}
+	app.Command(cmd)
+
+	entry := app.lookupCommand(int(command.CommandTypeChatInput), "adminonly")
+	if entry == nil {
+		t.Fatal("expected command entry")
+	}
+
+	guildID := types.Snowflake(100)
+	inWithoutPerms := &types.Interaction{
+		Type: 2,
+		Data: &types.InteractionData{
+			Type: 1,
+			Name: "adminonly",
+		},
+		GuildID: &guildID,
+		Member: &types.Member{
+			Permissions: types.Permission(0),
+		},
+	}
+	ctxWithout := context.New(stdctx.Background(), inWithoutPerms, nil)
+	err := entry.pipeline.Execute(ctxWithout, entry.handler)
+	if err == nil {
+		t.Fatal("expected permission error for member without permission")
+	}
+	if executed {
+		t.Fatal("handler should not have executed without permissions")
+	}
+
+	inWithPerms := &types.Interaction{
+		Type: 2,
+		Data: &types.InteractionData{
+			Type: 1,
+			Name: "adminonly",
+		},
+		GuildID: &guildID,
+		Member: &types.Member{
+			Permissions: types.Permission(1 << 3),
+		},
+	}
+	ctxWith := context.New(stdctx.Background(), inWithPerms, nil)
+	if err := entry.pipeline.Execute(ctxWith, entry.handler); err != nil {
+		t.Fatalf("unexpected error for member with permissions: %v", err)
+	}
+	if !executed {
+		t.Fatal("expected handler to execute for member with permissions")
+	}
+}
