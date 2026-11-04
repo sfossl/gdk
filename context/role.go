@@ -230,8 +230,6 @@ type RoleSuite struct {
 	roleID types.Snowflake
 }
 
-type RoleActionSuite = RoleSuite
-
 func (c *Context) RoleSuite(roleID ...types.Snowflake) RoleSuite {
 	var id types.Snowflake
 	if len(roleID) > 0 {
@@ -241,10 +239,6 @@ func (c *Context) RoleSuite(roleID ...types.Snowflake) RoleSuite {
 		ctx:    c,
 		roleID: id,
 	}
-}
-
-func (c *Context) RoleAction(roleID ...types.Snowflake) RoleSuite {
-	return c.RoleSuite(roleID...)
 }
 
 func (a RoleSuite) ID() types.Snowflake {
