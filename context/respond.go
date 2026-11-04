@@ -38,7 +38,10 @@ func (c *Context) Defer(ephemeral ...bool) error {
 			Flags: flagsFromEphemeral(isEphemeral),
 		},
 	}
+	return c.sendInteractionResponse(resp)
+}
 
+func (c *Context) sendInteractionResponse(resp types.InteractionResponse) error {
 	if !c.gatewayMode && c.responseChan != nil {
 		select {
 		case c.responseChan <- resp:
@@ -296,26 +299,8 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 		},
 	}
 
-	if !c.gatewayMode && c.responseChan != nil {
-		select {
-		case c.responseChan <- resp:
-			c.scheduleLifecycleTimers(res, nil)
-			return nil, nil
-		default:
-		}
-	}
-
-	if c.REST == nil {
-		c.responded.Store(false)
-		return nil, ErrNoRESTClient
-	}
-	if c.Interaction == nil {
-		c.responded.Store(false)
-		return nil, ErrNoInteraction
-	}
-	err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
+	err := c.sendInteractionResponse(resp)
 	if err != nil {
-		c.responded.Store(false)
 		return nil, err
 	}
 	c.scheduleLifecycleTimers(res, nil)
@@ -357,25 +342,7 @@ func (c *Context) respondReceipt(receipt string) error {
 			Flags:   types.MessageFlagEphemeral,
 		},
 	}
-
-	if !c.gatewayMode && c.responseChan != nil {
-		select {
-		case c.responseChan <- resp:
-			return nil
-		default:
-		}
-	}
-
-	if c.REST == nil {
-		c.responded.Store(false)
-		return ErrNoRESTClient
-	}
-	err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
-	if err != nil {
-		c.responded.Store(false)
-		return err
-	}
-	return nil
+	return c.sendInteractionResponse(resp)
 }
 
 func flagsFromEphemeral(ephemeral bool) types.MessageFlag {
@@ -396,29 +363,7 @@ func (c *Context) Pong() error {
 	resp := types.InteractionResponse{
 		Type: types.CallbackTypePong,
 	}
-
-	if !c.gatewayMode && c.responseChan != nil {
-		select {
-		case c.responseChan <- resp:
-			return nil
-		default:
-		}
-	}
-
-	if c.REST == nil {
-		c.responded.Store(false)
-		return ErrNoRESTClient
-	}
-	if c.Interaction == nil {
-		c.responded.Store(false)
-		return ErrNoInteraction
-	}
-	err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
-	if err != nil {
-		c.responded.Store(false)
-		return err
-	}
-	return nil
+	return c.sendInteractionResponse(resp)
 }
 
 func (c *Context) Autocomplete(choices []types.Choice) error {
@@ -438,29 +383,7 @@ func (c *Context) Autocomplete(choices []types.Choice) error {
 			Choices: choices,
 		},
 	}
-
-	if !c.gatewayMode && c.responseChan != nil {
-		select {
-		case c.responseChan <- resp:
-			return nil
-		default:
-		}
-	}
-
-	if c.REST == nil {
-		c.responded.Store(false)
-		return ErrNoRESTClient
-	}
-	if c.Interaction == nil {
-		c.responded.Store(false)
-		return ErrNoInteraction
-	}
-	err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
-	if err != nil {
-		c.responded.Store(false)
-		return err
-	}
-	return nil
+	return c.sendInteractionResponse(resp)
 }
 
 func (c *Context) Modal(m Modal) error {
@@ -482,27 +405,5 @@ func (c *Context) Modal(m Modal) error {
 			Components: m.Components,
 		},
 	}
-
-	if !c.gatewayMode && c.responseChan != nil {
-		select {
-		case c.responseChan <- resp:
-			return nil
-		default:
-		}
-	}
-
-	if c.REST == nil {
-		c.responded.Store(false)
-		return ErrNoRESTClient
-	}
-	if c.Interaction == nil {
-		c.responded.Store(false)
-		return ErrNoInteraction
-	}
-	err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
-	if err != nil {
-		c.responded.Store(false)
-		return err
-	}
-	return nil
+	return c.sendInteractionResponse(resp)
 }
