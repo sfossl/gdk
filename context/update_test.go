@@ -151,13 +151,13 @@ func TestUpdateMessage_DeferUpdateAndEditOriginal(t *testing.T) {
 
 func TestUpdateValidation(t *testing.T) {
 	cNoGuild := &Context{}
-	if err := cNoGuild.Update(UpdateOptions{Target: 123}); !errors.Is(err, ErrNotInGuild) {
+	if err := cNoGuild.Update(MemberOptions{Target: 123}); !errors.Is(err, ErrNotInGuild) {
 		t.Fatalf("expected ErrNotInGuild, got %v", err)
 	}
 
 	gID := types.Snowflake(10)
 	cNoREST := &Context{GuildID: &gID}
-	if err := cNoREST.Update(UpdateOptions{Target: 123}); !errors.Is(err, ErrNoRESTClient) {
+	if err := cNoREST.Update(MemberOptions{Target: 123}); !errors.Is(err, ErrNoRESTClient) {
 		t.Fatalf("expected ErrNoRESTClient, got %v", err)
 	}
 
@@ -166,16 +166,16 @@ func TestUpdateValidation(t *testing.T) {
 	client := rest.NewClient("test-token", rest.WithBaseURL(ts.URL))
 	c := &Context{GuildID: &gID, REST: client}
 
-	if err := c.Update(UpdateOptions{Target: 0}); !errors.Is(err, ErrInvalidTarget) {
+	if err := c.Update(MemberOptions{Target: 0}); !errors.Is(err, ErrInvalidTarget) {
 		t.Fatalf("expected ErrInvalidTarget, got %v", err)
 	}
 
 	nick := "test"
-	if err := c.Update(UpdateOptions{Target: 123, Nickname: &nick}); err != nil {
+	if err := c.Update(MemberOptions{Target: 123, Nickname: &nick}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if err := c.Update(UpdateOptions{Target: 123}); !errors.Is(err, ErrEmptyMemberUpdate) {
+	if err := c.Update(MemberOptions{Target: 123}); !errors.Is(err, ErrEmptyMemberUpdate) {
 		t.Fatalf("expected ErrEmptyMemberUpdate when no options set, got: %v", err)
 	}
 }
@@ -217,7 +217,7 @@ func TestUpdateOperations(t *testing.T) {
 	}
 
 	nick := "NewNick"
-	err := c.Update(UpdateOptions{
+	err := c.Update(MemberOptions{
 		Nickname: &nick,
 		Reason:   "Nickname update",
 	})
@@ -231,7 +231,7 @@ func TestUpdateOperations(t *testing.T) {
 		t.Fatalf("expected audit reason 'Nickname update', got %s", lastAuditReason)
 	}
 
-	err = c.Update(UpdateOptions{
+	err = c.Update(MemberOptions{
 		Target:      777,
 		AddRoles:    []types.Snowflake{3},
 		RemoveRoles: []types.Snowflake{2},
@@ -262,7 +262,7 @@ func TestUpdateOperations(t *testing.T) {
 	mute := true
 	deaf := false
 	vCh := types.Snowflake(999)
-	err = c.Update(UpdateOptions{
+	err = c.Update(MemberOptions{
 		Target:       777,
 		VoiceMute:    &mute,
 		VoiceDeaf:    &deaf,
