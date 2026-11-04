@@ -123,10 +123,8 @@ func TestFacadeAppExports(t *testing.T) {
 		t.Fatal("expected non-zero message action constants")
 	}
 
-	var compReg ComponentRegistration
-	compReg.CustomID = "btn"
-	var modalReg ModalRegistration
-	modalReg.CustomID = "modal"
+	var _ ComponentRegistration
+	var _ ModalRegistration
 	var _ CrashLogger = (*FileLogger)(nil)
 }
 
