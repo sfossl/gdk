@@ -46,8 +46,6 @@ type Modal = context.Modal
 type MemberSuite = context.MemberSuite
 type MemberOptions = context.MemberOptions
 type ModType = context.ModType
-type ModOptions = context.ModOptions
-type ModAction = context.ModAction
 type ChannelAction = context.ChannelAction
 type ChannelOptions = context.ChannelOptions
 type ChannelSuite = context.ChannelSuite
@@ -57,7 +55,6 @@ type RoleSuite = context.RoleSuite
 type MessageAction = context.MessageAction
 type MessageOptions = context.MessageOptions
 type MessageSuite = context.MessageSuite
-type UpdateOptions = context.UpdateOptions
 type TimeItem = util.Item
 type Command = command.Command
 type CommandType = command.CommandType
@@ -88,6 +85,10 @@ type PermissionConfig = middleware.PermissionConfig
 type PermissionOption = middleware.PermissionOption
 type PermissionError = middleware.PermissionError
 type Pipeline = middleware.Pipeline
+type Logger = util.Logger
+type LoggerConfig = util.LoggerConfig
+type FileLogger = util.FileLogger
+type LogFormat = util.LogFormat
 
 const (
 	ModeGateway = app.ModeGateway
@@ -108,6 +109,10 @@ const (
 	OptionTypeMentionable     = command.OptionTypeMentionable
 	OptionTypeNumber          = command.OptionTypeNumber
 	OptionTypeAttachment      = command.OptionTypeAttachment
+
+	LogFormatText = util.LogFormatText
+	LogFormatJSON = util.LogFormatJSON
+	LogFormatCSV  = util.LogFormatCSV
 
 	MaxTimeoutDuration = context.MaxTimeoutDuration
 	MaxBanDeleteSec    = context.MaxBanDeleteSec
@@ -247,9 +252,25 @@ var (
 	RoleOption        = command.RoleOption
 	MentionableOption = command.MentionableOption
 	AttachmentOption  = command.AttachmentOption
-	ValidateCommand   = command.Validate
-	ErrContextMenuHasDescription = command.ErrContextMenuHasDescription
-	ErrContextMenuHasOptions     = command.ErrContextMenuHasOptions
+	ValidateCommand                = command.Validate
+	ErrInvalidName                 = command.ErrInvalidName
+	ErrNameTooLong                 = command.ErrNameTooLong
+	ErrEmptyName                   = command.ErrEmptyName
+	ErrEmptyDescription            = command.ErrEmptyDescription
+	ErrDescriptionTooLong          = command.ErrDescriptionTooLong
+	ErrSubcommandTopOptions        = command.ErrSubcommandTopOptions
+	ErrTooManyOptions              = command.ErrTooManyOptions
+	ErrTooManyChoices              = command.ErrTooManyChoices
+	ErrAutocompleteWithChoices     = command.ErrAutocompleteWithChoices
+	ErrEmptySubcommandGroup        = command.ErrEmptySubcommandGroup
+	ErrEmptyChoiceName             = command.ErrEmptyChoiceName
+	ErrChoiceNameTooLong           = command.ErrChoiceNameTooLong
+	ErrInvalidChoiceValue          = command.ErrInvalidChoiceValue
+	ErrRequiredOptionAfterOptional = command.ErrRequiredOptionAfterOptional
+	ErrDuplicateOptionName         = command.ErrDuplicateOptionName
+	ErrDuplicateChoiceName         = command.ErrDuplicateChoiceName
+	ErrContextMenuHasDescription   = command.ErrContextMenuHasDescription
+	ErrContextMenuHasOptions       = command.ErrContextMenuHasOptions
 
 	ErrNotInGuild               = context.ErrNotInGuild
 	ErrNoRESTClient             = context.ErrNoRESTClient
@@ -353,6 +374,7 @@ var (
 
 	Guard            = middleware.Guard
 	WithPanicHandler = middleware.WithPanicHandler
+	WithGuardLogger  = middleware.WithGuardLogger
 	WithMessage      = middleware.WithMessage
 	WithEphemeral    = middleware.WithEphemeral
 
@@ -414,9 +436,8 @@ var (
 	ErrDuplicateCommand  = app.ErrDuplicateCommand
 	ErrDevGuildRequired  = app.ErrDevGuildRequired
 	ErrNilModule         = app.ErrNilModule
-)
 
-func Ptr[T any](v T) *T {
-	return util.Ptr(v)
-}
+	NewLogger      = util.NewLogger
+	ParseLogFormat = util.ParseLogFormat
+)
 
