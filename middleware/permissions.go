@@ -12,7 +12,7 @@ import (
 
 var (
 	ErrMissingPermissions = errors.New("missing required permissions")
-	ErrNotInGuild          = errors.New("interaction not in a guild")
+	ErrNotInGuild          = context.ErrNotInGuild
 	ErrNoMemberPermissions = errors.New("member permissions unavailable")
 	ErrNoBotPermissions    = errors.New("bot application permissions unavailable")
 )
