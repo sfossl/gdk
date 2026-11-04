@@ -11,8 +11,6 @@ type MemberSuite struct {
 	targetID types.Snowflake
 }
 
-type ModAction = MemberSuite
-
 func (c *Context) MemberSuite(targetID ...types.Snowflake) MemberSuite {
 	tid := c.TargetID()
 	if len(targetID) > 0 && targetID[0] != 0 {
@@ -22,10 +20,6 @@ func (c *Context) MemberSuite(targetID ...types.Snowflake) MemberSuite {
 		ctx:      c,
 		targetID: tid,
 	}
-}
-
-func (c *Context) ModAction(targetID types.Snowflake) MemberSuite {
-	return c.MemberSuite(targetID)
 }
 
 func (m MemberSuite) ID() types.Snowflake {
