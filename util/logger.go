@@ -236,11 +236,11 @@ func (l *FileLogger) formatLine(level, category, message string, stack []byte) [
 
 	default:
 		if len(stack) > 0 {
-			return []byte(fmt.Sprintf("%s [%s] [%s] %s\nstack:\n%s\n",
-				now.Format("2006-01-02 15:04:05"), level, category, message, string(stack)))
+			return fmt.Appendf(nil, "%s [%s] [%s] %s\nstack:\n%s\n",
+				now.Format("2006-01-02 15:04:05"), level, category, message, string(stack))
 		}
-		return []byte(fmt.Sprintf("%s [%s] [%s] %s\n",
-			now.Format("2006-01-02 15:04:05"), level, category, message))
+		return fmt.Appendf(nil, "%s [%s] [%s] %s\n",
+			now.Format("2006-01-02 15:04:05"), level, category, message)
 	}
 }
 
