@@ -44,27 +44,38 @@ type Context struct {
 	activeComponents []types.Component
 	msgID            types.Snowflake
 	lastPurged       int
+	cancelFunc       context.CancelFunc
 }
 
-func New(ctx context.Context, in *types.Interaction, restClient *rest.Client) *Context {
+func New(ctx context.Context, in *types.Interaction, restClient *rest.Client, cancel ...context.CancelFunc) *Context {
+	var cFunc context.CancelFunc
+	if len(cancel) > 0 {
+		cFunc = cancel[0]
+	}
 	c := &Context{
 		ctx:          ctx,
 		Interaction:  in,
 		REST:         restClient,
 		responseChan: make(chan types.InteractionResponse, 1),
 		store:        make(map[string]any),
+		cancelFunc:   cFunc,
 	}
 	c.initFields(in)
 	return c
 }
 
-func NewGatewayContext(ctx context.Context, in *types.Interaction, restClient *rest.Client) *Context {
+func NewGatewayContext(ctx context.Context, in *types.Interaction, restClient *rest.Client, cancel ...context.CancelFunc) *Context {
+	var cFunc context.CancelFunc
+	if len(cancel) > 0 {
+		cFunc = cancel[0]
+	}
 	c := &Context{
 		ctx:         ctx,
 		Interaction: in,
 		REST:        restClient,
 		gatewayMode: true,
 		store:       make(map[string]any),
+		cancelFunc:  cFunc,
 	}
 	c.initFields(in)
 	return c
@@ -147,6 +158,12 @@ func (c *Context) Context() context.Context {
 		return context.Background()
 	}
 	return c.ctx
+}
+
+func (c *Context) Cancel() {
+	if c.cancelFunc != nil {
+		c.cancelFunc()
+	}
 }
 
 func (c *Context) ResponseChannel() <-chan types.InteractionResponse {
