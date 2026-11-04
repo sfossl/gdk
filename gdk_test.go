@@ -1,6 +1,8 @@
 package gdk
 
 import (
+	stdctx "context"
+	"errors"
 	"testing"
 	"time"
 )
@@ -77,6 +79,14 @@ func TestFacadeMiddlewareExports(t *testing.T) {
 	if !ok {
 		t.Fatal("expected initial cooldown token to be granted")
 	}
+
+	dmCtx := &Context{Interaction: &Interaction{}}
+	mw := RequireUser(1<<3, WithPermissionAutoRespond(false))
+	handler := mw(func(c *Context) error { return nil })
+	err := handler(dmCtx)
+	if !errors.Is(err, ErrNotInGuild) {
+		t.Fatalf("expected errors.Is(err, ErrNotInGuild) to succeed, got %v", err)
+	}
 }
 
 func TestFacadeAppExports(t *testing.T) {
@@ -101,6 +111,11 @@ func TestFacadeAppExports(t *testing.T) {
 		t.Fatalf("expected dev mode enabled")
 	}
 
+	appWithoutREST := &App{}
+	if err := appWithoutREST.Sync(stdctx.Background()); !errors.Is(err, ErrNoRESTClient) {
+		t.Fatalf("expected errors.Is(err, ErrNoRESTClient), got %v", err)
+	}
+
 	if ErrTokenRequired == nil || ErrAppIDRequired == nil || ErrCommandNotFound == nil {
 		t.Fatal("expected non-nil error sentinels")
 	}
@@ -109,10 +124,24 @@ func TestFacadeAppExports(t *testing.T) {
 	}
 }
 
+func TestFacadeCommandValidationErrors(t *testing.T) {
+	cmd := Command{
+		Name: "INVALID NAME CAPS",
+	}
+	err := ValidateCommand(cmd)
+	if !errors.Is(err, ErrInvalidName) {
+		t.Fatalf("expected ErrInvalidName, got %v", err)
+	}
+
+	cmdEmpty := Command{}
+	if err := ValidateCommand(cmdEmpty); !errors.Is(err, ErrEmptyName) {
+		t.Fatalf("expected ErrEmptyName, got %v", err)
+	}
+}
+
 func TestFacadeUtilExports(t *testing.T) {
-	ptr := Ptr(10)
-	if ptr == nil || *ptr != 10 {
-		t.Fatalf("unexpected Ptr result: %v", ptr)
+	if ParseLogFormat("json") != LogFormatJSON {
+		t.Fatalf("expected LogFormatJSON")
 	}
 
 	d, err := ParseDuration("1h 30m")
