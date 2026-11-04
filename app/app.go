@@ -52,6 +52,8 @@ type App struct {
 	running        atomic.Bool
 	initErr        error
 	server         *http.Server
+	rootCtx        stdctx.Context
+	rootCancel     stdctx.CancelFunc
 }
 
 func New(token string, appID types.Snowflake, opts ...Option) (*App, error) {
@@ -77,6 +79,7 @@ func New(token string, appID types.Snowflake, opts ...Option) (*App, error) {
 		Intents: cfg.Intents,
 	}, dispatcher)
 
+	rootCtx, rootCancel := stdctx.WithCancel(stdctx.Background())
 	app := &App{
 		config:         cfg,
 		REST:           restClient,
@@ -87,6 +90,8 @@ func New(token string, appID types.Snowflake, opts ...Option) (*App, error) {
 		components:     make(map[string]middleware.Handler),
 		modals:         make(map[string]middleware.Handler),
 		syncedHashes:   make(map[string]string),
+		rootCtx:        rootCtx,
+		rootCancel:     rootCancel,
 	}
 
 	app.initDispatcher()
@@ -95,8 +100,8 @@ func New(token string, appID types.Snowflake, opts ...Option) (*App, error) {
 
 func (a *App) initDispatcher() {
 	a.Dispatcher.OnInteractionCreate(func(ctx stdctx.Context, in *types.Interaction) {
-		bgCtx, cancel := stdctx.WithTimeout(stdctx.WithoutCancel(ctx), a.config.Timeout)
-		gdkCtx := context.NewGatewayContext(bgCtx, in, a.REST)
+		bgCtx, cancel := stdctx.WithTimeout(a.rootCtx, a.config.Timeout)
+		gdkCtx := context.NewGatewayContext(bgCtx, in, a.REST, cancel)
 		gdkCtx.Gateway = a.Gateway
 		defer func() {
 			if rec := recover(); rec != nil {
@@ -168,6 +173,12 @@ func (a *App) RegisterCommand(cmd command.Command, handler middleware.Handler, m
 					Burst:    1,
 				},
 			}, middleware.WithKeyPrefix("cmd:"+cmd.Name)),
+		}, middlewares...)
+	}
+
+	if cmd.Permissions != 0 {
+		middlewares = append([]middleware.Middleware{
+			middleware.RequireUser(cmd.Permissions),
 		}, middlewares...)
 	}
 
@@ -335,13 +346,8 @@ func (a *App) handleAutocomplete(ctx *context.Context) error {
 		return ErrCommandNotFound
 	}
 
-	if entry.cmd.AutocompleteHandler != nil {
-		if fn, ok := entry.cmd.AutocompleteHandler.(func(*context.Context) error); ok {
-			return fn(ctx)
-		}
-		if fn, ok := entry.cmd.AutocompleteHandler.(middleware.Handler); ok {
-			return fn(ctx)
-		}
+	if handler, ok := toMiddlewareHandler(entry.cmd.AutocompleteHandler); ok {
+		return handler(ctx)
 	}
 
 	return nil
