@@ -11,11 +11,12 @@ import (
 
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/command"
+	"github.com/sfossl/gdk/context"
 )
 
 var (
 	ErrDevGuildRequired = errors.New("dev guild id required when dev mode is enabled")
-	ErrNoRESTClient     = errors.New("rest client is not configured")
+	ErrNoRESTClient     = context.ErrNoRESTClient
 )
 
 type SyncResult struct {
