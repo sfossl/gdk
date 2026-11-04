@@ -75,7 +75,7 @@ func TestMod_Kick(t *testing.T) {
 	}))
 	defer cleanup()
 
-	err := c.Mod(ModOptions{
+	err := c.Mod(MemberOptions{
 		Type:   ModKick,
 		Target: types.Snowflake(3),
 		Reason: "breaking rules",
@@ -87,7 +87,7 @@ func TestMod_Kick(t *testing.T) {
 		t.Fatalf("expected kick with reason, got kicked=%v, reason=%s", kicked, auditReason)
 	}
 
-	err = c.Mod(ModOptions{
+	err = c.Mod(MemberOptions{
 		Type:   ModKick,
 		Target: types.Snowflake(999),
 		Reason: "cannot kick owner",
@@ -96,7 +96,7 @@ func TestMod_Kick(t *testing.T) {
 		t.Fatalf("expected ErrCannotModerateOwner, got: %v", err)
 	}
 
-	err = c.ModAction(types.Snowflake(3)).Kick("helper kick")
+	err = c.MemberSuite(types.Snowflake(3)).Kick("helper kick")
 	if err != nil {
 		t.Fatalf("unexpected mod action kick error: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestMod_Ban(t *testing.T) {
 	}))
 	defer cleanup()
 
-	err := c.Mod(ModOptions{
+	err := c.Mod(MemberOptions{
 		Type:           ModBan,
 		Target:         types.Snowflake(3),
 		DeleteMessages: "1d",
@@ -134,7 +134,7 @@ func TestMod_Ban(t *testing.T) {
 		t.Fatalf("expected 86400s delete, got %d, reason %s", deleteSeconds, auditReason)
 	}
 
-	err = c.Mod(ModOptions{
+	err = c.Mod(MemberOptions{
 		Type:           ModBan,
 		Target:         types.Snowflake(3),
 		DeleteMessages: 3600,
@@ -146,7 +146,7 @@ func TestMod_Ban(t *testing.T) {
 		t.Fatalf("expected 3600s delete, got %d", deleteSeconds)
 	}
 
-	err = c.Mod(ModOptions{
+	err = c.Mod(MemberOptions{
 		Type:           ModBan,
 		Target:         types.Snowflake(3),
 		DeleteMessages: "8d",
@@ -155,7 +155,7 @@ func TestMod_Ban(t *testing.T) {
 		t.Fatalf("expected ErrBanDeleteTooLong, got: %v", err)
 	}
 
-	err = c.ModAction(types.Snowflake(3)).Ban("1h", "via modaction")
+	err = c.MemberSuite(types.Snowflake(3)).Ban("1h", "via modaction")
 	if err != nil {
 		t.Fatalf("unexpected modaction ban error: %v", err)
 	}
@@ -176,7 +176,7 @@ func TestMod_Unban(t *testing.T) {
 	}))
 	defer cleanup()
 
-	err := c.Mod(ModOptions{
+	err := c.Mod(MemberOptions{
 		Type:   ModUnban,
 		Target: types.Snowflake(444),
 		Reason: "appealed",
@@ -188,7 +188,7 @@ func TestMod_Unban(t *testing.T) {
 		t.Fatalf("expected unban with reason, got unbanned=%v, reason=%s", unbanned, auditReason)
 	}
 
-	err = c.Mod(ModOptions{
+	err = c.Mod(MemberOptions{
 		Type:   ModUnban,
 		Target: types.Snowflake(0),
 	})
@@ -196,7 +196,7 @@ func TestMod_Unban(t *testing.T) {
 		t.Fatalf("expected ErrInvalidTarget, got: %v", err)
 	}
 
-	err = c.ModAction(types.Snowflake(444)).Unban("appealed action")
+	err = c.MemberSuite(types.Snowflake(444)).Unban("appealed action")
 	if err != nil {
 		t.Fatalf("unexpected modaction unban error: %v", err)
 	}
@@ -221,7 +221,7 @@ func TestMod_Timeout(t *testing.T) {
 	}))
 	defer cleanup()
 
-	err := c.Mod(ModOptions{
+	err := c.Mod(MemberOptions{
 		Type:     ModTimeout,
 		Target:   types.Snowflake(3),
 		Duration: "15m",
@@ -234,7 +234,7 @@ func TestMod_Timeout(t *testing.T) {
 		t.Fatalf("expected timeout until set with reason, got %v, reason %s", disabledUntil, auditReason)
 	}
 
-	err = c.Mod(ModOptions{
+	err = c.Mod(MemberOptions{
 		Type:     ModTimeout,
 		Target:   types.Snowflake(3),
 		Duration: 30 * time.Minute,
@@ -243,7 +243,7 @@ func TestMod_Timeout(t *testing.T) {
 		t.Fatalf("unexpected duration timeout error: %v", err)
 	}
 
-	err = c.Mod(ModOptions{
+	err = c.Mod(MemberOptions{
 		Type:     ModTimeout,
 		Target:   types.Snowflake(3),
 		Duration: "30d",
@@ -252,7 +252,7 @@ func TestMod_Timeout(t *testing.T) {
 		t.Fatalf("expected ErrTimeoutTooLong, got: %v", err)
 	}
 
-	err = c.Mod(ModOptions{
+	err = c.Mod(MemberOptions{
 		Type:     ModTimeout,
 		Target:   types.Snowflake(3),
 		Duration: 500 * time.Millisecond,
@@ -261,7 +261,7 @@ func TestMod_Timeout(t *testing.T) {
 		t.Fatalf("expected ErrTimeoutTooShort, got: %v", err)
 	}
 
-	err = c.Mod(ModOptions{
+	err = c.Mod(MemberOptions{
 		Type:   ModRemoveTimeout,
 		Target: types.Snowflake(3),
 		Reason: "forgiven",
@@ -273,17 +273,17 @@ func TestMod_Timeout(t *testing.T) {
 		t.Fatalf("expected nil disabledUntil, got: %v", disabledUntil)
 	}
 
-	err = c.ModAction(types.Snowflake(3)).Timeout(10*time.Minute, "action timeout")
+	err = c.MemberSuite(types.Snowflake(3)).Timeout(10*time.Minute, "action timeout")
 	if err != nil {
 		t.Fatalf("unexpected modaction timeout error: %v", err)
 	}
 
-	err = c.ModAction(types.Snowflake(3)).RemoveTimeout("action remove")
+	err = c.MemberSuite(types.Snowflake(3)).RemoveTimeout("action remove")
 	if err != nil {
 		t.Fatalf("unexpected modaction remove timeout error: %v", err)
 	}
 
-	err = c.Mod(ModOptions{
+	err = c.Mod(MemberOptions{
 		Type:   ModType(999),
 		Target: types.Snowflake(3),
 	})
