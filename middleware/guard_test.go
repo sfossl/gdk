@@ -159,3 +159,41 @@ func TestGuard_OnPanicCallbackPanics(t *testing.T) {
 	}
 }
 
+type mockCrashLogger struct {
+	called    bool
+	msg       string
+	recovered any
+	stack     []byte
+}
+
+func (m *mockCrashLogger) Crash(msg string, recovered any, stack []byte) {
+	m.called = true
+	m.msg = msg
+	m.recovered = recovered
+	m.stack = stack
+}
+
+func TestGuard_WithGuardLogger(t *testing.T) {
+	logger := &mockCrashLogger{}
+	guard := Guard(WithGuardLogger(logger))
+
+	handler := guard(func(ctx *context.Context) error {
+		panic("database connection failure")
+	})
+
+	err := handler(nil)
+	if !errors.Is(err, ErrPanicRecovered) {
+		t.Fatalf("expected ErrPanicRecovered, got %v", err)
+	}
+
+	if !logger.called {
+		t.Fatalf("expected logger.Crash to be called")
+	}
+	if logger.recovered != "database connection failure" {
+		t.Fatalf("unexpected recovered value: %v", logger.recovered)
+	}
+	if len(logger.stack) == 0 {
+		t.Fatalf("expected non-empty stack")
+	}
+}
+
