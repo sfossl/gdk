@@ -17,32 +17,7 @@ func (c *Context) DeferUpdate() error {
 	resp := types.InteractionResponse{
 		Type: types.CallbackTypeDeferredUpdateMessage,
 	}
-
-	if !c.gatewayMode && c.responseChan != nil {
-		select {
-		case c.responseChan <- resp:
-			return nil
-		default:
-		}
-	}
-
-	if c.REST == nil {
-		c.deferred.Store(false)
-		c.responded.Store(false)
-		return ErrNoRESTClient
-	}
-	if c.Interaction == nil {
-		c.deferred.Store(false)
-		c.responded.Store(false)
-		return ErrNoInteraction
-	}
-	err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
-	if err != nil {
-		c.deferred.Store(false)
-		c.responded.Store(false)
-		return err
-	}
-	return nil
+	return c.sendInteractionResponse(resp)
 }
 
 func (c *Context) UpdateMessage(args ...any) (*types.Message, error) {
