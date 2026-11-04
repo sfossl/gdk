@@ -58,9 +58,6 @@ type MemberOptions struct {
 	VoiceChannel   *types.Snowflake
 }
 
-type ModOptions = MemberOptions
-type UpdateOptions = MemberOptions
-
 func parseMemberActionType(v any) ModType {
 	switch val := v.(type) {
 	case ModType:
