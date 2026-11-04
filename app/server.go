@@ -20,9 +20,10 @@ func (a *App) runGateway(ctx stdctx.Context) error {
 
 	select {
 	case <-ctx.Done():
-		_ = a.Gateway.Close()
+		_ = a.Close()
 		return ctx.Err()
 	case err := <-errCh:
+		_ = a.Close()
 		return err
 	}
 }
@@ -50,8 +51,8 @@ func (a *App) webhookHandler() (http.Handler, error) {
 			return
 		}
 
-		bgCtx, cancel := stdctx.WithTimeout(stdctx.WithoutCancel(r.Context()), a.config.Timeout)
-		gdkCtx := context.New(bgCtx, &in, a.REST)
+		bgCtx, cancel := stdctx.WithTimeout(a.rootCtx, a.config.Timeout)
+		gdkCtx := context.New(bgCtx, &in, a.REST, cancel)
 
 		go func() {
 			defer func() {
@@ -129,15 +130,18 @@ func (a *App) runWebhook(ctx stdctx.Context) error {
 
 	select {
 	case <-ctx.Done():
-		shutdownCtx, cancel := stdctx.WithTimeout(stdctx.Background(), 5*time.Second)
-		defer cancel()
-		return a.server.Shutdown(shutdownCtx)
+		_ = a.Close()
+		return ctx.Err()
 	case err := <-errCh:
+		_ = a.Close()
 		return err
 	}
 }
 
 func (a *App) Close() error {
+	if a.rootCancel != nil {
+		a.rootCancel()
+	}
 	if a.server != nil {
 		ctx, cancel := stdctx.WithTimeout(stdctx.Background(), 5*time.Second)
 		defer cancel()
