@@ -12,8 +12,6 @@ type ChannelSuite struct {
 	channelID types.Snowflake
 }
 
-type ChannelActionSuite = ChannelSuite
-
 func (c *Context) ChannelSuite(channelID ...types.Snowflake) ChannelSuite {
 	chID := c.ChannelID
 	if len(channelID) > 0 && channelID[0] != 0 {
@@ -23,10 +21,6 @@ func (c *Context) ChannelSuite(channelID ...types.Snowflake) ChannelSuite {
 		ctx:       c,
 		channelID: chID,
 	}
-}
-
-func (c *Context) ChannelAction(channelID ...types.Snowflake) ChannelSuite {
-	return c.ChannelSuite(channelID...)
 }
 
 func (a ChannelSuite) ID() types.Snowflake {
