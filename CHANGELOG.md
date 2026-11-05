@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.0 (2026-11-05)
+## v0.1.0 (2026-11-06)
 
 - Initial stable release of gdk application command framework.
 - Differential command synchronization with deterministic SHA-256 schema hashing.
