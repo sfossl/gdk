@@ -222,4 +222,3 @@ func (b *EmbedBuilder) Build() (*types.Embed, error) {
 	res := b.embed
 	return &res, nil
 }
-
