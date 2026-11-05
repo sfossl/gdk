@@ -31,6 +31,10 @@ type InteractionResponse = types.InteractionResponse
 type InteractionResponseData = types.InteractionResponseData
 type InteractionType = types.InteractionType
 type InteractionCallbackType = types.InteractionCallbackType
+type File = types.File
+type Attachment = types.Attachment
+type ComponentEmoji = types.ComponentEmoji
+type SelectMenuOption = types.SelectOption
 
 type App = app.App
 type Config = app.Config
