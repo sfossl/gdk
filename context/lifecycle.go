@@ -160,4 +160,3 @@ func isIgnorableNotFound(err error) bool {
 	s := strings.ToLower(err.Error())
 	return strings.Contains(s, "404") || strings.Contains(s, "10008") || strings.Contains(s, "unknown message") || strings.Contains(s, "unknown interaction")
 }
-
