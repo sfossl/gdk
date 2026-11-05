@@ -148,4 +148,3 @@ func TestTextInputs(t *testing.T) {
 		t.Fatalf("unexpected paragraph style %v", para)
 	}
 }
-
