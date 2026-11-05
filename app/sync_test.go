@@ -272,4 +272,3 @@ func TestSync_NonBlockingConcurrentHandle(t *testing.T) {
 		t.Fatalf("Handle took too long (%v), lock contention detected", time.Since(start))
 	}
 }
-
