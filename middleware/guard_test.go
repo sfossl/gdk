@@ -196,4 +196,3 @@ func TestGuard_WithGuardLogger(t *testing.T) {
 		t.Fatalf("expected non-empty stack")
 	}
 }
-
