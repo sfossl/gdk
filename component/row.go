@@ -14,11 +14,11 @@ const (
 )
 
 var (
-	ErrTooManyActionRows  = errors.New("components exceed maximum 5 action rows")
-	ErrRowTooManyButtons  = errors.New("action row exceeds maximum 5 buttons")
-	ErrRowMixedComponents = errors.New("action row cannot mix buttons and select menus")
-	ErrRowMultipleSelects = errors.New("action row cannot contain multiple select menus")
-	ErrRowMultipleInputs  = errors.New("action row cannot contain multiple text inputs")
+	ErrTooManyActionRows    = errors.New("components exceed maximum 5 action rows")
+	ErrRowTooManyButtons    = errors.New("action row exceeds maximum 5 buttons")
+	ErrRowMixedComponents   = errors.New("action row cannot mix buttons and select menus")
+	ErrRowMultipleSelects   = errors.New("action row cannot contain multiple select menus")
+	ErrRowMultipleInputs    = errors.New("action row cannot contain multiple text inputs")
 	ErrEmptyActionRow       = errors.New("action row cannot be empty")
 	ErrNonActionRowAtRoot   = errors.New("top level message component must be an action row")
 	ErrSelectMissingOptions = errors.New("select menu must contain at least 1 option")
@@ -162,4 +162,3 @@ func isSelectMenu(c types.Component) bool {
 func isTextInput(c types.Component) bool {
 	return c.Type == types.ComponentTypeTextInput
 }
-
