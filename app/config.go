@@ -43,24 +43,24 @@ type Config struct {
 	AutoDeferDelay time.Duration
 	AutoSync       bool
 	Timeout        time.Duration
-	WebhookAddr         string
-	WebhookPath         string
-	PublicKey           string
+	WebhookAddr    string
+	WebhookPath    string
+	PublicKey      string
 }
 
 func DefaultConfig(token string, appID types.Snowflake) Config {
 	return Config{
-		Token:               token,
-		AppID:               appID,
-		Mode:                ModeGateway,
-		Intents:             types.IntentsDefault,
-		DevMode:             false,
-		AutoDefer:           true,
-		AutoDeferDelay:      defaults.AutoDeferDelay,
-		AutoSync:            false,
-		Timeout:             defaults.Timeout,
-		WebhookAddr:         ":8080",
-		WebhookPath:         "/interactions",
+		Token:          token,
+		AppID:          appID,
+		Mode:           ModeGateway,
+		Intents:        types.IntentsDefault,
+		DevMode:        false,
+		AutoDefer:      true,
+		AutoDeferDelay: defaults.AutoDeferDelay,
+		AutoSync:       false,
+		Timeout:        defaults.Timeout,
+		WebhookAddr:    ":8080",
+		WebhookPath:    "/interactions",
 	}
 }
 
