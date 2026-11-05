@@ -129,4 +129,3 @@ func TestOptionsResolveType(t *testing.T) {
 		t.Fatalf("expected empty, got %s", optInt.ResolveType())
 	}
 }
-
