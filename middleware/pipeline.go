@@ -73,4 +73,3 @@ func Chain(middlewares ...Middleware) Middleware {
 		return final
 	}
 }
-
