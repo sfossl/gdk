@@ -509,4 +509,3 @@ func TestChannelSuite_Purge(t *testing.T) {
 		t.Fatalf("expected 2 deleted, got %d", deleted)
 	}
 }
-
