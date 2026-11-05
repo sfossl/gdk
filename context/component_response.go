@@ -117,4 +117,3 @@ func (c *Context) UpdateMessage(args ...any) (*types.Message, error) {
 	c.scheduleLifecycleTimers(res, nil)
 	return nil, nil
 }
-
