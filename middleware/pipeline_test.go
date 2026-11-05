@@ -162,4 +162,3 @@ func TestPipeline_NilHandlerAndMiddlewares(t *testing.T) {
 		t.Fatalf("expected nil error for nil handler, got %v", err)
 	}
 }
-
