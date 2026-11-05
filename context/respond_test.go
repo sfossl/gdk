@@ -489,5 +489,3 @@ func TestContext_Autocomplete_Cap25(t *testing.T) {
 		t.Fatalf("expected response on channel")
 	}
 }
-
-
