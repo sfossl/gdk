@@ -170,4 +170,3 @@ func hashCommands(cmds []types.ApplicationCommand) (string, error) {
 	h := sha256.Sum256(data)
 	return hex.EncodeToString(h[:]), nil
 }
-
