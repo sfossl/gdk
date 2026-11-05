@@ -23,4 +23,3 @@ func TestPtr(t *testing.T) {
 		t.Fatalf("expected %f, got %v", f, p)
 	}
 }
-
