@@ -24,54 +24,23 @@ go get github.com/sfossl/gdk
 - **Utilities**: Compound human duration parsing (`1h 30m`, `2d`) and dynamic Discord markdown timestamp formatting (`<t:UNIX:STYLE>`).
 
 ```mermaid
-%%{init: {'flowchart': {'curve': 'stepAfter', 'nodeSpacing': 35, 'rankSpacing': 35}, 'themeVariables': {'lineColor': '#888'}}}%%
 flowchart TD
-    classDef default fill:transparent,stroke:#888,stroke-width:1px,color:inherit
-    classDef junction fill:transparent,stroke:#888,stroke-width:1px
+    Gateway(["Gateway Events"]) --- App["gdk/app"]
+    Webhook(["HTTP Webhooks"]) --- App
 
-    Gateway(["Gateway Events"])
-    Webhook(["HTTP Webhooks"])
-    GDAGateway["gda/gateway"]
+    App --- Sync["gdk/sync"]
+    App --- Middleware["gdk/middleware"]
 
-    App["gdk/app"]
+    Middleware --- Command["gdk/command"]
+    Command --- Context(["*gdk.Context"])
 
-    Sync["gdk/sync"]
-    Middleware["gdk/middleware"]
-    Command["gdk/command"]
-    Context(["*gdk.Context"])
+    Context --- ContextEngine["gdk/context"]
+    Context --- Component["gdk/component"]
 
-    ContextEngine["gdk/context"]
-    Component["gdk/component"]
+    Sync --- GDAREST["gda/rest"]
+    ContextEngine --- GDAREST
 
-    GDAREST["gda/rest"]
-    DiscordREST(["Discord REST API"])
-
-    J1(( )):::junction
-    J2(( )):::junction
-    J3(( )):::junction
-    J4(( )):::junction
-
-    Gateway --- GDAGateway
-    GDAGateway --- J1
-    Webhook --- J1
-    J1 --- App
-
-    App --- J2
-    J2 --- Sync
-    J2 --- Middleware
-
-    Middleware --- Command
-    Command --- Context
-
-    Context --- J3
-    J3 --- ContextEngine
-    J3 --- Component
-
-    Sync --- J4
-    ContextEngine --- J4
-    J4 --- GDAREST
-
-    GDAREST --- DiscordREST
+    GDAREST --- DiscordREST(["Discord REST API"])
 ```
 
 ## Capabilities
@@ -128,6 +97,6 @@ flowchart TD
 
 ## References
 
-- **[`gda`](https://github.com/sfossl/gda)**: Low-level Go driver for Gateway WebSocket connections and REST API v10 endpoints.
+- **[Go Discord API](https://github.com/sfossl/gda)**: Low-level Go driver for Gateway WebSocket connections and REST API v10 endpoints.
 - **[Discord Developer Documentation](https://discord.com/developers/docs)**: Official reference for Discord API v10, interactions and application commands.
 - **[RFC 8032](https://datatracker.ietf.org/doc/html/rfc8032)**: Edwards-Curve Digital Signature Algorithm (Ed25519) specification used for interaction webhook verification.
