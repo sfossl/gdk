@@ -168,4 +168,3 @@ func (m MemberSuite) Disconnect(reason ...string) error {
 		Reason:       strings.Join(reason, " "),
 	})
 }
-
