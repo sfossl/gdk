@@ -21,12 +21,12 @@ func setupRoleTestContext(handler http.HandlerFunc) (*Context, func()) {
 	invokerID := types.Snowflake(2)
 
 	c := &Context{
-		ctx:     context.Background(),
-		GuildID: &guildID,
-		AppID:   botAppID,
-		REST:    client,
-		Author:  &types.User{ID: invokerID},
-		InvokerMember:  &types.Member{Roles: []types.Snowflake{types.Snowflake(30)}},
+		ctx:           context.Background(),
+		GuildID:       &guildID,
+		AppID:         botAppID,
+		REST:          client,
+		Author:        &types.User{ID: invokerID},
+		InvokerMember: &types.Member{Roles: []types.Snowflake{types.Snowflake(30)}},
 	}
 	return c, ts.Close
 }
@@ -447,4 +447,3 @@ func TestManageRole_OptionsAndShortcuts(t *testing.T) {
 		t.Fatalf("expected role name Moderator, got %v", newRole)
 	}
 }
-
