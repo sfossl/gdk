@@ -17,13 +17,13 @@ import (
 )
 
 var (
-	ErrCommandNotFound     = errors.New("command not found")
-	ErrComponentNotFound   = errors.New("component handler not found")
-	ErrModalNotFound       = errors.New("modal handler not found")
-	ErrAlreadyRunning      = errors.New("application is already running")
-	ErrInvalidSignature    = errors.New("invalid interaction signature")
-	ErrPublicKeyRequired   = errors.New("public key required for webhook mode")
-	ErrDuplicateCommand    = errors.New("command already registered")
+	ErrCommandNotFound   = errors.New("command not found")
+	ErrComponentNotFound = errors.New("component handler not found")
+	ErrModalNotFound     = errors.New("modal handler not found")
+	ErrAlreadyRunning    = errors.New("application is already running")
+	ErrInvalidSignature  = errors.New("invalid interaction signature")
+	ErrPublicKeyRequired = errors.New("public key required for webhook mode")
+	ErrDuplicateCommand  = errors.New("command already registered")
 )
 
 type commandKey struct {
@@ -431,5 +431,3 @@ func isDeferrableInteraction(t types.InteractionType) bool {
 		return false
 	}
 }
-
-
