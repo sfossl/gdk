@@ -205,23 +205,23 @@ const (
 	TargetUser = middleware.TargetUser
 	TargetBot  = middleware.TargetBot
 
-	PermissionAdministrator         = types.PermissionAdministrator
-	PermissionManageGuild           = types.PermissionManageGuild
-	PermissionManageRoles           = types.PermissionManageRoles
-	PermissionManageChannels        = types.PermissionManageChannels
-	PermissionKickMembers           = types.PermissionKickMembers
-	PermissionBanMembers            = types.PermissionBanMembers
-	PermissionModerateMembers       = types.PermissionModerateMembers
-	PermissionManageMessages        = types.PermissionManageMessages
-	PermissionSendMessages          = types.PermissionSendMessages
-	PermissionViewChannel           = types.PermissionViewChannel
+	PermissionAdministrator   = types.PermissionAdministrator
+	PermissionManageGuild     = types.PermissionManageGuild
+	PermissionManageRoles     = types.PermissionManageRoles
+	PermissionManageChannels  = types.PermissionManageChannels
+	PermissionKickMembers     = types.PermissionKickMembers
+	PermissionBanMembers      = types.PermissionBanMembers
+	PermissionModerateMembers = types.PermissionModerateMembers
+	PermissionManageMessages  = types.PermissionManageMessages
+	PermissionSendMessages    = types.PermissionSendMessages
+	PermissionViewChannel     = types.PermissionViewChannel
 
-	IntentGuilds                    = types.IntentGuilds
-	IntentGuildMembers              = types.IntentGuildMembers
-	IntentGuildMessages             = types.IntentGuildMessages
-	IntentMessageContent            = types.IntentMessageContent
-	IntentsDefault                  = types.IntentsDefault
-	IntentsNonPrivileged            = types.IntentsNonPrivileged
+	IntentGuilds         = types.IntentGuilds
+	IntentGuildMembers   = types.IntentGuildMembers
+	IntentGuildMessages  = types.IntentGuildMessages
+	IntentMessageContent = types.IntentMessageContent
+	IntentsDefault       = types.IntentsDefault
+	IntentsNonPrivileged = types.IntentsNonPrivileged
 
 	InteractionTypePing                           = types.InteractionTypePing
 	InteractionTypeApplicationCommand             = types.InteractionTypeApplicationCommand
@@ -229,13 +229,13 @@ const (
 	InteractionTypeApplicationCommandAutocomplete = types.InteractionTypeApplicationCommandAutocomplete
 	InteractionTypeModalSubmit                    = types.InteractionTypeModalSubmit
 
-	CallbackTypePong                                    = types.CallbackTypePong
-	CallbackTypeChannelMessageWithSource                = types.CallbackTypeChannelMessageWithSource
-	CallbackTypeDeferredChannelMessageWithSource        = types.CallbackTypeDeferredChannelMessageWithSource
-	CallbackTypeDeferredUpdateMessage                   = types.CallbackTypeDeferredUpdateMessage
-	CallbackTypeUpdateMessage                           = types.CallbackTypeUpdateMessage
-	CallbackTypeApplicationCommandAutocompleteResult    = types.CallbackTypeApplicationCommandAutocompleteResult
-	CallbackTypeModal                                   = types.CallbackTypeModal
+	CallbackTypePong                                 = types.CallbackTypePong
+	CallbackTypeChannelMessageWithSource             = types.CallbackTypeChannelMessageWithSource
+	CallbackTypeDeferredChannelMessageWithSource     = types.CallbackTypeDeferredChannelMessageWithSource
+	CallbackTypeDeferredUpdateMessage                = types.CallbackTypeDeferredUpdateMessage
+	CallbackTypeUpdateMessage                        = types.CallbackTypeUpdateMessage
+	CallbackTypeApplicationCommandAutocompleteResult = types.CallbackTypeApplicationCommandAutocompleteResult
+	CallbackTypeModal                                = types.CallbackTypeModal
 
 	ComponentTypeActionRow         = types.ComponentTypeActionRow
 	ComponentTypeButton            = types.ComponentTypeButton
@@ -250,15 +250,15 @@ const (
 var (
 	ParseSnowflake = types.ParseSnowflake
 
-	StringOption      = command.StringOption
-	IntOption         = command.IntOption
-	NumberOption      = command.NumberOption
-	BoolOption        = command.BoolOption
-	UserOption        = command.UserOption
-	ChannelOption     = command.ChannelOption
-	RoleOption        = command.RoleOption
-	MentionableOption = command.MentionableOption
-	AttachmentOption  = command.AttachmentOption
+	StringOption                   = command.StringOption
+	IntOption                      = command.IntOption
+	NumberOption                   = command.NumberOption
+	BoolOption                     = command.BoolOption
+	UserOption                     = command.UserOption
+	ChannelOption                  = command.ChannelOption
+	RoleOption                     = command.RoleOption
+	MentionableOption              = command.MentionableOption
+	AttachmentOption               = command.AttachmentOption
 	ValidateCommand                = command.Validate
 	ErrInvalidName                 = command.ErrInvalidName
 	ErrNameTooLong                 = command.ErrNameTooLong
@@ -447,4 +447,3 @@ var (
 	NewLogger      = util.NewLogger
 	ParseLogFormat = util.ParseLogFormat
 )
-
