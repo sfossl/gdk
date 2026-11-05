@@ -121,4 +121,3 @@ func clampColorByte(val int) int {
 	}
 	return val
 }
-
