@@ -16,4 +16,3 @@ const (
 	MaxBanDeleteSec    = 604800
 	MaxSlowmodeSeconds = 21600
 )
-
