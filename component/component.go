@@ -315,4 +315,3 @@ func newTextInput(customID, label string, style int, opts ...TextInputOpt) types
 	}
 	return c
 }
-
