@@ -189,4 +189,3 @@ func TestPermissionNames_Decoding(t *testing.T) {
 		t.Fatalf("expected 3 decoded names, got %d: %v", len(names), names)
 	}
 }
-
