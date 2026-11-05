@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrMissingPermissions = errors.New("missing required permissions")
+	ErrMissingPermissions  = errors.New("missing required permissions")
 	ErrNotInGuild          = context.ErrNotInGuild
 	ErrNoMemberPermissions = errors.New("member permissions unavailable")
 	ErrNoBotPermissions    = errors.New("bot application permissions unavailable")
@@ -103,7 +103,6 @@ func RequirePermissions(userPerms, botPerms types.Permission, opts ...Permission
 				}
 				return nil
 			}
-
 
 			if userPerms != 0 {
 				if ctx.GuildID == nil {
