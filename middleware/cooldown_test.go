@@ -261,4 +261,3 @@ func TestCooldown_SweepThrottlingUnderBurst(t *testing.T) {
 		t.Fatalf("burst of 2000 takes took too long: %v", elapsed)
 	}
 }
-
