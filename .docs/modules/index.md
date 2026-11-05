@@ -9,10 +9,7 @@
 ## The 5 Entity Modules
 
 ```mermaid
-%%{init: {'flowchart': {'curve': 'linear'}, 'themeVariables': {'lineColor': '#888'}}}%%
 flowchart TD
-    classDef default fill:transparent,stroke:#888,stroke-width:1px,color:inherit
-
     Ctx(["*gdk.Context"])
 
     Ctx --- Respond["ctx.Respond()"]

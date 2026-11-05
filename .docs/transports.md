@@ -7,12 +7,13 @@
 ## Transport Comparison
 
 ```mermaid
-%%{init: {'flowchart': {'curve': 'linear'}, 'themeVariables': {'lineColor': '#888'}}}%%
 flowchart TD
-    classDef default fill:transparent,stroke:#888,stroke-width:1px,color:inherit
+    Discord(["Discord"])
+    GW["ModeGateway (WebSocket Stream)"]
+    WH["ModeWebhook (HTTP POST Request)"]
 
-    Discord(["Discord"]) ---|WebSocket Stream| GW["ModeGateway"]
-    Discord ---|HTTP POST Request| WH["ModeWebhook"]
+    Discord --- GW
+    Discord --- WH
 
     GW --- Events["Stream Events and Heartbeats"]
     WH --- Verify["Verify Ed25519 Signature"]

@@ -136,21 +136,26 @@ ctx.Typing()
 ### Response Lifecycle & Timeouts
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'lineColor': '#888', 'labelBoxBkgColor': 'transparent', 'labelBoxBorderColor': '#888', 'stateBkg': 'transparent', 'stateBorder': '#888', 'stateLabelColor': 'inherit'}}}%%
-stateDiagram-v2
-    [*] --> Received
-    
-    Received --> Replied: Fast Path (ctx.Respond under 2.5s)
-    Received --> Deferred: Slow Path (Auto-defer / ctx.Defer)
-    
-    Deferred --> FollowupSent: ctx.Respond() via Webhook
-    
-    Replied --> Completed: Message Active
-    FollowupSent --> Completed: Message Active
-    
-    Completed --> TimedOut: DeleteAfter / ComponentTimeout
-    Completed --> [*]
-    TimedOut --> [*]
+flowchart TD
+    Received(["Received"])
+    FastPath["Fast Path: ctx.Respond() under 2.5s"]
+    SlowPath["Slow Path: Auto-defer / ctx.Defer()"]
+    Replied["Replied"]
+    Deferred["Deferred"]
+    Followup["ctx.Respond() via Webhook"]
+    Completed(["Completed"])
+    TimedOut["TimedOut: DeleteAfter / ComponentTimeout"]
+
+    Received --- FastPath
+    FastPath --- Replied
+    Replied --- Completed
+
+    Received --- SlowPath
+    SlowPath --- Deferred
+    Deferred --- Followup
+    Followup --- Completed
+
+    Completed --- TimedOut
 ```
 
 Responses can automatically delete themselves or grey out interactive components without writing manual background timers:

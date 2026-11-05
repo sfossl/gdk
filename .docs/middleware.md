@@ -7,10 +7,7 @@
 ## Pipeline Scopes
 
 ```mermaid
-%%{init: {'flowchart': {'curve': 'linear'}, 'themeVariables': {'lineColor': '#888'}}}%%
 flowchart TD
-    classDef default fill:transparent,stroke:#888,stroke-width:1px,color:inherit
-
     Req(["Incoming Interaction"]) --- Guard["Guard Middleware (Panic Recovery)"]
     Guard --- Cooldown["Cooldown Middleware (Token Bucket)"]
     Cooldown --- Perms["Permission Check"]

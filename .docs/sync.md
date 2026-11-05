@@ -7,14 +7,11 @@ Discord imposes strict rate limits on the application command overwrite endpoint
 ## How Differential Sync Works
 
 ```mermaid
-%%{init: {'flowchart': {'curve': 'linear'}, 'themeVariables': {'lineColor': '#888'}}}%%
 flowchart TD
-    classDef default fill:transparent,stroke:#888,stroke-width:1px,color:inherit
-
     Start(["App.Sync()"]) --- Hash["Compute SHA-256 Hash"]
-    Hash --- Match["Compare with Last Hash"]
-    Match ---|Unchanged| Skip(["Skip REST (0 Network Calls)"])
-    Match ---|Changed| Push["Push Overwrite Payload"]
+    Hash --- Match["Compare Remote Hash"]
+    Match --- Skip["Unchanged: Skip REST (0 Network Calls)"]
+    Match --- Push["Changed: Push Overwrite Payload"]
     Push --- Done(["Sync Complete"])
 ```
 
