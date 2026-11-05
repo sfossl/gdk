@@ -58,4 +58,3 @@ func TestApp_RegisterModule(t *testing.T) {
 
 	app2.Module(&testModule{})
 }
-
