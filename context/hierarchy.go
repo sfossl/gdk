@@ -176,4 +176,3 @@ func memberMaxRolePosition(roleIDs []types.Snowflake, positions map[types.Snowfl
 	}
 	return maxPos
 }
-
