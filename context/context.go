@@ -13,30 +13,30 @@ import (
 )
 
 type Context struct {
-	ctx             context.Context
-	Interaction     *types.Interaction
-	REST            *rest.Client
-	Gateway         *gateway.Client
-	ID              types.Snowflake
-	AppID           types.Snowflake
-	GuildID         *types.Snowflake
-	ChannelID       types.Snowflake
-	Author          *types.User
-	InvokerMember   *types.Member
-	responded       atomic.Bool
-	deferred        atomic.Bool
-	gatewayMode     bool
-	responseChan    chan types.InteractionResponse
-	storeMu         sync.RWMutex
-	store           map[string]any
-	optsMu          sync.RWMutex
-	optsMap         map[string]OptionVal
-	subcommand      string
-	subcommandGroup string
-	cacheMu         sync.Mutex
-	cachedGuild     *types.Guild
-	cachedRoles     []types.Role
-	cachedBotMem    *types.Member
+	ctx              context.Context
+	Interaction      *types.Interaction
+	REST             *rest.Client
+	Gateway          *gateway.Client
+	ID               types.Snowflake
+	AppID            types.Snowflake
+	GuildID          *types.Snowflake
+	ChannelID        types.Snowflake
+	Author           *types.User
+	InvokerMember    *types.Member
+	responded        atomic.Bool
+	deferred         atomic.Bool
+	gatewayMode      bool
+	responseChan     chan types.InteractionResponse
+	storeMu          sync.RWMutex
+	store            map[string]any
+	optsMu           sync.RWMutex
+	optsMap          map[string]OptionVal
+	subcommand       string
+	subcommandGroup  string
+	cacheMu          sync.Mutex
+	cachedGuild      *types.Guild
+	cachedRoles      []types.Role
+	cachedBotMem     *types.Member
 	lifecycleMu      sync.Mutex
 	isDeleted        bool
 	compTimeoutTimer *time.Timer
