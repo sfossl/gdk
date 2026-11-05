@@ -122,12 +122,12 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 
 	t.Run("success standard hierarchy", func(t *testing.T) {
 		c := &Context{
-			ctx:     context.Background(),
-			GuildID: &guildID,
-			AppID:   botAppID,
-			REST:    client,
-			Author:  &types.User{ID: invokerID},
-			InvokerMember:  &types.Member{Roles: specs[invokerID].roles},
+			ctx:           context.Background(),
+			GuildID:       &guildID,
+			AppID:         botAppID,
+			REST:          client,
+			Author:        &types.User{ID: invokerID},
+			InvokerMember: &types.Member{Roles: specs[invokerID].roles},
 		}
 
 		ok, err := c.CanModerate(targetID)
@@ -141,12 +141,12 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 		specs[targetID] = memberSpec{roles: []types.Snowflake{roleMid.ID}}
 
 		c := &Context{
-			ctx:     context.Background(),
-			GuildID: &guildID,
-			AppID:   botAppID,
-			REST:    client,
-			Author:  &types.User{ID: invokerID},
-			InvokerMember:  &types.Member{Roles: []types.Snowflake{roleHigh.ID}},
+			ctx:           context.Background(),
+			GuildID:       &guildID,
+			AppID:         botAppID,
+			REST:          client,
+			Author:        &types.User{ID: invokerID},
+			InvokerMember: &types.Member{Roles: []types.Snowflake{roleHigh.ID}},
 		}
 
 		ok, err := c.CanModerate(targetID)
@@ -161,12 +161,12 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 		specs[targetID] = memberSpec{roles: []types.Snowflake{roleMid.ID}}
 
 		c := &Context{
-			ctx:     context.Background(),
-			GuildID: &guildID,
-			AppID:   botAppID,
-			REST:    client,
-			Author:  &types.User{ID: invokerID},
-			InvokerMember:  &types.Member{Roles: specs[invokerID].roles},
+			ctx:           context.Background(),
+			GuildID:       &guildID,
+			AppID:         botAppID,
+			REST:          client,
+			Author:        &types.User{ID: invokerID},
+			InvokerMember: &types.Member{Roles: specs[invokerID].roles},
 		}
 
 		ok, err := c.CanModerate(targetID)
@@ -180,12 +180,12 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 		specs[targetID] = memberSpec{roles: []types.Snowflake{roleMid.ID}}
 
 		c := &Context{
-			ctx:     context.Background(),
-			GuildID: &guildID,
-			AppID:   botAppID,
-			REST:    client,
-			Author:  &types.User{ID: ownerID},
-			InvokerMember:  &types.Member{Roles: []types.Snowflake{}},
+			ctx:           context.Background(),
+			GuildID:       &guildID,
+			AppID:         botAppID,
+			REST:          client,
+			Author:        &types.User{ID: ownerID},
+			InvokerMember: &types.Member{Roles: []types.Snowflake{}},
 		}
 
 		ok, err := c.CanModerate(targetID)
@@ -199,12 +199,12 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 
 		resolvedID := types.Snowflake(777)
 		c := &Context{
-			ctx:     context.Background(),
-			GuildID: &guildID,
-			AppID:   botAppID,
-			REST:    client,
-			Author:  &types.User{ID: invokerID},
-			InvokerMember:  &types.Member{Roles: []types.Snowflake{roleMid.ID}},
+			ctx:           context.Background(),
+			GuildID:       &guildID,
+			AppID:         botAppID,
+			REST:          client,
+			Author:        &types.User{ID: invokerID},
+			InvokerMember: &types.Member{Roles: []types.Snowflake{roleMid.ID}},
 			Interaction: &types.Interaction{
 				Data: &types.InteractionData{
 					Resolved: &types.ResolvedData{
@@ -227,12 +227,12 @@ func TestCanModerate_HierarchyComparisons(t *testing.T) {
 
 		rolelessID := types.Snowflake(888)
 		c := &Context{
-			ctx:     context.Background(),
-			GuildID: &guildID,
-			AppID:   botAppID,
-			REST:    client,
-			Author:  &types.User{ID: invokerID},
-			InvokerMember:  &types.Member{Roles: []types.Snowflake{roleMid.ID}},
+			ctx:           context.Background(),
+			GuildID:       &guildID,
+			AppID:         botAppID,
+			REST:          client,
+			Author:        &types.User{ID: invokerID},
+			InvokerMember: &types.Member{Roles: []types.Snowflake{roleMid.ID}},
 			Interaction: &types.Interaction{
 				Data: &types.InteractionData{
 					Resolved: &types.ResolvedData{
@@ -295,4 +295,3 @@ func TestCanModerate_ShortCircuitsWithoutHTTP(t *testing.T) {
 		t.Fatalf("expected zero member HTTP requests when moderating bot self, got %d", memberCalls)
 	}
 }
-
