@@ -126,6 +126,10 @@ func TestFacadeAppExports(t *testing.T) {
 	var _ ComponentRegistration
 	var _ ModalRegistration
 	var _ CrashLogger = (*FileLogger)(nil)
+	var _ File
+	var _ Attachment
+	var _ ComponentEmoji
+	var _ SelectMenuOption
 }
 
 func TestFacadeCommandValidationErrors(t *testing.T) {
