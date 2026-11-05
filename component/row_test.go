@@ -150,4 +150,3 @@ func TestValidateRows_Errors(t *testing.T) {
 		t.Fatalf("expected ErrRowMultipleInputs, got %v", err)
 	}
 }
-
