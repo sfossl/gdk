@@ -220,4 +220,3 @@ func TestFormat(t *testing.T) {
 		t.Fatalf("expected discord format <t:1735732800:F>, got %s, err: %v", fLong, err)
 	}
 }
-
