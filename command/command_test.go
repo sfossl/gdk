@@ -318,5 +318,3 @@ func TestValidate_ContextMenuCommands(t *testing.T) {
 		t.Fatalf("expected ErrContextMenuHasOptions, got %v", err)
 	}
 }
-
-
