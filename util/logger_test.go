@@ -232,4 +232,3 @@ func TestLogger_Concurrent(t *testing.T) {
 
 	l.General("after close")
 }
-
