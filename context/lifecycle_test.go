@@ -138,4 +138,3 @@ func TestLifecycle_DisableComponents(t *testing.T) {
 		t.Fatal("expected disable call to produce update message on channel")
 	}
 }
-
