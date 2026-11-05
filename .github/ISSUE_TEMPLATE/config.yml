@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Community Discussions
+    url: https://github.com/sfossl/gdk/discussions
+    about: For questions, usage assistance and bot architecture discussions.
+
