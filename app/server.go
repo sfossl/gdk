@@ -152,4 +152,3 @@ func (a *App) Close() error {
 	}
 	return nil
 }
-
