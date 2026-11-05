@@ -208,4 +208,3 @@ func TestEmbedBuilder_WhitespaceFields(t *testing.T) {
 		t.Fatalf("expected ErrEmbedFieldMissingValue for whitespace-only value, got %v", err)
 	}
 }
-
