@@ -319,4 +319,3 @@ func TestMember_EmptyValidation(t *testing.T) {
 		t.Fatalf("expected ErrEmptyMemberUpdate, got %v", err)
 	}
 }
-
