@@ -28,4 +28,3 @@ func TestDefaultsValues(t *testing.T) {
 		t.Fatalf("unexpected Timeout: %v", Timeout)
 	}
 }
-
