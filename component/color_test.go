@@ -92,4 +92,3 @@ func TestResolveColor(t *testing.T) {
 		}
 	}
 }
-
