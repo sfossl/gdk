@@ -278,4 +278,3 @@ func (l *FileLogger) Close() error {
 	}
 	return nil
 }
-
