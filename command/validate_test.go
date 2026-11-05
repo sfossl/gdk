@@ -223,5 +223,3 @@ func TestValidate_TopLevelDuplicateSubcommands(t *testing.T) {
 		t.Fatalf("expected ErrDuplicateOptionName for collision between sub and group, got %v", err)
 	}
 }
-
-
