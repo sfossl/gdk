@@ -31,12 +31,12 @@ const (
 )
 
 var (
-	ErrInvalidModType        = errors.New("invalid moderation action type")
-	ErrTimeoutTooLong        = errors.New("timeout duration exceeds maximum 28 days")
-	ErrTimeoutTooShort       = errors.New("timeout duration must be at least 1 second")
-	ErrBanDeleteTooLong      = errors.New("ban delete message duration exceeds maximum 7 days")
-	ErrUnsupportedType       = errors.New("unsupported moderation parameter type")
-	ErrEmptyMemberUpdate     = errors.New("cannot execute member update with empty options: specify nickname, roles, voice, or moderation action")
+	ErrInvalidModType    = errors.New("invalid moderation action type")
+	ErrTimeoutTooLong    = errors.New("timeout duration exceeds maximum 28 days")
+	ErrTimeoutTooShort   = errors.New("timeout duration must be at least 1 second")
+	ErrBanDeleteTooLong  = errors.New("ban delete message duration exceeds maximum 7 days")
+	ErrUnsupportedType   = errors.New("unsupported moderation parameter type")
+	ErrEmptyMemberUpdate = errors.New("cannot execute member update with empty options: specify nickname, roles, voice, or moderation action")
 )
 
 const (
