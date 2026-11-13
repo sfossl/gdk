@@ -5,6 +5,7 @@ import (
 
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/component"
 )
 
 var (
@@ -153,6 +154,12 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 		return nil, ErrEmptyMessage
 	}
 
+	if len(res.Components) > 0 {
+		if err := component.ValidateComponents(res.Components); err != nil {
+			return nil, err
+		}
+	}
+
 	if res.Typing && c.REST != nil {
 		targetChan := c.ChannelID
 		if res.Channel != 0 {
@@ -183,10 +190,16 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 			return nil, err
 		}
 
+		dmFlags := flagsFromEphemeral(res.Ephemeral)
+		if component.HasLayoutComponents(res.Components) {
+			dmFlags |= types.MessageFlagIsComponentsV2
+		}
+
 		payload := rest.MessagePayload{
 			Content:    res.Content,
 			Embeds:     res.Embeds,
 			Components: res.Components,
+			Flags:      dmFlags,
 			TTS:        res.TTS,
 			Files:      res.Files,
 		}
@@ -211,10 +224,16 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 			return nil, ErrNoRESTClient
 		}
 
+		sendFlags := flagsFromEphemeral(res.Ephemeral)
+		if component.HasLayoutComponents(res.Components) {
+			sendFlags |= types.MessageFlagIsComponentsV2
+		}
+
 		payload := rest.MessagePayload{
 			Content:    res.Content,
 			Embeds:     res.Embeds,
 			Components: res.Components,
+			Flags:      sendFlags,
 			TTS:        res.TTS,
 			Files:      res.Files,
 		}
@@ -227,6 +246,9 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 	}
 
 	flags := flagsFromEphemeral(res.Ephemeral)
+	if component.HasLayoutComponents(res.Components) {
+		flags |= types.MessageFlagIsComponentsV2
+	}
 
 	if c.deferred.CompareAndSwap(true, false) {
 		if c.REST == nil {
