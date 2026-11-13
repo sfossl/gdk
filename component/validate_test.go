@@ -157,3 +157,22 @@ func TestValidateComponentsPlacementGuards(t *testing.T) {
 		t.Fatalf("expected ErrSectionInvalidChild, got %v", err)
 	}
 }
+
+func TestValidateComponentsEmptyStructures(t *testing.T) {
+	emptyCard := Container().Build()
+	if err := ValidateComponents([]types.Component{emptyCard}); err != ErrEmptyContainer {
+		t.Fatalf("expected ErrEmptyContainer, got %v", err)
+	}
+
+	emptySec := Section().Build()
+	cardWithEmptySec := Container(emptySec).Build()
+	if err := ValidateComponents([]types.Component{cardWithEmptySec}); err != ErrEmptySection {
+		t.Fatalf("expected ErrEmptySection, got %v", err)
+	}
+
+	emptyGallery := MediaGallery()
+	cardWithEmptyGallery := Container(emptyGallery).Build()
+	if err := ValidateComponents([]types.Component{cardWithEmptyGallery}); err != ErrEmptyMediaGallery {
+		t.Fatalf("expected ErrEmptyMediaGallery, got %v", err)
+	}
+}
