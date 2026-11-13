@@ -12,6 +12,7 @@ const (
 	ButtonStyleSuccess   = 3
 	ButtonStyleDanger    = 4
 	ButtonStyleLink      = 5
+	ButtonStylePremium   = 6
 
 	TextInputStyleShort     = 1
 	TextInputStyleParagraph = 2
@@ -41,11 +42,18 @@ func WithButtonDisabled(disabled bool) ButtonOpt {
 	}
 }
 
+func WithButtonSKUID(skuID types.Snowflake) ButtonOpt {
+	return func(c *types.Component) {
+		c.SKUID = &skuID
+	}
+}
+
 type ButtonOptions struct {
 	Style    any
 	CustomID string
 	Label    string
 	URL      string
+	SKUID    types.Snowflake
 	Emoji    any
 	Disabled bool
 }
@@ -53,7 +61,7 @@ type ButtonOptions struct {
 func parseButtonStyle(s any) int {
 	switch v := s.(type) {
 	case int:
-		if v >= 1 && v <= 5 {
+		if v >= 1 && v <= 6 {
 			return v
 		}
 	case string:
@@ -68,6 +76,8 @@ func parseButtonStyle(s any) int {
 			return ButtonStyleDanger
 		case "link", "url":
 			return ButtonStyleLink
+		case "premium", "sku":
+			return ButtonStylePremium
 		}
 	}
 	return ButtonStylePrimary
@@ -115,6 +125,21 @@ func Button(args ...any) types.Component {
 	if style == ButtonStyleLink {
 		url = customID
 		customID = ""
+	} else if style == ButtonStylePremium {
+		if len(args) > 1 {
+			switch id := args[1].(type) {
+			case types.Snowflake:
+				buttonOpts = append(buttonOpts, WithButtonSKUID(id))
+			case uint64:
+				buttonOpts = append(buttonOpts, WithButtonSKUID(types.Snowflake(id)))
+			case int64:
+				buttonOpts = append(buttonOpts, WithButtonSKUID(types.Snowflake(id)))
+			case int:
+				buttonOpts = append(buttonOpts, WithButtonSKUID(types.Snowflake(id)))
+			}
+		}
+		customID = ""
+		label = ""
 	}
 
 	return newButton(types.ComponentTypeButton, style, customID, label, url, buttonOpts...)
@@ -128,9 +153,16 @@ func buttonFromOptions(opts ButtonOptions) types.Component {
 	if style == ButtonStyleLink && url == "" {
 		url = customID
 		customID = ""
+	} else if style == ButtonStylePremium {
+		customID = ""
+		url = ""
+		opts.Label = ""
 	}
 
 	var buttonOpts []ButtonOpt
+	if opts.SKUID != 0 {
+		buttonOpts = append(buttonOpts, WithButtonSKUID(opts.SKUID))
+	}
 	if opts.Disabled {
 		buttonOpts = append(buttonOpts, WithButtonDisabled(true))
 	}
