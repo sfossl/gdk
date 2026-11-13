@@ -189,6 +189,7 @@ const (
 	ButtonStyleSuccess   = component.ButtonStyleSuccess
 	ButtonStyleDanger    = component.ButtonStyleDanger
 	ButtonStyleLink      = component.ButtonStyleLink
+	ButtonStylePremium   = component.ButtonStylePremium
 
 	TextInputStyleShort     = component.TextInputStyleShort
 	TextInputStyleParagraph = component.TextInputStyleParagraph
@@ -337,6 +338,7 @@ var (
 	Button             = component.Button
 	WithButtonEmoji    = component.WithButtonEmoji
 	WithButtonDisabled = component.WithButtonDisabled
+	WithButtonSKUID    = component.WithButtonSKUID
 
 	StringSelect       = component.StringSelect
 	UserSelect         = component.UserSelect
@@ -387,14 +389,20 @@ var (
 	HasLayoutComponents      = component.HasLayoutComponents
 	IsLayoutComponent        = component.IsLayoutComponent
 
-	ErrTooManyComponents        = component.ErrTooManyComponents
-	ErrTotalTextLengthExceeded  = component.ErrTotalTextLengthExceeded
-	ErrNestedContainers         = component.ErrNestedContainers
-	ErrInvalidContainerChild    = component.ErrInvalidContainerChild
-	ErrSectionTooManyTexts      = component.ErrSectionTooManyTexts
-	ErrInvalidSectionAccessory  = component.ErrInvalidSectionAccessory
-	ErrMediaGalleryTooManyItems = component.ErrMediaGalleryTooManyItems
-	ErrInvalidSeparatorSpacing  = component.ErrInvalidSeparatorSpacing
+	ErrTooManyComponents            = component.ErrTooManyComponents
+	ErrTotalTextLengthExceeded      = component.ErrTotalTextLengthExceeded
+	ErrNestedContainers             = component.ErrNestedContainers
+	ErrInvalidContainerChild        = component.ErrInvalidContainerChild
+	ErrSectionTooManyTexts          = component.ErrSectionTooManyTexts
+	ErrSectionInvalidChild          = component.ErrSectionInvalidChild
+	ErrInvalidSectionAccessory      = component.ErrInvalidSectionAccessory
+	ErrMediaGalleryTooManyItems     = component.ErrMediaGalleryTooManyItems
+	ErrInvalidSeparatorSpacing      = component.ErrInvalidSeparatorSpacing
+	ErrThumbnailMustBeAccessory     = component.ErrThumbnailMustBeAccessory
+	ErrButtonMustBeInRowOrAccessory = component.ErrButtonMustBeInRowOrAccessory
+	ErrInvalidRootComponent         = component.ErrInvalidRootComponent
+	ErrEmbedsNotAllowedWithLayouts  = component.ErrEmbedsNotAllowedWithLayouts
+	ErrContentNotAllowedWithLayouts = component.ErrContentNotAllowedWithLayouts
 
 	ErrInvalidColor            = component.ErrInvalidColor
 	ErrColorOutOfRange         = component.ErrColorOutOfRange
