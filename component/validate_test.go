@@ -48,6 +48,13 @@ func TestValidateComponentsInvalidContainerChild(t *testing.T) {
 	card := Container(rawButton).Build()
 
 	err := ValidateComponents([]types.Component{card})
+	if err != ErrButtonMustBeInRowOrAccessory {
+		t.Fatalf("expected ErrButtonMustBeInRowOrAccessory, got %v", err)
+	}
+
+	selectMenu := StringSelect("sel", "choose", Option("1", "1"))
+	cardWithSelect := Container(selectMenu).Build()
+	err = ValidateComponents([]types.Component{cardWithSelect})
 	if err != ErrInvalidContainerChild {
 		t.Fatalf("expected ErrInvalidContainerChild, got %v", err)
 	}
@@ -121,5 +128,32 @@ func TestValidateComponentsSeparatorSpacing(t *testing.T) {
 	err := ValidateComponents([]types.Component{card})
 	if err != ErrInvalidSeparatorSpacing {
 		t.Fatalf("expected ErrInvalidSeparatorSpacing, got %v", err)
+	}
+}
+
+func TestValidateComponentsPlacementGuards(t *testing.T) {
+	thumb := Thumbnail("https://example.com/logo.png")
+	if err := ValidateComponents([]types.Component{thumb}); err != ErrThumbnailMustBeAccessory {
+		t.Fatalf("expected ErrThumbnailMustBeAccessory, got %v", err)
+	}
+
+	cardWithThumb := Container(thumb).Build()
+	if err := ValidateComponents([]types.Component{cardWithThumb}); err != ErrThumbnailMustBeAccessory {
+		t.Fatalf("expected ErrThumbnailMustBeAccessory, got %v", err)
+	}
+
+	btn := Button("click", "btn_1")
+	containerAndLooseButton := []types.Component{Container(Text("hello")).Build(), btn}
+	if err := ValidateComponents(containerAndLooseButton); err != ErrButtonMustBeInRowOrAccessory {
+		t.Fatalf("expected ErrButtonMustBeInRowOrAccessory, got %v", err)
+	}
+
+	secBadChild := types.Component{
+		Type:       types.ComponentTypeSection,
+		Components: []types.Component{Divider()},
+	}
+	cardBadSec := Container(secBadChild).Build()
+	if err := ValidateComponents([]types.Component{cardBadSec}); err != ErrSectionInvalidChild {
+		t.Fatalf("expected ErrSectionInvalidChild, got %v", err)
 	}
 }
