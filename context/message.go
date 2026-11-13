@@ -303,6 +303,19 @@ func (c *Context) Message(args ...any) error {
 		_, err := c.REST.Do(c.Context(), rest.Request{Endpoint: endpoint})
 		return err
 	case MsgEdit:
+		if len(opts.Components) > 0 {
+			if err := component.ValidateComponents(opts.Components); err != nil {
+				return err
+			}
+			if component.HasLayoutComponents(opts.Components) {
+				if len(opts.Embeds) > 0 {
+					return component.ErrEmbedsNotAllowedWithLayouts
+				}
+				if opts.Content != "" {
+					return component.ErrContentNotAllowedWithLayouts
+				}
+			}
+		}
 		var flags types.MessageFlag
 		if component.HasLayoutComponents(opts.Components) {
 			flags |= types.MessageFlagIsComponentsV2

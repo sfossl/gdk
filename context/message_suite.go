@@ -5,6 +5,7 @@ import (
 
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/component"
 )
 
 type MessageSuite struct {
@@ -63,6 +64,20 @@ func (a MessageSuite) Edit(payload rest.MessagePayload) (*types.Message, error) 
 	}
 	if a.ctx.REST == nil {
 		return nil, ErrNoRESTClient
+	}
+	if len(payload.Components) > 0 {
+		if err := component.ValidateComponents(payload.Components); err != nil {
+			return nil, err
+		}
+		if component.HasLayoutComponents(payload.Components) {
+			if len(payload.Embeds) > 0 {
+				return nil, component.ErrEmbedsNotAllowedWithLayouts
+			}
+			if payload.Content != "" {
+				return nil, component.ErrContentNotAllowedWithLayouts
+			}
+			payload.Flags |= types.MessageFlagIsComponentsV2
+		}
 	}
 	return a.ctx.REST.EditMessage(a.ctx.Context(), a.channelID, a.messageID, payload)
 }

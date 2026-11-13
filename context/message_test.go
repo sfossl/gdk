@@ -12,6 +12,7 @@ import (
 
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/component"
 )
 
 func setupMessageTestContext(handler http.HandlerFunc) (*Context, func()) {
@@ -239,7 +240,8 @@ func TestMessageGetAndEdit(t *testing.T) {
 		t.Fatalf("expected embed title, got %v err %v", mEmbed, err)
 	}
 
-	mComp, err := act.SetComponents(types.Component{Type: 1})
+	validRow := component.Row(component.Button("primary", "btn", "Click"))
+	mComp, err := act.SetComponents(validRow)
 	if err != nil || len(mComp.Components) != 1 {
 		t.Fatalf("expected component, got %v err %v", mComp, err)
 	}
@@ -563,5 +565,70 @@ func TestMessagePurge_FilteringAndSingle(t *testing.T) {
 	}
 	if cAllOld.LastPurged() != 0 {
 		t.Fatalf("expected LastPurged 0 on error, got %d", cAllOld.LastPurged())
+	}
+}
+
+func TestMessageEditLayoutValidation(t *testing.T) {
+	var capturedFlags types.MessageFlag
+	c, cleanup := setupMessageTestContext(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PATCH" {
+			var body rest.MessagePayload
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			capturedFlags = body.Flags
+			_ = json.NewEncoder(w).Encode(types.Message{ID: 500})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+	defer cleanup()
+
+	emptyContainer := types.Component{Type: types.ComponentTypeContainer}
+	err := c.Message("edit", types.Snowflake(500), emptyContainer)
+	if !errors.Is(err, component.ErrEmptyContainer) {
+		t.Fatalf("expected ErrEmptyContainer, got %v", err)
+	}
+
+	validCard := component.Container(component.Text("Hello")).Build()
+	err = c.Message("edit", types.Snowflake(500), "forbidden content", validCard)
+	if !errors.Is(err, component.ErrContentNotAllowedWithLayouts) {
+		t.Fatalf("expected ErrContentNotAllowedWithLayouts, got %v", err)
+	}
+
+	err = c.Message("edit", types.Snowflake(500), types.Embed{Title: "forbidden"}, validCard)
+	if !errors.Is(err, component.ErrEmbedsNotAllowedWithLayouts) {
+		t.Fatalf("expected ErrEmbedsNotAllowedWithLayouts, got %v", err)
+	}
+
+	err = c.Message("edit", types.Snowflake(500), validCard)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if capturedFlags&types.MessageFlagIsComponentsV2 == 0 {
+		t.Fatalf("expected MessageFlagIsComponentsV2 flag to be set")
+	}
+
+	suite := c.MessageSuite(types.Snowflake(500))
+	_, err = suite.SetComponents(emptyContainer)
+	if !errors.Is(err, component.ErrEmptyContainer) {
+		t.Fatalf("suite: expected ErrEmptyContainer, got %v", err)
+	}
+
+	_, err = suite.Edit(rest.MessagePayload{Content: "bad", Components: []types.Component{validCard}})
+	if !errors.Is(err, component.ErrContentNotAllowedWithLayouts) {
+		t.Fatalf("suite: expected ErrContentNotAllowedWithLayouts, got %v", err)
+	}
+
+	_, err = suite.Edit(rest.MessagePayload{Embeds: []types.Embed{{Title: "bad"}}, Components: []types.Component{validCard}})
+	if !errors.Is(err, component.ErrEmbedsNotAllowedWithLayouts) {
+		t.Fatalf("suite: expected ErrEmbedsNotAllowedWithLayouts, got %v", err)
+	}
+
+	capturedFlags = 0
+	_, err = suite.SetComponents(validCard)
+	if err != nil {
+		t.Fatalf("suite: unexpected error: %v", err)
+	}
+	if capturedFlags&types.MessageFlagIsComponentsV2 == 0 {
+		t.Fatalf("suite: expected MessageFlagIsComponentsV2 flag to be set")
 	}
 }
