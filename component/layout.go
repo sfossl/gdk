@@ -165,8 +165,8 @@ func (s *SectionBuilder) Build() types.Component {
 	return s.comp
 }
 
-func SectionWithAccessory(text string, accessory types.Component) types.Component {
-	return Section(text).WithAccessory(accessory).Build()
+func SectionWithAccessory(accessory types.Component, texts ...string) types.Component {
+	return Section(texts...).WithAccessory(accessory).Build()
 }
 
 type ContainerBuilder struct {

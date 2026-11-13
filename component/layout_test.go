@@ -113,9 +113,9 @@ func TestSection(t *testing.T) {
 		t.Fatalf("expected button accessory")
 	}
 
-	secShort := SectionWithAccessory("Header", btn)
-	if secShort.Type != types.ComponentTypeSection || secShort.Accessory == nil {
-		t.Fatalf("expected section with accessory")
+	secShort := SectionWithAccessory(btn, "Header", "Subtitle")
+	if secShort.Type != types.ComponentTypeSection || len(secShort.Components) != 2 || secShort.Accessory == nil {
+		t.Fatalf("expected section with accessory and 2 texts")
 	}
 }
 
