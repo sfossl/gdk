@@ -101,6 +101,14 @@ func TestValidateComponentsSectionLimits(t *testing.T) {
 	if err != ErrInvalidSectionAccessory {
 		t.Fatalf("expected ErrInvalidSectionAccessory, got %v", err)
 	}
+
+	secNoAccessory := Section("header").Build()
+	cardNoAccessory := Container(secNoAccessory).Build()
+
+	err = ValidateComponents([]types.Component{cardNoAccessory})
+	if err != ErrSectionMissingAccessory {
+		t.Fatalf("expected ErrSectionMissingAccessory, got %v", err)
+	}
 }
 
 func TestValidateComponentsMediaGalleryLimits(t *testing.T) {

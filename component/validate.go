@@ -24,6 +24,7 @@ var (
 	ErrInvalidContainerChild        = errors.New("invalid component type inside container")
 	ErrSectionTooManyTexts          = errors.New("section exceeds maximum 3 text displays")
 	ErrSectionInvalidChild          = errors.New("section can only contain text display components")
+	ErrSectionMissingAccessory      = errors.New("section component requires an accessory (button or thumbnail)")
 	ErrInvalidSectionAccessory      = errors.New("section accessory must be a button or thumbnail")
 	ErrMediaGalleryTooManyItems     = errors.New("media gallery exceeds maximum 10 items")
 	ErrInvalidSeparatorSpacing      = errors.New("separator spacing must be small (1) or large (2)")
@@ -159,14 +160,15 @@ func ValidateComponents(components []types.Component) error {
 					return ErrTotalTextLengthExceeded
 				}
 			}
-			if c.Accessory != nil {
-				totalCount++
-				if totalCount > MaxTotalComponents {
-					return ErrTooManyComponents
-				}
-				if c.Accessory.Type != types.ComponentTypeButton && c.Accessory.Type != types.ComponentTypeThumbnail {
-					return ErrInvalidSectionAccessory
-				}
+			if c.Accessory == nil {
+				return ErrSectionMissingAccessory
+			}
+			totalCount++
+			if totalCount > MaxTotalComponents {
+				return ErrTooManyComponents
+			}
+			if c.Accessory.Type != types.ComponentTypeButton && c.Accessory.Type != types.ComponentTypeThumbnail {
+				return ErrInvalidSectionAccessory
 			}
 			return nil
 		}
