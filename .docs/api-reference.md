@@ -716,6 +716,9 @@ var (
 	ErrTooManyComponents        // component tree exceeds 40 components
 	ErrTotalTextLengthExceeded  // total TextDisplay characters exceed 4,000
 	ErrNestedContainers         // container placed inside another container
+	ErrEmptyContainer           // container component cannot be empty
+	ErrEmptySection             // section component must contain at least 1 text display
+	ErrEmptyMediaGallery        // media gallery must contain at least 1 item
 	ErrInvalidContainerChild    // invalid component type placed directly in container
 	ErrSectionTooManyTexts          // section contains more than 3 text displays
 	ErrSectionInvalidChild          // section can only contain text display components
