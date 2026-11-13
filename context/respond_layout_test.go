@@ -82,3 +82,53 @@ func TestUpdateMessage_AutoFlagComponentsV2(t *testing.T) {
 		t.Fatalf("expected response on channel")
 	}
 }
+
+func TestRespond_MutualExclusion(t *testing.T) {
+	in := &types.Interaction{
+		ID:    types.Snowflake(203),
+		Token: "test-token",
+	}
+	c := New(context.Background(), in, nil)
+	card := component.Container(component.Text("content")).Build()
+
+	_, err := c.Respond(Options{
+		Content:    "legacy content",
+		Components: []types.Component{card},
+	})
+	if err != component.ErrContentNotAllowedWithLayouts {
+		t.Fatalf("expected ErrContentNotAllowedWithLayouts, got %v", err)
+	}
+
+	_, err = c.Respond(Options{
+		Embed:      &types.Embed{Title: "legacy embed"},
+		Components: []types.Component{card},
+	})
+	if err != component.ErrEmbedsNotAllowedWithLayouts {
+		t.Fatalf("expected ErrEmbedsNotAllowedWithLayouts, got %v", err)
+	}
+}
+
+func TestUpdateMessage_MutualExclusion(t *testing.T) {
+	in := &types.Interaction{
+		ID:    types.Snowflake(204),
+		Token: "test-token",
+	}
+	c := New(context.Background(), in, nil)
+	card := component.Container(component.Text("content")).Build()
+
+	_, err := c.UpdateMessage(Options{
+		Content:    "legacy content",
+		Components: []types.Component{card},
+	})
+	if err != component.ErrContentNotAllowedWithLayouts {
+		t.Fatalf("expected ErrContentNotAllowedWithLayouts, got %v", err)
+	}
+
+	_, err = c.UpdateMessage(Options{
+		Embed:      &types.Embed{Title: "legacy embed"},
+		Components: []types.Component{card},
+	})
+	if err != component.ErrEmbedsNotAllowedWithLayouts {
+		t.Fatalf("expected ErrEmbedsNotAllowedWithLayouts, got %v", err)
+	}
+}

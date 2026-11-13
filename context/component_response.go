@@ -32,6 +32,14 @@ func (c *Context) UpdateMessage(args ...any) (*types.Message, error) {
 		if err := component.ValidateComponents(res.Components); err != nil {
 			return nil, err
 		}
+		if component.HasLayoutComponents(res.Components) {
+			if len(res.Embeds) > 0 {
+				return nil, component.ErrEmbedsNotAllowedWithLayouts
+			}
+			if res.Content != "" {
+				return nil, component.ErrContentNotAllowedWithLayouts
+			}
+		}
 	}
 
 	flags := flagsFromEphemeral(res.Ephemeral)
