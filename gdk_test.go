@@ -171,4 +171,13 @@ func TestFacadeUtilExports(t *testing.T) {
 	if err != nil || tag != item.Discord("D") {
 		t.Fatalf("unexpected FormatTime tag: %s, err: %v", tag, err)
 	}
+
+	pBool := Ptr(false)
+	if pBool == nil || *pBool != false {
+		t.Fatalf("unexpected Ptr bool: %v", pBool)
+	}
+	pInt := Ptr(42)
+	if pInt == nil || *pInt != 42 {
+		t.Fatalf("unexpected Ptr int: %v", pInt)
+	}
 }

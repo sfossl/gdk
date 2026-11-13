@@ -170,6 +170,7 @@ const (
 	DefaultCooldownMessage  = defaults.CooldownMessage
 	DefaultUserMissingPerms = defaults.UserMissingPerms
 	DefaultBotMissingPerms  = defaults.BotMissingPerms
+	DefaultMention          = defaults.DefaultMention
 
 	ColorBlurple = component.ColorBlurple
 	ColorGreen   = component.ColorGreen
@@ -414,6 +415,7 @@ var (
 	ErrInvalidContainerChild        = component.ErrInvalidContainerChild
 	ErrSectionTooManyTexts          = component.ErrSectionTooManyTexts
 	ErrSectionInvalidChild          = component.ErrSectionInvalidChild
+	ErrSectionMissingAccessory      = component.ErrSectionMissingAccessory
 	ErrInvalidSectionAccessory      = component.ErrInvalidSectionAccessory
 	ErrMediaGalleryTooManyItems     = component.ErrMediaGalleryTooManyItems
 	ErrInvalidSeparatorSpacing      = component.ErrInvalidSeparatorSpacing
@@ -488,8 +490,9 @@ var (
 	WithDevMode   = app.WithDevMode
 	WithAutoDefer = app.WithAutoDefer
 	WithAutoSync  = app.WithAutoSync
-	WithTimeout   = app.WithTimeout
-	WithWebhook   = app.WithWebhook
+	WithTimeout          = app.WithTimeout
+	WithWebhook          = app.WithWebhook
+	WithDefaultMention   = app.WithDefaultMention
 
 	Register             = app.Register
 	RegisteredCommands   = app.RegisteredCommands
@@ -513,3 +516,7 @@ var (
 	NewLogger      = util.NewLogger
 	ParseLogFormat = util.ParseLogFormat
 )
+
+func Ptr[T any](v T) *T {
+	return util.Ptr(v)
+}
