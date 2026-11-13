@@ -3,6 +3,7 @@ package context
 import (
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/component"
 )
 
 func (c *Context) DeferUpdate() error {
@@ -27,7 +28,16 @@ func (c *Context) UpdateMessage(args ...any) (*types.Message, error) {
 		return nil, err
 	}
 
+	if len(res.Components) > 0 {
+		if err := component.ValidateComponents(res.Components); err != nil {
+			return nil, err
+		}
+	}
+
 	flags := flagsFromEphemeral(res.Ephemeral)
+	if component.HasLayoutComponents(res.Components) {
+		flags |= types.MessageFlagIsComponentsV2
+	}
 
 	if c.deferred.CompareAndSwap(true, false) {
 		if c.REST == nil {
