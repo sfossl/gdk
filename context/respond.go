@@ -310,9 +310,15 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 	}
 
 	var allowedMentions any
-	if res.Mention != nil {
+	if res.ResolveMention(c.DefaultMention) {
 		allowedMentions = map[string]any{
-			"replied_user": *res.Mention,
+			"parse":        []string{"users", "roles", "everyone"},
+			"replied_user": true,
+		}
+	} else {
+		allowedMentions = map[string]any{
+			"parse":        []string{},
+			"replied_user": false,
 		}
 	}
 

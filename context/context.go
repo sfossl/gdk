@@ -23,6 +23,7 @@ type Context struct {
 	ChannelID        types.Snowflake
 	Author           *types.User
 	InvokerMember    *types.Member
+	DefaultMention   bool
 	responded        atomic.Bool
 	deferred         atomic.Bool
 	gatewayMode      bool

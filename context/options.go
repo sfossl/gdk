@@ -22,7 +22,7 @@ type Options struct {
 	Duration         any
 	Count            int
 	Ephemeral        bool
-	Mention          *bool
+	Mention          any
 	Typing           bool
 	Embed            any
 	Embeds           []types.Embed
@@ -49,6 +49,23 @@ type Options struct {
 
 func (o Options) ResolveComponentTimeout() time.Duration {
 	return parseDuration(o.ComponentTimeout)
+}
+
+func (o Options) ResolveMention(defaultVal bool) bool {
+	if o.Mention == nil {
+		return defaultVal
+	}
+	switch v := o.Mention.(type) {
+	case bool:
+		return v
+	case *bool:
+		if v != nil {
+			return *v
+		}
+		return defaultVal
+	default:
+		return defaultVal
+	}
 }
 
 func (o Options) ResolveDeleteAfter() time.Duration {
