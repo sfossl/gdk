@@ -53,6 +53,7 @@ func (a *App) webhookHandler() (http.Handler, error) {
 
 		bgCtx, cancel := stdctx.WithTimeout(a.rootCtx, a.config.Timeout)
 		gdkCtx := context.New(bgCtx, &in, a.REST, cancel)
+		gdkCtx.DefaultMention = a.config.DefaultMention
 
 		go func() {
 			defer func() {

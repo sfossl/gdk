@@ -11,6 +11,7 @@ const (
 
 	AutoDeferDelay = 2500 * time.Millisecond
 	Timeout        = 14*time.Minute + 50*time.Second
+	DefaultMention = false
 
 	MaxTimeoutDuration = 28 * 24 * time.Hour
 	MaxBanDeleteSec    = 604800

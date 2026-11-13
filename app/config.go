@@ -46,6 +46,7 @@ type Config struct {
 	WebhookAddr    string
 	WebhookPath    string
 	PublicKey      string
+	DefaultMention bool
 }
 
 func DefaultConfig(token string, appID types.Snowflake) Config {
@@ -61,6 +62,7 @@ func DefaultConfig(token string, appID types.Snowflake) Config {
 		Timeout:        defaults.Timeout,
 		WebhookAddr:    ":8080",
 		WebhookPath:    "/interactions",
+		DefaultMention: defaults.DefaultMention,
 	}
 }
 
@@ -139,5 +141,11 @@ func WithWebhook(addr, path, publicKey string) Option {
 func WithAutoSync(autoSync bool) Option {
 	return func(c *Config) {
 		c.AutoSync = autoSync
+	}
+}
+
+func WithDefaultMention(mention bool) Option {
+	return func(c *Config) {
+		c.DefaultMention = mention
 	}
 }

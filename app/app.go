@@ -104,6 +104,7 @@ func (a *App) initDispatcher() {
 		bgCtx, cancel := stdctx.WithTimeout(a.rootCtx, a.config.Timeout)
 		gdkCtx := context.NewGatewayContext(bgCtx, in, a.REST, cancel)
 		gdkCtx.Gateway = a.Gateway
+		gdkCtx.DefaultMention = a.config.DefaultMention
 		defer func() {
 			if rec := recover(); rec != nil {
 				cancel()
