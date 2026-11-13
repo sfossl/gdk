@@ -35,6 +35,10 @@ type File = types.File
 type Attachment = types.Attachment
 type ComponentEmoji = types.ComponentEmoji
 type SelectMenuOption = types.SelectOption
+type SeparatorSpacing = types.SeparatorSpacing
+type MediaGalleryItem = types.MediaGalleryItem
+type UnfurledMedia = types.UnfurledMedia
+type MessageFlag = types.MessageFlag
 
 type App = app.App
 type Config = app.Config
@@ -252,6 +256,18 @@ const (
 	ComponentTypeRoleSelect        = types.ComponentTypeRoleSelect
 	ComponentTypeMentionableSelect = types.ComponentTypeMentionableSelect
 	ComponentTypeChannelSelect     = types.ComponentTypeChannelSelect
+	ComponentTypeSection           = types.ComponentTypeSection
+	ComponentTypeTextDisplay       = types.ComponentTypeTextDisplay
+	ComponentTypeThumbnail         = types.ComponentTypeThumbnail
+	ComponentTypeMediaGallery      = types.ComponentTypeMediaGallery
+	ComponentTypeFile              = types.ComponentTypeFile
+	ComponentTypeSeparator         = types.ComponentTypeSeparator
+	ComponentTypeContainer         = types.ComponentTypeContainer
+
+	SeparatorSpacingSmall = types.SeparatorSpacingSmall
+	SeparatorSpacingLarge = types.SeparatorSpacingLarge
+
+	MessageFlagIsComponentsV2 = types.MessageFlagIsComponentsV2
 )
 
 var (
