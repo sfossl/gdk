@@ -46,6 +46,12 @@ btnOpt := gdk.Button(gdk.ButtonOptions{
 	Label:    "label",
 	Disabled: false,
 })
+
+// monetization premium sku button
+btnPrem := gdk.Button(gdk.ButtonOptions{
+	Style: "premium",
+	SKUID: 123456789012345678,
+})
 ```
 
 Supported styles (string or integer constant):
@@ -54,6 +60,7 @@ Supported styles (string or integer constant):
 - `"success"` / `gdk.ButtonStyleSuccess`
 - `"danger"` / `gdk.ButtonStyleDanger`
 - `"link"` / `gdk.ButtonStyleLink`
+- `"premium"` / `"sku"` / `gdk.ButtonStylePremium` (requires `SKUID`)
 
 ### Grouping in Action Rows
 ```go
@@ -121,7 +128,10 @@ row := gdk.ActionRow(menu)
 
 GDK supports modern Discord Components V2 layout structures: containers, sections, text displays, separators, media galleries, and file cards.
 
-GDK automatically detects layout components passed to `ctx.Respond` or `ctx.UpdateMessage` and injects `types.MessageFlagIsComponentsV2` (flag `32768`), validating tree limits (40 components max, 4,000 text characters max, no nested containers) before dispatching to Discord.
+GDK automatically detects layout components passed to `ctx.Respond` or `ctx.UpdateMessage` and injects `types.MessageFlagIsComponentsV2` (flag `32768`), validating tree limits (40 components max, 4,000 text characters max, no nested containers, proper accessory placement) before dispatching to Discord.
+
+> [!NOTE]
+> When layout components are used, legacy top-level `Content` and `Embeds` are disabled by Discord. Pass all text through `gdk.Text(...)` inside or alongside your layout components. Mixing legacy content or embeds returns `ErrContentNotAllowedWithLayouts` or `ErrEmbedsNotAllowedWithLayouts`.
 
 ### Containers and Cards
 Containers group layout elements with optional accent colors and spoiler flags:
@@ -152,10 +162,14 @@ btn := gdk.Button(gdk.ButtonOptions{
 	Label:    "Action",
 })
 
+// fluent builder
 sec := gdk.Section(
 	"First text line",
 	"Second text line",
 ).WithAccessory(btn).Build()
+
+// shorthand constructor
+sec = gdk.SectionWithAccessory(btn, "First text line", "Second text line")
 ```
 
 ### Separators and Spacing

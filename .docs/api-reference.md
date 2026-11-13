@@ -44,6 +44,7 @@ func (a *App) Sync(ctx context.Context, force ...bool) error
 func (a *App) SyncWithResult(ctx context.Context, force ...bool) (*SyncResult, error)
 func (a *App) Config() Config
 func (a *App) Err() error
+func (a *App) OnError(h func(error, *Context)) *App
 func (a *App) String() string
 ```
 
@@ -495,13 +496,26 @@ func (b *EmbedBuilder) Build() (*types.Embed, error)
 
 ### Buttons & Action Rows
 ```go
+const (
+	ButtonStylePrimary   = 1
+	ButtonStyleSecondary = 2
+	ButtonStyleSuccess   = 3
+	ButtonStyleDanger    = 4
+	ButtonStyleLink      = 5
+	ButtonStylePremium   = 6
+)
+
 func Button(args ...any) types.Component
+func WithButtonEmoji(name string, id ...types.Snowflake) ButtonOpt
+func WithButtonDisabled(disabled bool) ButtonOpt
+func WithButtonSKUID(skuID types.Snowflake) ButtonOpt
 
 type ButtonOptions struct {
 	Style    any
 	CustomID string
 	Label    string
 	URL      string
+	SKUID    types.Snowflake
 	Emoji    any
 	Disabled bool
 }
@@ -510,6 +524,46 @@ func ActionRow(components ...types.Component) types.Component
 func Row(components ...types.Component) types.Component
 func PackRows(components ...types.Component) []types.Component
 func ValidateRows(rows []types.Component) error
+```
+
+### Structural Layout Components
+```go
+func Text(content string) types.Component
+func Divider() types.Component
+func Separator(opts ...SeparatorOpt) types.Component
+func WithSpacing(spacing types.SeparatorSpacing) SeparatorOpt
+func WithDivider(divider bool) SeparatorOpt
+
+func Thumbnail(url string, opts ...ThumbnailOpt) types.Component
+func WithThumbnailDescription(desc string) ThumbnailOpt
+func WithThumbnailSpoiler(spoiler bool) ThumbnailOpt
+
+func FileCard(url string, opts ...FileCardOpt) types.Component
+func WithFileName(name string) FileCardOpt
+func WithFileSize(size int) FileCardOpt
+func WithFileSpoiler(spoiler bool) FileCardOpt
+
+func MediaGallery(items ...types.MediaGalleryItem) types.Component
+func MediaItem(url string, opts ...MediaItemOpt) types.MediaGalleryItem
+func WithItemDescription(desc string) MediaItemOpt
+func WithItemSpoiler(spoiler bool) MediaItemOpt
+
+func Section(texts ...string) *SectionBuilder
+func SectionWithAccessory(accessory types.Component, texts ...string) types.Component
+func (s *SectionBuilder) WithText(text string) *SectionBuilder
+func (s *SectionBuilder) WithAccessory(accessory types.Component) *SectionBuilder
+func (s *SectionBuilder) Build() types.Component
+
+func Container(components ...types.Component) *ContainerBuilder
+func ContainerCard(color any, components ...types.Component) types.Component
+func (c *ContainerBuilder) WithAccentColor(color any) *ContainerBuilder
+func (c *ContainerBuilder) WithSpoiler(spoiler bool) *ContainerBuilder
+func (c *ContainerBuilder) Add(components ...types.Component) *ContainerBuilder
+func (c *ContainerBuilder) Build() types.Component
+
+func ValidateComponents(components []types.Component) error
+func HasLayoutComponents(components []types.Component) bool
+func IsLayoutComponent(t types.ComponentType) bool
 ```
 
 ### Select Menus
@@ -663,10 +717,16 @@ var (
 	ErrTotalTextLengthExceeded  // total TextDisplay characters exceed 4,000
 	ErrNestedContainers         // container placed inside another container
 	ErrInvalidContainerChild    // invalid component type placed directly in container
-	ErrSectionTooManyTexts      // section contains more than 3 text displays
-	ErrInvalidSectionAccessory  // section accessory is not a button or thumbnail
-	ErrMediaGalleryTooManyItems // media gallery contains more than 10 items
-	ErrInvalidSeparatorSpacing  // separator spacing is neither small nor large
+	ErrSectionTooManyTexts          // section contains more than 3 text displays
+	ErrSectionInvalidChild          // section can only contain text display components
+	ErrInvalidSectionAccessory      // section accessory is not a button or thumbnail
+	ErrMediaGalleryTooManyItems     // media gallery contains more than 10 items
+	ErrInvalidSeparatorSpacing      // separator spacing is neither small nor large
+	ErrThumbnailMustBeAccessory     // thumbnail component can only be used as a section accessory
+	ErrButtonMustBeInRowOrAccessory // button component must be in an action row or section accessory
+	ErrInvalidRootComponent         // invalid component type at message root
+	ErrEmbedsNotAllowedWithLayouts  // cannot mix legacy embeds with layout components
+	ErrContentNotAllowedWithLayouts // cannot mix top-level content with layout components; use Text instead
 )
 ```
 

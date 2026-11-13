@@ -33,7 +33,7 @@ When calling `ctx.Respond(gdk.Options{...})`, the following fields are processed
 | `Typing` | `bool` | `false` | triggers channel typing indicator before dispatch |
 | `Embed` | `any` | `nil` | single rich embed object shortcut |
 | `Embeds` | `[]gdk.Embed` | `nil` | rich embed objects (up to 10 per message) |
-| `Components` | `[]gdk.Component` | `nil` | action rows with buttons or select menus (up to 5 rows) |
+| `Components` | `[]gdk.Component` | `nil` | action rows (up to 5) or structural layout components (containers, sections, media) |
 | `ComponentTimeout` | `any` | `0` | duration after which all buttons and select menus are disabled |
 | `DeleteAfter` | `any` | `0` | duration after which the response message is automatically deleted |
 | `Files` | `[]gdk.File` | `nil` | file attachments and uploads |
@@ -43,7 +43,9 @@ When calling `ctx.Respond(gdk.Options{...})`, the following fields are processed
 
 ## Pre-Flight Fast Failure
 
-`ctx.Respond` validates before touching the network. If `Content`, `Embeds`, `Components` and `Files` are all empty (and `Deferred` is `false`), it returns `gdk.ErrEmptyMessage` immediately without sending a network request.
+`ctx.Respond` validates payloads before touching the network:
+- If `Content`, `Embeds`, `Components` and `Files` are all empty (and `Deferred` is `false`), it returns `gdk.ErrEmptyMessage` immediately.
+- When structural layout components are present, `gdk` automatically injects `types.MessageFlagIsComponentsV2` (`32768`). Top-level `Content` and legacy `Embeds` are mutually exclusive with layout components and return `gdk.ErrContentNotAllowedWithLayouts` or `gdk.ErrEmbedsNotAllowedWithLayouts` to prevent Discord API errors. All layout limits (40 components max, 4,000 text characters max, no nested containers, valid accessories) are verified locally.
 
 ---
 
