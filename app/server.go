@@ -62,6 +62,12 @@ func (a *App) webhookHandler() (http.Handler, error) {
 			}()
 			err := a.Handle(gdkCtx)
 			if err != nil {
+				a.mu.RLock()
+				eh := a.errorHandler
+				a.mu.RUnlock()
+				if eh != nil {
+					eh(err, gdkCtx)
+				}
 				cancel()
 			}
 		}()
