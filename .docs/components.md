@@ -117,6 +117,73 @@ userMenu := gdk.UserSelect("user_choice", "choose users",
 row := gdk.ActionRow(menu)
 ```
 
+## Structural Layout Components
+
+GDK supports modern Discord Components V2 layout structures: containers, sections, text displays, separators, media galleries, and file cards.
+
+GDK automatically detects layout components passed to `ctx.Respond` or `ctx.UpdateMessage` and injects `types.MessageFlagIsComponentsV2` (flag `32768`), validating tree limits (40 components max, 4,000 text characters max, no nested containers) before dispatching to Discord.
+
+### Containers and Cards
+Containers group layout elements with optional accent colors and spoiler flags:
+
+```go
+card := gdk.Container(
+	gdk.Section(
+		"### Title Header",
+		"Subtitle or descriptive text",
+	).WithAccessory(gdk.Thumbnail("https://example.com/logo.png")).Build(),
+	gdk.Divider(),
+	gdk.Text("Body paragraph content inside the container."),
+).WithAccentColor(0x5865F2).Build()
+
+// or shorthand container card:
+card = gdk.ContainerCard(0x5865F2,
+	gdk.Text("Simple container card content"),
+)
+```
+
+### Sections and Accessories
+Sections contain up to 3 text displays with an optional accessory (a Button or Thumbnail):
+
+```go
+btn := gdk.Button(gdk.ButtonOptions{
+	Style:    "primary",
+	CustomID: "btn_click",
+	Label:    "Action",
+})
+
+sec := gdk.Section(
+	"First text line",
+	"Second text line",
+).WithAccessory(btn).Build()
+```
+
+### Separators and Spacing
+Use `gdk.Divider()` for a default divider or `gdk.Separator(...)` with options:
+
+```go
+divider := gdk.Divider()
+largeSep := gdk.Separator(
+	gdk.WithSpacing(gdk.SeparatorSpacingLarge),
+	gdk.WithDivider(true),
+)
+```
+
+### Media Galleries and Files
+Display media items in a responsive grid or file download cards:
+
+```go
+gallery := gdk.MediaGallery(
+	gdk.MediaItem("https://example.com/image1.png", gdk.WithItemDescription("Image 1")),
+	gdk.MediaItem("https://example.com/image2.png", gdk.WithItemDescription("Image 2")),
+)
+
+file := gdk.FileCard("https://example.com/report.pdf",
+	gdk.WithFileName("report.pdf"),
+	gdk.WithFileSize(1048576),
+)
+```
+
 ## Text Inputs
 
 Text inputs are used inside modal dialogs:

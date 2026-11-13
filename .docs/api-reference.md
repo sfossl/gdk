@@ -659,6 +659,14 @@ var (
 	ErrNonActionRowAtRoot      // non-action-row component placed at message root
 	ErrSelectMissingOptions    // string select menu contains zero options
 	ErrSelectTooManyOptions    // string select menu contains more than 25 options
+	ErrTooManyComponents        // component tree exceeds 40 components
+	ErrTotalTextLengthExceeded  // total TextDisplay characters exceed 4,000
+	ErrNestedContainers         // container placed inside another container
+	ErrInvalidContainerChild    // invalid component type placed directly in container
+	ErrSectionTooManyTexts      // section contains more than 3 text displays
+	ErrInvalidSectionAccessory  // section accessory is not a button or thumbnail
+	ErrMediaGalleryTooManyItems // media gallery contains more than 10 items
+	ErrInvalidSeparatorSpacing  // separator spacing is neither small nor large
 )
 ```
 
