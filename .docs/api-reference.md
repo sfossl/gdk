@@ -24,6 +24,7 @@ func WithAutoDefer(autoDefer bool, delay ...time.Duration) AppOption
 func WithTimeout(timeout time.Duration) AppOption
 func WithWebhook(addr, path, publicKey string) AppOption
 func WithAutoSync(autoSync bool) AppOption
+func WithDefaultMention(mention bool) AppOption
 ```
 
 ### `type App` Methods
@@ -179,7 +180,7 @@ type Options struct {
 	Duration     any
 	Count        int
 	Ephemeral    bool
-	Mention      *bool
+	Mention      any
 	Typing       bool
 	Embed        any
 	Embeds       []types.Embed
@@ -640,8 +641,7 @@ func (i TimeItem) Unix() int64
 func (i TimeItem) UnixMilli() int64
 func (i TimeItem) ISO() string
 
-// Pointer helper exported under github.com/sfossl/gdk/util:
-// func Ptr[T any](v T) *T
+func Ptr[T any](v T) *T
 ```
 
 ## Error Sentinels
@@ -722,6 +722,7 @@ var (
 	ErrInvalidContainerChild    // invalid component type placed directly in container
 	ErrSectionTooManyTexts          // section contains more than 3 text displays
 	ErrSectionInvalidChild          // section can only contain text display components
+	ErrSectionMissingAccessory      // section component requires an accessory (button or thumbnail)
 	ErrInvalidSectionAccessory      // section accessory is not a button or thumbnail
 	ErrMediaGalleryTooManyItems     // media gallery contains more than 10 items
 	ErrInvalidSeparatorSpacing      // separator spacing is neither small nor large

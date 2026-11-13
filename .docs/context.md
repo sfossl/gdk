@@ -120,12 +120,11 @@ ctx.Respond(gdk.Options{
 })
 
 // direct message with automatic receipt
-noMention := false
 ctx.Respond(gdk.Options{
 	Scope:   "dm",
 	Target:  targetUserID,
 	Content: "your verification code is 123-456",
-	Mention: &noMention,
+	Mention: false,
 })
 
 // standalone channel message

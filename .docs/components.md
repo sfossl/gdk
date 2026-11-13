@@ -172,6 +172,9 @@ sec := gdk.Section(
 sec = gdk.SectionWithAccessory(btn, "First text line", "Second text line")
 ```
 
+> [!NOTE]
+> Every Section component requires an accessory (`Button` or `Thumbnail`). For standalone headings, body text, or code blocks without an accessory, place `gdk.Text(...)` directly in the container.
+
 ### Separators and Spacing
 Use `gdk.Divider()` for a default divider or `gdk.Separator(...)` with options:
 

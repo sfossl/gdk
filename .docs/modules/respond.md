@@ -29,7 +29,7 @@ When calling `ctx.Respond(gdk.Options{...})`, the following fields are processed
 | `Target` | `gdk.Snowflake` | `ctx.TargetID()` $\to$ `ctx.Author.ID` | recipient user id when sending a dm |
 | `Type` | `any` | `"reply"` | set to `"send"` to post a standalone channel message |
 | `Channel` | `gdk.Snowflake` | `ctx.ChannelID` | target channel id for standalone channel messages |
-| `Mention` | `*bool` | `nil` (discord default) | toggles replied author ping (`@ on` / `@ off`) |
+| `Mention` | `any` | `false` (default) | toggles author and user pings (`true` = @ on, `false` = @ off; cascades Call $\to$ App $\to$ Framework) |
 | `Typing` | `bool` | `false` | triggers channel typing indicator before dispatch |
 | `Embed` | `any` | `nil` | single rich embed object shortcut |
 | `Embeds` | `[]gdk.Embed` | `nil` | rich embed objects (up to 10 per message) |
@@ -121,17 +121,29 @@ ctx.Respond(gdk.Options{
 })
 ```
 
-### Author Ping Suppression (`@ off`)
+### Author and User Mentions (`@ on` / `@ off`)
 
-Replies to the command author without triggering a mention notification badge in Discord.
+By default, replies and interaction responses are **completely silent** (`@ off`): they do not trigger desktop notifications, audible pings, or yellow background highlights.
+
+To explicitly ping the user or author (`@ on`):
 
 ```go
-noPing := false
 ctx.Respond(gdk.Options{
-    Content: "response without mention",
-    Mention: &noPing,
+    Content: "urgent alert with ping",
+    Mention: true,
 })
 ```
+
+To explicitly suppress pings (or when overriding an app-level default):
+
+```go
+ctx.Respond(gdk.Options{
+    Content: "response without mention",
+    Mention: false,
+})
+```
+
+Mentions cascade in three tiers: **Individual Respond Option > Project App Config (`gdk.WithDefaultMention`) > GDK Default (`false`)**.
 
 ### Standalone Channel Message Dispatch
 

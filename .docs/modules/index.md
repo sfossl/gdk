@@ -49,7 +49,7 @@ All entity methods accept `gdk.Options`. This matrix shows which fields are read
 | `Reason` | `string` | - | yes | yes | yes | yes |
 | `Emoji` | `any` | - | - | yes | - | - |
 | `Ephemeral` | `bool` | yes | - | - | - | - |
-| `Mention` | `*bool` | yes (@ off) | - | - | - | - |
+| `Mention` | `any` | yes (false by default) | - | - | - | - |
 | `Typing` | `bool` | yes | - | - | - | - |
 | `Embed` | `any` | yes (single embed) | - | - | - | - |
 | `Embeds` | `[]gdk.Embed` | yes | - | yes (edit) | - | - |
