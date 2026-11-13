@@ -18,6 +18,9 @@ var (
 	ErrTooManyComponents            = errors.New("total components exceed maximum 40")
 	ErrTotalTextLengthExceeded      = errors.New("total text display content exceeds maximum 4000 characters")
 	ErrNestedContainers             = errors.New("container component cannot be nested inside another container")
+	ErrEmptyContainer               = errors.New("container component cannot be empty")
+	ErrEmptySection                 = errors.New("section component must contain at least 1 text display")
+	ErrEmptyMediaGallery            = errors.New("media gallery must contain at least 1 item")
 	ErrInvalidContainerChild        = errors.New("invalid component type inside container")
 	ErrSectionTooManyTexts          = errors.New("section exceeds maximum 3 text displays")
 	ErrSectionInvalidChild          = errors.New("section can only contain text display components")
@@ -84,6 +87,9 @@ func ValidateComponents(components []types.Component) error {
 			if insideContainer {
 				return ErrNestedContainers
 			}
+			if len(c.Components) == 0 {
+				return ErrEmptyContainer
+			}
 			for _, child := range c.Components {
 				if err := walk(child, false, true, true); err != nil {
 					return err
@@ -134,6 +140,9 @@ func ValidateComponents(components []types.Component) error {
 		}
 
 		if c.Type == types.ComponentTypeSection {
+			if len(c.Components) == 0 {
+				return ErrEmptySection
+			}
 			if len(c.Components) > MaxSectionTextDisplays {
 				return ErrSectionTooManyTexts
 			}
@@ -163,6 +172,9 @@ func ValidateComponents(components []types.Component) error {
 		}
 
 		if c.Type == types.ComponentTypeMediaGallery {
+			if len(c.Items) == 0 {
+				return ErrEmptyMediaGallery
+			}
 			if len(c.Items) > MaxMediaGalleryItems {
 				return ErrMediaGalleryTooManyItems
 			}
