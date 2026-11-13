@@ -11,6 +11,7 @@ import (
 
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/component"
 )
 
 type MessageAction int
@@ -302,10 +303,15 @@ func (c *Context) Message(args ...any) error {
 		_, err := c.REST.Do(c.Context(), rest.Request{Endpoint: endpoint})
 		return err
 	case MsgEdit:
+		var flags types.MessageFlag
+		if component.HasLayoutComponents(opts.Components) {
+			flags |= types.MessageFlagIsComponentsV2
+		}
 		payload := rest.MessagePayload{
 			Content:    opts.Content,
 			Embeds:     opts.Embeds,
 			Components: opts.Components,
+			Flags:      flags,
 			Files:      opts.Files,
 		}
 		_, err := c.REST.EditMessage(c.Context(), chID, opts.MessageID, payload)
