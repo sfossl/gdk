@@ -408,6 +408,9 @@ var (
 	ErrTooManyComponents            = component.ErrTooManyComponents
 	ErrTotalTextLengthExceeded      = component.ErrTotalTextLengthExceeded
 	ErrNestedContainers             = component.ErrNestedContainers
+	ErrEmptyContainer               = component.ErrEmptyContainer
+	ErrEmptySection                 = component.ErrEmptySection
+	ErrEmptyMediaGallery            = component.ErrEmptyMediaGallery
 	ErrInvalidContainerChild        = component.ErrInvalidContainerChild
 	ErrSectionTooManyTexts          = component.ErrSectionTooManyTexts
 	ErrSectionInvalidChild          = component.ErrSectionInvalidChild
