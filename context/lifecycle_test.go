@@ -138,3 +138,34 @@ func TestLifecycle_DisableComponents(t *testing.T) {
 		t.Fatal("expected disable call to produce update message on channel")
 	}
 }
+
+func TestLifecycle_DisableLayoutComponents(t *testing.T) {
+	btn := types.Component{Type: types.ComponentTypeButton, CustomID: "acc_btn"}
+	sec := types.Component{
+		Type:       types.ComponentTypeSection,
+		Components: []types.Component{{Type: types.ComponentTypeTextDisplay, Content: "hi"}},
+		Accessory:  &btn,
+	}
+	card := types.Component{
+		Type:       types.ComponentTypeContainer,
+		Components: []types.Component{sec},
+	}
+
+	disabled := DisableAllComponents([]types.Component{card})
+	if len(disabled) != 1 {
+		t.Fatalf("expected 1 root component")
+	}
+	if disabled[0].Disabled {
+		t.Fatalf("container itself should not be marked disabled")
+	}
+	if len(disabled[0].Components) != 1 {
+		t.Fatalf("expected 1 section child")
+	}
+	secOut := disabled[0].Components[0]
+	if secOut.Disabled {
+		t.Fatalf("section itself should not be marked disabled")
+	}
+	if secOut.Accessory == nil || !secOut.Accessory.Disabled {
+		t.Fatalf("expected section accessory button to be disabled")
+	}
+}
