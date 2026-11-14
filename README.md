@@ -17,7 +17,7 @@ go get github.com/sfossl/gdk
 `gdk` is organized into focused subsystems:
 
 - **App**: Application lifecycle runner, functional configuration, graceful shutdown, dual execution transports and modular registration (`Module`).
-- **Command**: Slash command declarations, typed option definitions across all 9 Discord option types, subcommand trees, autocomplete routing and local schema validation.
+- **Command**: Slash command declarations, typed option definitions across all 11 Discord option types, subcommand trees, autocomplete routing and local schema validation.
 - **Context**: Execution context passed to handlers, typed option extraction with default fallbacks, automatic 2.5-second deferral and fluent action suites.
 - **Component**: Declarative builders for Discord layout components (containers, sections, media galleries, separators, text displays) alongside rich embeds, buttons, select menus, auto-packed action rows (`PackRows`) and modals.
 - **Middleware**: Interception pipelines, 64-shard partitioned token-bucket cooldown store, permission checks and panic recovery (`Guard`).
