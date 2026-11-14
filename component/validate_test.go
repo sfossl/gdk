@@ -106,8 +106,8 @@ func TestValidateComponentsSectionLimits(t *testing.T) {
 	cardNoAccessory := Container(secNoAccessory).Build()
 
 	err = ValidateComponents([]types.Component{cardNoAccessory})
-	if err != ErrSectionMissingAccessory {
-		t.Fatalf("expected ErrSectionMissingAccessory, got %v", err)
+	if err != nil {
+		t.Fatalf("expected pure-text section to be valid, got %v", err)
 	}
 }
 
