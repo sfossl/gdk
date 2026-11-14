@@ -22,16 +22,39 @@ type ButtonOpt func(*types.Component)
 type SelectOpt func(*types.Component)
 type TextInputOpt func(*types.Component)
 
+func parseEmojiString(s string) (string, *types.Snowflake, bool) {
+	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "<") && strings.HasSuffix(s, ">") {
+		trimmed := strings.Trim(s, "<>")
+		parts := strings.Split(trimmed, ":")
+		if len(parts) >= 3 {
+			animated := parts[0] == "a"
+			name := parts[1]
+			if sf, err := types.ParseSnowflake(parts[2]); err == nil && sf != 0 {
+				return name, &sf, animated
+			}
+		}
+	}
+	return s, nil, false
+}
+
 func WithButtonEmoji(name string, id ...types.Snowflake) ButtonOpt {
 	return func(c *types.Component) {
 		var sfID *types.Snowflake
+		animated := false
 		if len(id) > 0 && id[0] != 0 {
 			val := id[0]
 			sfID = &val
+		} else {
+			parsedName, parsedID, isAnim := parseEmojiString(name)
+			name = parsedName
+			sfID = parsedID
+			animated = isAnim
 		}
 		c.Emoji = &types.ComponentEmoji{
-			Name: name,
-			ID:   sfID,
+			Name:     name,
+			ID:       sfID,
+			Animated: animated,
 		}
 	}
 }
@@ -277,13 +300,20 @@ func Option(label, value string, description ...string) types.SelectOption {
 
 func WithOptionEmoji(opt types.SelectOption, name string, id ...types.Snowflake) types.SelectOption {
 	var sfID *types.Snowflake
+	animated := false
 	if len(id) > 0 && id[0] != 0 {
 		val := id[0]
 		sfID = &val
+	} else {
+		parsedName, parsedID, isAnim := parseEmojiString(name)
+		name = parsedName
+		sfID = parsedID
+		animated = isAnim
 	}
 	opt.Emoji = &types.ComponentEmoji{
-		Name: name,
-		ID:   sfID,
+		Name:     name,
+		ID:       sfID,
+		Animated: animated,
 	}
 	return opt
 }
