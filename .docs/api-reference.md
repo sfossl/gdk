@@ -47,6 +47,7 @@ func (a *App) Config() Config
 func (a *App) Err() error
 func (a *App) OnError(h func(error, *Context)) *App
 func (a *App) String() string
+func (a *App) WebhookHandler() (http.Handler, error)
 ```
 
 ### Global Registration
@@ -57,6 +58,7 @@ func RegisterComponent(customID string, handler Handler)
 func RegisteredComponents() []ComponentRegistration
 func RegisterModal(customID string, handler Handler)
 func RegisteredModals() []ModalRegistration
+func WebhookHandler(a *App) (http.Handler, error)
 
 type ComponentRegistration struct {
 	CustomID string
