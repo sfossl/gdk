@@ -1,12 +1,13 @@
 package app
 
 import (
+	"cmp"
 	stdctx "context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"sort"
+	"slices"
 	"strconv"
 
 	"github.com/sfossl/gda/types"
@@ -114,9 +115,7 @@ func (a *App) SyncWithResult(ctx stdctx.Context, force ...bool) (*SyncResult, er
 	for gid := range guildMap {
 		guildIDs = append(guildIDs, gid)
 	}
-	sort.Slice(guildIDs, func(i, j int) bool {
-		return guildIDs[i] < guildIDs[j]
-	})
+	slices.Sort(guildIDs)
 
 	for _, gid := range guildIDs {
 		cmds := guildMap[gid]
@@ -151,11 +150,11 @@ func (a *App) SyncWithResult(ctx stdctx.Context, force ...bool) (*SyncResult, er
 }
 
 func sortCommands(cmds []types.ApplicationCommand) {
-	sort.Slice(cmds, func(i, j int) bool {
-		if cmds[i].Name == cmds[j].Name {
-			return cmds[i].Type < cmds[j].Type
+	slices.SortFunc(cmds, func(a, b types.ApplicationCommand) int {
+		if c := cmp.Compare(a.Name, b.Name); c != 0 {
+			return c
 		}
-		return cmds[i].Name < cmds[j].Name
+		return cmp.Compare(a.Type, b.Type)
 	})
 }
 
