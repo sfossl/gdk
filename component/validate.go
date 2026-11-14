@@ -160,15 +160,14 @@ func ValidateComponents(components []types.Component) error {
 					return ErrTotalTextLengthExceeded
 				}
 			}
-			if c.Accessory == nil {
-				return ErrSectionMissingAccessory
-			}
-			totalCount++
-			if totalCount > MaxTotalComponents {
-				return ErrTooManyComponents
-			}
-			if c.Accessory.Type != types.ComponentTypeButton && c.Accessory.Type != types.ComponentTypeThumbnail {
-				return ErrInvalidSectionAccessory
+			if c.Accessory != nil {
+				totalCount++
+				if totalCount > MaxTotalComponents {
+					return ErrTooManyComponents
+				}
+				if c.Accessory.Type != types.ComponentTypeButton && c.Accessory.Type != types.ComponentTypeThumbnail {
+					return ErrInvalidSectionAccessory
+				}
 			}
 			return nil
 		}
