@@ -37,16 +37,18 @@ var (
 )
 
 type MessageOptions struct {
-	Type       MessageAction
-	MessageID  types.Snowflake
-	ChannelID  types.Snowflake
-	Reason     string
-	Emojis     []string
-	Content    string
-	Count      int
-	Embeds     []types.Embed
-	Components []types.Component
-	Files      []types.File
+	Type            MessageAction
+	MessageID       types.Snowflake
+	ChannelID       types.Snowflake
+	Reason          string
+	Emojis          []string
+	Content         string
+	Count           int
+	Embeds          []types.Embed
+	Components      []types.Component
+	Files           []types.File
+	Reference       *types.MessageReference
+	AllowedMentions *types.AllowedMentions
 }
 
 func cleanEmoji(e string) string {
@@ -321,11 +323,13 @@ func (c *Context) Message(args ...any) error {
 			flags |= types.MessageFlagIsComponentsV2
 		}
 		payload := rest.MessagePayload{
-			Content:    opts.Content,
-			Embeds:     opts.Embeds,
-			Components: opts.Components,
-			Flags:      flags,
-			Files:      opts.Files,
+			Content:          opts.Content,
+			Embeds:           opts.Embeds,
+			Components:       opts.Components,
+			Flags:            flags,
+			Files:            opts.Files,
+			AllowedMentions:  opts.AllowedMentions,
+			MessageReference: opts.Reference,
 		}
 		_, err := c.REST.EditMessage(c.Context(), chID, opts.MessageID, payload)
 		return err
