@@ -1,6 +1,8 @@
 package gdk
 
 import (
+	"net/http"
+
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/app"
 	"github.com/sfossl/gdk/command"
@@ -77,6 +79,7 @@ type Command = command.Command
 type CommandType = command.CommandType
 type Option = command.Option
 type OptionType = command.OptionType
+type ChannelType = command.ChannelType
 type Choice = command.Choice
 type Subcommand = command.Subcommand
 type SubcommandGroup = command.SubcommandGroup
@@ -134,6 +137,20 @@ const (
 	OptionTypeNumber          = command.OptionTypeNumber
 	OptionTypeAttachment      = command.OptionTypeAttachment
 
+	ChannelTypeGuildText          = command.ChannelTypeGuildText
+	ChannelTypeDM                 = command.ChannelTypeDM
+	ChannelTypeGuildVoice         = command.ChannelTypeGuildVoice
+	ChannelTypeGroupDM            = command.ChannelTypeGroupDM
+	ChannelTypeGuildCategory      = command.ChannelTypeGuildCategory
+	ChannelTypeGuildAnnouncement  = command.ChannelTypeGuildAnnouncement
+	ChannelTypeAnnouncementThread = command.ChannelTypeAnnouncementThread
+	ChannelTypePublicThread       = command.ChannelTypePublicThread
+	ChannelTypePrivateThread      = command.ChannelTypePrivateThread
+	ChannelTypeGuildStageVoice    = command.ChannelTypeGuildStageVoice
+	ChannelTypeGuildDirectory     = command.ChannelTypeGuildDirectory
+	ChannelTypeGuildForum         = command.ChannelTypeGuildForum
+	ChannelTypeGuildMedia         = command.ChannelTypeGuildMedia
+
 	LogFormatText = util.LogFormatText
 	LogFormatJSON = util.LogFormatJSON
 	LogFormatCSV  = util.LogFormatCSV
@@ -151,6 +168,14 @@ const (
 	ModUnban         = context.ModUnban
 	ModTimeout       = context.ModTimeout
 	ModRemoveTimeout = context.ModRemoveTimeout
+	ModAddRole       = context.ModAddRole
+	ModRemoveRole    = context.ModRemoveRole
+	ModNick          = context.ModNick
+	ModResetNick     = context.ModResetNick
+	ModMute          = context.ModMute
+	ModDeaf          = context.ModDeaf
+	ModMove          = context.ModMove
+	ModDisconnect    = context.ModDisconnect
 
 	ChannelCreate = context.ChannelCreate
 	ChannelEdit   = context.ChannelEdit
@@ -210,6 +235,10 @@ const (
 	MaxButtonsPerRow    = component.MaxButtonsPerRow
 	MaxSelectsPerRow    = component.MaxSelectsPerRow
 	MaxTextInputsPerRow = component.MaxTextInputsPerRow
+	MaxTotalComponents     = component.MaxTotalComponents
+	MaxTotalTextLength     = component.MaxTotalTextLength
+	MaxSectionTextDisplays = component.MaxSectionTextDisplays
+	MaxMediaGalleryItems   = component.MaxMediaGalleryItems
 
 	CooldownScopeUser    = command.CooldownScopeUser
 	CooldownScopeChannel = command.CooldownScopeChannel
@@ -361,6 +390,10 @@ var (
 	ErrInvalidModType           = context.ErrInvalidModType
 	ErrAlreadyResponded         = context.ErrAlreadyResponded
 	ErrModalAfterDefer          = context.ErrModalAfterDefer
+	ErrInvalidModalCustomID     = context.ErrInvalidModalCustomID
+	ErrInvalidModalTitle        = context.ErrInvalidModalTitle
+	ErrEmptyModalComponents     = context.ErrEmptyModalComponents
+	ErrInvalidModalInteraction  = context.ErrInvalidModalInteraction
 	ErrNoInteraction            = context.ErrNoInteraction
 	ErrEmptyMessage             = context.ErrEmptyMessage
 	ErrEmptyMemberUpdate        = context.ErrEmptyMemberUpdate
@@ -497,6 +530,7 @@ var (
 	ErrNonActionRowAtRoot      = component.ErrNonActionRowAtRoot
 	ErrSelectMissingOptions    = component.ErrSelectMissingOptions
 	ErrSelectTooManyOptions    = component.ErrSelectTooManyOptions
+	ErrRowInvalidComponent     = component.ErrRowInvalidComponent
 
 	Guard            = middleware.Guard
 	WithPanicHandler = middleware.WithPanicHandler
@@ -570,4 +604,8 @@ var (
 
 func Ptr[T any](v T) *T {
 	return util.Ptr(v)
+}
+
+func WebhookHandler(a *App) (http.Handler, error) {
+	return a.WebhookHandler()
 }
