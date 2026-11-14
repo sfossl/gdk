@@ -122,10 +122,11 @@ func Button(args ...any) types.Component {
 	}
 
 	url := ""
-	if style == ButtonStyleLink {
+	switch style {
+	case ButtonStyleLink:
 		url = customID
 		customID = ""
-	} else if style == ButtonStylePremium {
+	case ButtonStylePremium:
 		if len(args) > 1 {
 			switch id := args[1].(type) {
 			case types.Snowflake:
