@@ -1,8 +1,6 @@
 package context
 
 import (
-	"strings"
-
 	"github.com/sfossl/gda/types"
 )
 
@@ -43,7 +41,7 @@ func (m MemberSuite) Kick(reason ...string) error {
 	return m.ctx.Member(MemberOptions{
 		Type:   ModKick,
 		Target: m.targetID,
-		Reason: strings.Join(reason, " "),
+		Reason: joinReason(reason),
 	})
 }
 
@@ -52,7 +50,7 @@ func (m MemberSuite) Ban(deleteHistory any, reason ...string) error {
 		Type:           ModBan,
 		Target:         m.targetID,
 		DeleteMessages: deleteHistory,
-		Reason:         strings.Join(reason, " "),
+		Reason:         joinReason(reason),
 	})
 }
 
@@ -60,7 +58,7 @@ func (m MemberSuite) Unban(reason ...string) error {
 	return m.ctx.Member(MemberOptions{
 		Type:   ModUnban,
 		Target: m.targetID,
-		Reason: strings.Join(reason, " "),
+		Reason: joinReason(reason),
 	})
 }
 
@@ -69,7 +67,7 @@ func (m MemberSuite) Timeout(duration any, reason ...string) error {
 		Type:     ModTimeout,
 		Target:   m.targetID,
 		Duration: duration,
-		Reason:   strings.Join(reason, " "),
+		Reason:   joinReason(reason),
 	})
 }
 
@@ -77,7 +75,7 @@ func (m MemberSuite) RemoveTimeout(reason ...string) error {
 	return m.ctx.Member(MemberOptions{
 		Type:   ModRemoveTimeout,
 		Target: m.targetID,
-		Reason: strings.Join(reason, " "),
+		Reason: joinReason(reason),
 	})
 }
 
@@ -86,7 +84,7 @@ func (m MemberSuite) AddRole(roleID types.Snowflake, reason ...string) error {
 		Type:     ModAddRole,
 		Target:   m.targetID,
 		AddRoles: []types.Snowflake{roleID},
-		Reason:   strings.Join(reason, " "),
+		Reason:   joinReason(reason),
 	})
 }
 
@@ -95,7 +93,7 @@ func (m MemberSuite) RemoveRole(roleID types.Snowflake, reason ...string) error 
 		Type:        ModRemoveRole,
 		Target:      m.targetID,
 		RemoveRoles: []types.Snowflake{roleID},
-		Reason:      strings.Join(reason, " "),
+		Reason:      joinReason(reason),
 	})
 }
 
@@ -103,7 +101,7 @@ func (m MemberSuite) SetNick(nick string, reason ...string) error {
 	return m.ctx.Member(MemberOptions{
 		Target:   m.targetID,
 		Nickname: &nick,
-		Reason:   strings.Join(reason, " "),
+		Reason:   joinReason(reason),
 	})
 }
 
@@ -112,7 +110,7 @@ func (m MemberSuite) ResetNick(reason ...string) error {
 	return m.ctx.Member(MemberOptions{
 		Target:   m.targetID,
 		Nickname: &empty,
-		Reason:   strings.Join(reason, " "),
+		Reason:   joinReason(reason),
 	})
 }
 
@@ -121,7 +119,7 @@ func (m MemberSuite) Mute(reason ...string) error {
 	return m.ctx.Member(MemberOptions{
 		Target:    m.targetID,
 		VoiceMute: &t,
-		Reason:    strings.Join(reason, " "),
+		Reason:    joinReason(reason),
 	})
 }
 
@@ -130,7 +128,7 @@ func (m MemberSuite) Unmute(reason ...string) error {
 	return m.ctx.Member(MemberOptions{
 		Target:    m.targetID,
 		VoiceMute: &f,
-		Reason:    strings.Join(reason, " "),
+		Reason:    joinReason(reason),
 	})
 }
 
@@ -139,7 +137,7 @@ func (m MemberSuite) Deaf(reason ...string) error {
 	return m.ctx.Member(MemberOptions{
 		Target:    m.targetID,
 		VoiceDeaf: &t,
-		Reason:    strings.Join(reason, " "),
+		Reason:    joinReason(reason),
 	})
 }
 
@@ -148,7 +146,7 @@ func (m MemberSuite) Undeaf(reason ...string) error {
 	return m.ctx.Member(MemberOptions{
 		Target:    m.targetID,
 		VoiceDeaf: &f,
-		Reason:    strings.Join(reason, " "),
+		Reason:    joinReason(reason),
 	})
 }
 
@@ -156,7 +154,7 @@ func (m MemberSuite) Move(channelID types.Snowflake, reason ...string) error {
 	return m.ctx.Member(MemberOptions{
 		Target:       m.targetID,
 		VoiceChannel: &channelID,
-		Reason:       strings.Join(reason, " "),
+		Reason:       joinReason(reason),
 	})
 }
 
@@ -165,6 +163,6 @@ func (m MemberSuite) Disconnect(reason ...string) error {
 	return m.ctx.Member(MemberOptions{
 		Target:       m.targetID,
 		VoiceChannel: &nilChan,
-		Reason:       strings.Join(reason, " "),
+		Reason:       joinReason(reason),
 	})
 }
