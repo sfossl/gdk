@@ -38,6 +38,9 @@ When calling `ctx.Respond(gdk.Options{...})`, the following fields are processed
 | `DeleteAfter` | `any` | `0` | duration after which the response message is automatically deleted |
 | `Files` | `[]gdk.File` | `nil` | file attachments and uploads |
 | `TTS` | `bool` | `false` | text-to-speech message flag |
+| `Reply` | `gdk.Snowflake` | `0` | snowflake of message to reply to inline |
+| `Reference` | `*gdk.MessageReference` | `nil` | structured Discord message reference object |
+| `AllowedMentions` | `*gdk.AllowedMentions` | `nil` | fine-grained mention control overriding boolean `Mention` flag |
 
 ---
 
@@ -144,6 +147,40 @@ ctx.Respond(gdk.Options{
 ```
 
 Mentions cascade in three tiers: **Individual Respond Option > Project App Config (`gdk.WithDefaultMention`) > GDK Default (`false`)**.
+
+### Fine-Grained Allowed Mentions (`AllowedMentions`)
+
+For fine-grained control beyond the boolean `Mention` flag, pass a structured `*gdk.AllowedMentions` object to explicitly whitelist parse types, specific users or roles:
+
+```go
+ctx.Respond(gdk.Options{
+    Content: "alerting selected user <@123456789>",
+    AllowedMentions: &gdk.AllowedMentions{
+        Users: []types.Snowflake{123456789},
+    },
+})
+```
+
+### Inline Message Replies (`Reply` & `Reference`)
+
+Link a response directly to another message via Discord's inline reply UI:
+
+```go
+// reply directly by message snowflake
+ctx.Respond(gdk.Options{
+    Content: "replying to original query",
+    Reply:   sourceMsgID,
+})
+
+// reply using explicit MessageReference
+ctx.Respond(gdk.Options{
+    Content: "replying with fail-if-not-exists",
+    Reference: &gdk.MessageReference{
+        MessageID:         sourceMsgID,
+        FailIfNotExists:   false,
+    },
+})
+```
 
 ### Standalone Channel Message Dispatch
 
