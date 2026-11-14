@@ -305,6 +305,9 @@ func (c *Context) Message(args ...any) error {
 		_, err := c.REST.Do(c.Context(), rest.Request{Endpoint: endpoint})
 		return err
 	case MsgEdit:
+		if opts.Content == "" && len(opts.Embeds) == 0 && len(opts.Components) == 0 && len(opts.Files) == 0 {
+			return ErrEmptyMessage
+		}
 		if len(opts.Components) > 0 {
 			if err := component.ValidateComponents(opts.Components); err != nil {
 				return err
@@ -342,7 +345,7 @@ func (c *Context) Message(args ...any) error {
 }
 
 func (c *Context) purgeMessages(chID types.Snowflake, count int, reason string) (int, error) {
-	c.lastPurged = 0
+	c.lastPurged.Store(0)
 	if count < 2 || count > 100 {
 		return 0, ErrInvalidPurgeCount
 	}
@@ -385,7 +388,7 @@ func (c *Context) purgeMessages(chID types.Snowflake, count int, reason string) 
 		if err := c.REST.DeleteMessage(c.Context(), chID, validIDs[0], reason); err != nil {
 			return 0, err
 		}
-		c.lastPurged = 1
+		c.lastPurged.Store(1)
 		return 1, nil
 	}
 	bulkEndpoint := rest.Endpoint{
@@ -408,7 +411,7 @@ func (c *Context) purgeMessages(chID types.Snowflake, count int, reason string) 
 	if _, err := c.REST.Do(c.Context(), req); err != nil {
 		return 0, err
 	}
-	c.lastPurged = len(validIDs)
+	c.lastPurged.Store(int32(len(validIDs)))
 	return len(validIDs), nil
 }
 
