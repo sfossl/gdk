@@ -128,7 +128,7 @@ row := gdk.ActionRow(menu)
 
 GDK supports Discord's layout component structures: containers, sections, text displays, separators, media galleries, and file cards.
 
-GDK automatically detects layout components passed to `ctx.Respond` or `ctx.UpdateMessage` and injects the required message flag (`types.MessageFlagIsComponentsV2` / `32768`), validating tree limits (40 components max, 4,000 text characters max, no nested containers, proper accessory placement) before dispatching to Discord.
+GDK automatically detects layout components passed to `ctx.Respond` or `ctx.UpdateMessage` and injects the required message flag (`gdk.MessageFlagIsComponentsV2` / `32768`), validating tree limits (40 components max, 4,000 text characters max, no nested containers, proper accessory placement) before dispatching to Discord.
 
 > [!NOTE]
 > When layout components are used, legacy top-level `Content` and `Embeds` are disabled by Discord. Pass all text through `gdk.Text(...)` inside or alongside your layout components. Mixing legacy content or embeds returns `ErrContentNotAllowedWithLayouts` or `ErrEmbedsNotAllowedWithLayouts`.
