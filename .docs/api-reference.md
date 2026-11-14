@@ -120,6 +120,46 @@ const (
 )
 ```
 
+### `type OptionType`
+```go
+type OptionType int
+
+const (
+	OptionTypeSubcommand      OptionType = 1
+	OptionTypeSubcommandGroup OptionType = 2
+	OptionTypeString          OptionType = 3
+	OptionTypeInteger         OptionType = 4
+	OptionTypeBoolean         OptionType = 5
+	OptionTypeUser            OptionType = 6
+	OptionTypeChannel         OptionType = 7
+	OptionTypeRole            OptionType = 8
+	OptionTypeMentionable     OptionType = 9
+	OptionTypeNumber          OptionType = 10
+	OptionTypeAttachment      OptionType = 11
+)
+```
+
+### `type ChannelType`
+```go
+type ChannelType int
+
+const (
+	ChannelTypeGuildText          ChannelType = 0
+	ChannelTypeDM                 ChannelType = 1
+	ChannelTypeGuildVoice         ChannelType = 2
+	ChannelTypeGroupDM            ChannelType = 3
+	ChannelTypeGuildCategory      ChannelType = 4
+	ChannelTypeGuildAnnouncement  ChannelType = 5
+	ChannelTypeAnnouncementThread ChannelType = 10
+	ChannelTypePublicThread       ChannelType = 11
+	ChannelTypePrivateThread      ChannelType = 12
+	ChannelTypeGuildStageVoice    ChannelType = 13
+	ChannelTypeGuildDirectory     ChannelType = 14
+	ChannelTypeGuildForum         ChannelType = 15
+	ChannelTypeGuildMedia         ChannelType = 16
+)
+```
+
 ### `type CooldownScope`
 ```go
 type CooldownScope int
@@ -533,10 +573,23 @@ func ActionRow(components ...types.Component) types.Component
 func Row(components ...types.Component) types.Component
 func PackRows(components ...types.Component) []types.Component
 func ValidateRows(rows []types.Component) error
+
+const (
+	MaxActionRows       = 5
+	MaxButtonsPerRow    = 5
+	MaxSelectsPerRow    = 1
+	MaxTextInputsPerRow = 1
+)
 ```
 
 ### Structural Layout Components
 ```go
+const (
+	MaxTotalComponents     = 40
+	MaxTotalTextLength     = 4000
+	MaxSectionTextDisplays = 3
+	MaxMediaGalleryItems   = 10
+)
 func Text(content string, id ...int) types.Component
 func Divider() types.Component
 func Separator(opts ...SeparatorOpt) types.Component
@@ -801,6 +854,7 @@ var (
 	ErrNonActionRowAtRoot      // non-action-row component placed at message root
 	ErrSelectMissingOptions    // string select menu contains zero options
 	ErrSelectTooManyOptions    // string select menu contains more than 25 options
+	ErrRowInvalidComponent     // action row can only contain buttons, select menus, or text inputs
 	ErrTooManyComponents        // component tree exceeds 40 components
 	ErrTotalTextLengthExceeded  // total TextDisplay characters exceed 4,000
 	ErrNestedContainers         // container placed inside another container
@@ -835,6 +889,10 @@ var (
 	ErrInvalidModType           // unknown moderation action type
 	ErrAlreadyResponded         // interaction callback already sent
 	ErrModalAfterDefer          // modal callback cannot be sent after interaction deferral
+	ErrInvalidModalCustomID     // modal custom id must be between 1 and 100 characters
+	ErrInvalidModalTitle        // modal title must be between 1 and 45 characters
+	ErrEmptyModalComponents     // modal must contain at least 1 component
+	ErrInvalidModalInteraction  // cannot respond with a modal to ping, autocomplete, or modal submit interactions
 	ErrNoInteraction            // context interaction payload is nil
 	ErrEmptyMessage             // message dispatched with no content, embeds, components or files
 	ErrEmptyMemberUpdate        // member update invoked with zero modified fields
