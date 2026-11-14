@@ -3,6 +3,7 @@ package middleware
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -358,25 +359,25 @@ func resolveCooldownKey(prefix string, ctx *context.Context, scope Scope) (strin
 		if uid == 0 {
 			return "", errors.New("missing user id")
 		}
-		return fmt.Sprintf("%s/u/%d", prefix, uid), nil
+		return prefix + "/u/" + strconv.FormatUint(uint64(uid), 10), nil
 
 	case ScopeChannel:
 		if ctx.ChannelID == 0 {
 			return "", errors.New("missing channel id")
 		}
-		return fmt.Sprintf("%s/c/%d", prefix, ctx.ChannelID), nil
+		return prefix + "/c/" + strconv.FormatUint(uint64(ctx.ChannelID), 10), nil
 
 	case ScopeGuild:
 		if ctx.GuildID != nil && *ctx.GuildID != 0 {
-			return fmt.Sprintf("%s/g/%d", prefix, *ctx.GuildID), nil
+			return prefix + "/g/" + strconv.FormatUint(uint64(*ctx.GuildID), 10), nil
 		}
 		if ctx.ChannelID != 0 {
-			return fmt.Sprintf("%s/dm/%d", prefix, ctx.ChannelID), nil
+			return prefix + "/dm/" + strconv.FormatUint(uint64(ctx.ChannelID), 10), nil
 		}
 		return "", ErrMissingGuildInfo
 
 	case ScopeGlobal:
-		return fmt.Sprintf("%s/global", prefix), nil
+		return prefix + "/global", nil
 
 	default:
 		return "", ErrInvalidCooldown
