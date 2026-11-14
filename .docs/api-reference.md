@@ -203,6 +203,9 @@ type Options struct {
 	VoiceMute    *bool
 	VoiceDeaf    *bool
 	VoiceChannel *types.Snowflake
+	Reply        types.Snowflake
+	Reference    *types.MessageReference
+	AllowedMentions *types.AllowedMentions
 }
 
 type MemberOptions struct {
@@ -244,16 +247,18 @@ type RoleOptions struct {
 }
 
 type MessageOptions struct {
-	Type       MessageAction
-	MessageID  types.Snowflake
-	ChannelID  types.Snowflake
-	Content    string
-	Embeds     []types.Embed
-	Components []types.Component
-	Emoji      []string
-	UserID     types.Snowflake
-	PurgeCount int
-	Reason     string
+	Type            MessageAction
+	MessageID       types.Snowflake
+	ChannelID       types.Snowflake
+	Content         string
+	Embeds          []types.Embed
+	Components      []types.Component
+	Emoji           []string
+	UserID          types.Snowflake
+	PurgeCount      int
+	Reason          string
+	Reference       *types.MessageReference
+	AllowedMentions *types.AllowedMentions
 }
 ```
 
@@ -395,6 +400,7 @@ func (a MessageSuite) Pin(reason ...string) error
 func (a MessageSuite) Unpin(reason ...string) error
 func (a MessageSuite) React(emoji string) error
 func (a MessageSuite) RemoveReaction(emoji string, userID ...types.Snowflake) error
+func (a MessageSuite) Reply(args ...any) (*types.Message, error)
 
 // role suite
 func (c *Context) RoleSuite(roleID ...types.Snowflake) RoleSuite
@@ -529,20 +535,23 @@ func ValidateRows(rows []types.Component) error
 
 ### Structural Layout Components
 ```go
-func Text(content string) types.Component
+func Text(content string, id ...int) types.Component
 func Divider() types.Component
 func Separator(opts ...SeparatorOpt) types.Component
 func WithSpacing(spacing types.SeparatorSpacing) SeparatorOpt
 func WithDivider(divider bool) SeparatorOpt
+func WithSeparatorID(id int) SeparatorOpt
 
 func Thumbnail(url string, opts ...ThumbnailOpt) types.Component
 func WithThumbnailDescription(desc string) ThumbnailOpt
 func WithThumbnailSpoiler(spoiler bool) ThumbnailOpt
+func WithThumbnailID(id int) ThumbnailOpt
 
 func FileCard(url string, opts ...FileCardOpt) types.Component
 func WithFileName(name string) FileCardOpt
 func WithFileSize(size int) FileCardOpt
 func WithFileSpoiler(spoiler bool) FileCardOpt
+func WithFileID(id int) FileCardOpt
 
 func MediaGallery(items ...types.MediaGalleryItem) types.Component
 func MediaItem(url string, opts ...MediaItemOpt) types.MediaGalleryItem
@@ -553,12 +562,14 @@ func Section(texts ...string) *SectionBuilder
 func SectionWithAccessory(accessory types.Component, texts ...string) types.Component
 func (s *SectionBuilder) WithText(text string) *SectionBuilder
 func (s *SectionBuilder) WithAccessory(accessory types.Component) *SectionBuilder
+func (s *SectionBuilder) WithID(id int) *SectionBuilder
 func (s *SectionBuilder) Build() types.Component
 
 func Container(components ...types.Component) *ContainerBuilder
 func ContainerCard(color any, components ...types.Component) types.Component
 func (c *ContainerBuilder) WithAccentColor(color any) *ContainerBuilder
 func (c *ContainerBuilder) WithSpoiler(spoiler bool) *ContainerBuilder
+func (c *ContainerBuilder) WithID(id int) *ContainerBuilder
 func (c *ContainerBuilder) Add(components ...types.Component) *ContainerBuilder
 func (c *ContainerBuilder) Build() types.Component
 
@@ -642,6 +653,81 @@ func (i TimeItem) UnixMilli() int64
 func (i TimeItem) ISO() string
 
 func Ptr[T any](v T) *T
+```
+
+## Types & Re-exports
+
+`gdk` re-exports core primitives from `github.com/sfossl/gda/types` for direct usage:
+
+### Primitives & Gateway Structures
+```go
+type Snowflake = types.Snowflake
+type Permission = types.Permission
+type Intent = types.Intent
+type Choice = types.Choice
+type Embed = types.Embed
+type EmbedField = types.EmbedField
+type Component = types.Component
+type File = types.File
+type InteractionResponse = types.InteractionResponse
+type MessageReference = types.MessageReference
+type AllowedMentions = types.AllowedMentions
+type EventName = types.EventName
+type StatusType = types.StatusType
+type ActivityType = types.ActivityType
+type Activity = types.Activity
+type PresenceUpdate = types.PresenceUpdate
+```
+
+### Gateway Events
+```go
+const (
+	EventReady               = types.EventReady
+	EventResumed             = types.EventResumed
+	EventChannelCreate       = types.EventChannelCreate
+	EventChannelUpdate       = types.EventChannelUpdate
+	EventChannelDelete       = types.EventChannelDelete
+	EventChannelPinsUpdate   = types.EventChannelPinsUpdate
+	EventThreadCreate        = types.EventThreadCreate
+	EventThreadUpdate        = types.EventThreadUpdate
+	EventThreadDelete        = types.EventThreadDelete
+	EventThreadListSync      = types.EventThreadListSync
+	EventGuildCreate         = types.EventGuildCreate
+	EventGuildUpdate         = types.EventGuildUpdate
+	EventGuildDelete         = types.EventGuildDelete
+	EventGuildBanAdd         = types.EventGuildBanAdd
+	EventGuildBanRemove      = types.EventGuildBanRemove
+	EventGuildMemberAdd      = types.EventGuildMemberAdd
+	EventGuildMemberRemove   = types.EventGuildMemberRemove
+	EventGuildMemberUpdate   = types.EventGuildMemberUpdate
+	EventGuildRoleCreate     = types.EventGuildRoleCreate
+	EventGuildRoleUpdate     = types.EventGuildRoleUpdate
+	EventGuildRoleDelete     = types.EventGuildRoleDelete
+	EventInteractionCreate   = types.EventInteractionCreate
+	EventMessageCreate       = types.EventMessageCreate
+	EventMessageUpdate       = types.EventMessageUpdate
+	EventMessageDelete       = types.EventMessageDelete
+	EventMessageDeleteBulk   = types.EventMessageDeleteBulk
+	EventMessageReactionAdd  = types.EventMessageReactionAdd
+)
+```
+
+### Presence & Activity Constants
+```go
+const (
+	StatusOnline    = types.StatusOnline
+	StatusDND       = types.StatusDND
+	StatusIdle      = types.StatusIdle
+	StatusInvisible = types.StatusInvisible
+	StatusOffline   = types.StatusOffline
+
+	ActivityTypePlaying   = types.ActivityTypePlaying
+	ActivityTypeStreaming = types.ActivityTypeStreaming
+	ActivityTypeListening = types.ActivityTypeListening
+	ActivityTypeWatching  = types.ActivityTypeWatching
+	ActivityTypeCustom    = types.ActivityTypeCustom
+	ActivityTypeCompeting = types.ActivityTypeCompeting
+)
 ```
 
 ## Error Sentinels
