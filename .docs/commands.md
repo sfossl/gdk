@@ -101,25 +101,23 @@ intOpt := gdk.IntOption("count", "total count").
 chanOpt := gdk.ChannelOption("target", "announcement channel", 0, 5)
 ```
 
-### Pointer Constraints (`util.Ptr`)
+### Pointer Constraints (`gdk.Ptr`)
 
-Optional command and option constraints (`MinLength`, `MaxLength`, `MinValue`, `MaxValue`, `DMPermission`) require pointer types so that `nil` denotes an unset constraint. Because Go does not allow taking the memory address of constant literals directly (e.g. `&10` causes a compiler error), `gdk/util` provides `util.Ptr[T any](v T) *T`:
+Optional command and option constraints (`MinLength`, `MaxLength`, `MinValue`, `MaxValue`, `DMPermission`) require pointer types so that `nil` denotes an unset constraint. Because Go does not allow taking the memory address of constant literals directly (e.g. `&10` causes a compiler error), `gdk` exports the generic helper `gdk.Ptr[T any](v T) *T`:
 
 ```go
-import "github.com/sfossl/gdk/util"
-
 opt := gdk.Option{
 	Type:        gdk.OptionTypeString,
 	Name:        "username",
 	Description: "target username",
-	MinLength:   util.Ptr(3),
-	MaxLength:   util.Ptr(32),
+	MinLength:   gdk.Ptr(3),
+	MaxLength:   gdk.Ptr(32),
 }
 
 cmd := gdk.Command{
 	Name:         "secret",
 	Description:  "guild-only command",
-	DMPermission: util.Ptr(false),
+	DMPermission: gdk.Ptr(false),
 }
 ```
 
