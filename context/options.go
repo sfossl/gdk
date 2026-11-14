@@ -61,19 +61,30 @@ func (o Options) ResolveReference() *types.MessageReference {
 	return nil
 }
 
-func (o Options) ResolveAllowedMentions(defaultMention bool) types.AllowedMentions {
+type WireAllowedMentions struct {
+	Parse       []string          `json:"parse"`
+	Roles       []types.Snowflake `json:"roles,omitempty"`
+	Users       []types.Snowflake `json:"users,omitempty"`
+	RepliedUser *bool             `json:"replied_user,omitempty"`
+}
+
+func (o Options) ResolveAllowedMentions(defaultMention bool) any {
 	if o.AllowedMentions != nil {
-		return *o.AllowedMentions
+		return WireAllowedMentions{
+			Parse:       o.AllowedMentions.Parse,
+			Roles:       o.AllowedMentions.Roles,
+			Users:       o.AllowedMentions.Users,
+			RepliedUser: o.AllowedMentions.RepliedUser,
+		}
 	}
-	if o.ResolveMention(defaultMention) {
-		replied := true
-		return types.AllowedMentions{
+	replied := o.ResolveMention(defaultMention)
+	if replied {
+		return WireAllowedMentions{
 			Parse:       []string{"users", "roles", "everyone"},
 			RepliedUser: &replied,
 		}
 	}
-	replied := false
-	return types.AllowedMentions{
+	return WireAllowedMentions{
 		Parse:       []string{},
 		RepliedUser: &replied,
 	}
@@ -180,4 +191,15 @@ func (o Options) ResolveMessage(c *Context) types.Snowflake {
 		return *c.Interaction.Data.TargetID
 	}
 	return 0
+}
+
+func joinReason(reasons []string) string {
+	switch len(reasons) {
+	case 0:
+		return ""
+	case 1:
+		return reasons[0]
+	default:
+		return strings.Join(reasons, " ")
+	}
 }
