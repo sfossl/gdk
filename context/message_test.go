@@ -632,3 +632,30 @@ func TestMessageEditLayoutValidation(t *testing.T) {
 		t.Fatalf("suite: expected MessageFlagIsComponentsV2 flag to be set")
 	}
 }
+
+func TestMessageSuite_Reply(t *testing.T) {
+	var capturedPayload rest.MessagePayload
+	c, cleanup := setupMessageTestContext(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/channels/200/messages" {
+			_ = json.NewDecoder(r.Body).Decode(&capturedPayload)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"id":"999","channel_id":"200","content":"reply"}`))
+		}
+	})
+	defer cleanup()
+
+	suite := c.MessageSuite(types.Snowflake(555))
+	msg, err := suite.Reply("hello reply")
+	if err != nil {
+		t.Fatalf("unexpected reply error: %v", err)
+	}
+	if msg.ID != 999 {
+		t.Fatalf("expected msg id 999, got %v", msg.ID)
+	}
+	if capturedPayload.MessageReference == nil || capturedPayload.MessageReference.MessageID == nil || *capturedPayload.MessageReference.MessageID != 555 {
+		t.Fatalf("expected message reference to target 555, got %+v", capturedPayload.MessageReference)
+	}
+	if capturedPayload.Content != "hello reply" {
+		t.Fatalf("expected content hello reply, got %s", capturedPayload.Content)
+	}
+}
