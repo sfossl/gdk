@@ -45,6 +45,38 @@ type Options struct {
 	VoiceMute        *bool
 	VoiceDeaf        *bool
 	VoiceChannel     *types.Snowflake
+	Reply            types.Snowflake
+	Reference        *types.MessageReference
+	AllowedMentions  *types.AllowedMentions
+}
+
+func (o Options) ResolveReference() *types.MessageReference {
+	if o.Reference != nil {
+		return o.Reference
+	}
+	if o.Reply != 0 {
+		msgID := o.Reply
+		return &types.MessageReference{MessageID: &msgID}
+	}
+	return nil
+}
+
+func (o Options) ResolveAllowedMentions(defaultMention bool) types.AllowedMentions {
+	if o.AllowedMentions != nil {
+		return *o.AllowedMentions
+	}
+	if o.ResolveMention(defaultMention) {
+		replied := true
+		return types.AllowedMentions{
+			Parse:       []string{"users", "roles", "everyone"},
+			RepliedUser: &replied,
+		}
+	}
+	replied := false
+	return types.AllowedMentions{
+		Parse:       []string{},
+		RepliedUser: &replied,
+	}
 }
 
 func (o Options) ResolveComponentTimeout() time.Duration {
