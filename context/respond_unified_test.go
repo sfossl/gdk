@@ -195,22 +195,20 @@ func TestRespond_Mention_RepliedUserSuppression(t *testing.T) {
 		if res.Data == nil {
 			t.Fatalf("expected data in response")
 		}
-		allowed, ok := res.Data.AllowedMentions.(map[string]any)
+		allowed, ok := res.Data.AllowedMentions.(types.AllowedMentions)
 		if !ok {
-			t.Fatalf("expected map[string]any in AllowedMentions, got: %T", res.Data.AllowedMentions)
+			t.Fatalf("expected types.AllowedMentions in AllowedMentions, got: %T", res.Data.AllowedMentions)
 		}
-		if repliedUser, exists := allowed["replied_user"]; !exists || repliedUser != false {
-			t.Fatalf("expected replied_user to be false by default, got: %v", repliedUser)
+		if allowed.RepliedUser == nil || *allowed.RepliedUser != false {
+			t.Fatalf("expected replied_user to be false by default, got: %v", allowed.RepliedUser)
 		}
-		parseList, ok := allowed["parse"].([]string)
-		if !ok || len(parseList) != 0 {
-			t.Fatalf("expected empty parse list for default silent reply, got: %v", allowed["parse"])
+		if len(allowed.Parse) != 0 {
+			t.Fatalf("expected empty parse list for default silent reply, got: %v", allowed.Parse)
 		}
 	default:
 		t.Fatalf("expected response on channel")
 	}
 
-	// Test explicit mention: true
 	c2 := New(context.Background(), in, nil)
 	_, err = c2.Respond(Options{
 		Content: "reply with ping",
@@ -222,19 +220,17 @@ func TestRespond_Mention_RepliedUserSuppression(t *testing.T) {
 
 	select {
 	case res := <-c2.ResponseChannel():
-		allowed, ok := res.Data.AllowedMentions.(map[string]any)
-		if !ok || allowed["replied_user"] != true {
+		allowed, ok := res.Data.AllowedMentions.(types.AllowedMentions)
+		if !ok || allowed.RepliedUser == nil || *allowed.RepliedUser != true {
 			t.Fatalf("expected replied_user to be true when Mention is true, got: %v", allowed)
 		}
-		parseList, ok := allowed["parse"].([]string)
-		if !ok || len(parseList) == 0 {
-			t.Fatalf("expected non-empty parse list when Mention is true, got: %v", allowed["parse"])
+		if len(allowed.Parse) == 0 {
+			t.Fatalf("expected non-empty parse list when Mention is true, got: %v", allowed.Parse)
 		}
 	default:
 		t.Fatalf("expected response on channel")
 	}
 
-	// Test project default inheritance (Tier 2 defaultMention = true)
 	c3 := New(context.Background(), in, nil)
 	c3.DefaultMention = true
 	_, err = c3.Respond(Options{
@@ -246,15 +242,14 @@ func TestRespond_Mention_RepliedUserSuppression(t *testing.T) {
 
 	select {
 	case res := <-c3.ResponseChannel():
-		allowed, ok := res.Data.AllowedMentions.(map[string]any)
-		if !ok || allowed["replied_user"] != true {
+		allowed, ok := res.Data.AllowedMentions.(types.AllowedMentions)
+		if !ok || allowed.RepliedUser == nil || *allowed.RepliedUser != true {
 			t.Fatalf("expected replied_user to inherit true from project default, got: %v", allowed)
 		}
 	default:
 		t.Fatalf("expected response on channel")
 	}
 
-	// Test local override suppressing project default (Tier 1 overrides Tier 2)
 	c4 := New(context.Background(), in, nil)
 	c4.DefaultMention = true
 	_, err = c4.Respond(Options{
@@ -267,8 +262,8 @@ func TestRespond_Mention_RepliedUserSuppression(t *testing.T) {
 
 	select {
 	case res := <-c4.ResponseChannel():
-		allowed, ok := res.Data.AllowedMentions.(map[string]any)
-		if !ok || allowed["replied_user"] != false {
+		allowed, ok := res.Data.AllowedMentions.(types.AllowedMentions)
+		if !ok || allowed.RepliedUser == nil || *allowed.RepliedUser != false {
 			t.Fatalf("expected replied_user to be false via local override, got: %v", allowed)
 		}
 	default:
