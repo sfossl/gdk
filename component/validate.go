@@ -188,6 +188,10 @@ func ValidateComponents(components []types.Component) error {
 		}
 
 		if c.Type == types.ComponentTypeActionRow {
+			totalCount += len(c.Components)
+			if totalCount > MaxTotalComponents {
+				return ErrTooManyComponents
+			}
 			if err := ValidateRows([]types.Component{c}); err != nil {
 				return err
 			}
