@@ -39,6 +39,13 @@ type SeparatorSpacing = types.SeparatorSpacing
 type MediaGalleryItem = types.MediaGalleryItem
 type UnfurledMedia = types.UnfurledMedia
 type MessageFlag = types.MessageFlag
+type MessageReference = types.MessageReference
+type AllowedMentions = types.AllowedMentions
+type EventName = types.EventName
+type StatusType = types.StatusType
+type ActivityType = types.ActivityType
+type Activity = types.Activity
+type PresenceUpdate = types.PresenceUpdate
 
 type App = app.App
 type Config = app.Config
@@ -269,6 +276,47 @@ const (
 	SeparatorSpacingLarge = types.SeparatorSpacingLarge
 
 	MessageFlagIsComponentsV2 = types.MessageFlagIsComponentsV2
+
+	EventReady                       = types.EventReady
+	EventResumed                     = types.EventResumed
+	EventMessageCreate               = types.EventMessageCreate
+	EventMessageUpdate               = types.EventMessageUpdate
+	EventMessageDelete               = types.EventMessageDelete
+	EventInteractionCreate           = types.EventInteractionCreate
+	EventGuildCreate                 = types.EventGuildCreate
+	EventGuildUpdate                 = types.EventGuildUpdate
+	EventGuildDelete                 = types.EventGuildDelete
+	EventChannelCreate               = types.EventChannelCreate
+	EventChannelUpdate               = types.EventChannelUpdate
+	EventChannelDelete               = types.EventChannelDelete
+	EventVoiceStateUpdate            = types.EventVoiceStateUpdate
+	EventAutoModerationRuleCreate    = types.EventAutoModerationRuleCreate
+	EventAutoModerationRuleUpdate    = types.EventAutoModerationRuleUpdate
+	EventAutoModerationRuleDelete    = types.EventAutoModerationRuleDelete
+	EventAutoModerationActionExecute = types.EventAutoModerationActionExecute
+	EventGuildMemberAdd              = types.EventGuildMemberAdd
+	EventGuildMemberUpdate           = types.EventGuildMemberUpdate
+	EventGuildMemberRemove           = types.EventGuildMemberRemove
+	EventGuildBanAdd                 = types.EventGuildBanAdd
+	EventGuildBanRemove              = types.EventGuildBanRemove
+	EventMessageReactionAdd          = types.EventMessageReactionAdd
+	EventMessageReactionRemove       = types.EventMessageReactionRemove
+	EventMessageReactionRemoveAll    = types.EventMessageReactionRemoveAll
+	EventTypingStart                 = types.EventTypingStart
+	EventUserUpdate                  = types.EventUserUpdate
+
+	StatusOnline    = types.StatusOnline
+	StatusDND       = types.StatusDND
+	StatusIdle      = types.StatusIdle
+	StatusInvisible = types.StatusInvisible
+	StatusOffline   = types.StatusOffline
+
+	ActivityTypeGame      = types.ActivityTypeGame
+	ActivityTypeStreaming = types.ActivityTypeStreaming
+	ActivityTypeListening = types.ActivityTypeListening
+	ActivityTypeWatching  = types.ActivityTypeWatching
+	ActivityTypeCustom    = types.ActivityTypeCustom
+	ActivityTypeCompeting = types.ActivityTypeCompeting
 )
 
 var (
@@ -387,13 +435,16 @@ var (
 	Separator                = component.Separator
 	WithSpacing              = component.WithSpacing
 	WithDivider              = component.WithDivider
+	WithSeparatorID          = component.WithSeparatorID
 	Thumbnail                = component.Thumbnail
 	WithThumbnailDescription = component.WithThumbnailDescription
 	WithThumbnailSpoiler     = component.WithThumbnailSpoiler
+	WithThumbnailID          = component.WithThumbnailID
 	FileCard                 = component.FileCard
 	WithFileName             = component.WithFileName
 	WithFileSize             = component.WithFileSize
 	WithFileSpoiler          = component.WithFileSpoiler
+	WithFileID               = component.WithFileID
 	MediaItem                = component.MediaItem
 	WithItemDescription      = component.WithItemDescription
 	WithItemSpoiler          = component.WithItemSpoiler
@@ -485,14 +536,14 @@ var (
 	NewApp        = app.New
 	DefaultConfig = app.DefaultConfig
 
-	WithMode      = app.WithMode
-	WithIntents   = app.WithIntents
-	WithDevMode   = app.WithDevMode
-	WithAutoDefer = app.WithAutoDefer
-	WithAutoSync  = app.WithAutoSync
-	WithTimeout          = app.WithTimeout
-	WithWebhook          = app.WithWebhook
-	WithDefaultMention   = app.WithDefaultMention
+	WithMode           = app.WithMode
+	WithIntents        = app.WithIntents
+	WithDevMode        = app.WithDevMode
+	WithAutoDefer      = app.WithAutoDefer
+	WithAutoSync       = app.WithAutoSync
+	WithTimeout        = app.WithTimeout
+	WithWebhook        = app.WithWebhook
+	WithDefaultMention = app.WithDefaultMention
 
 	Register             = app.Register
 	RegisteredCommands   = app.RegisteredCommands
