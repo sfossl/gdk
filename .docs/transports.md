@@ -79,6 +79,19 @@ if err := app.Run(ctx); err != nil && err != context.Canceled {
 _ = app.Close()
 ```
 
+### Serverless & Custom Routers (`WebhookHandler`)
+For serverless runtimes (AWS Lambda, Google Cloud Run) or mounting onto an existing `net/http` router without managing a separate TCP listener, retrieve the verified `http.Handler` directly:
+
+```go
+handler, err := app.WebhookHandler()
+if err != nil {
+	log.Fatalf("failed to create webhook handler: %v", err)
+}
+
+// Mount onto standard http.ServeMux, chi, gin, echo, etc.
+http.Handle("/interactions", handler)
+```
+
 ## Auto-Defer and Safety Fallbacks
 
 Discord enforces a strict 3-second acknowledgement window for all interactions:
