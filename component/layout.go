@@ -9,11 +9,16 @@ type ThumbnailOpt func(*types.Component)
 type FileCardOpt func(*types.Component)
 type MediaItemOpt func(*types.MediaGalleryItem)
 
-func Text(content string) types.Component {
-	return types.Component{
+func Text(content string, id ...int) types.Component {
+	c := types.Component{
 		Type:    types.ComponentTypeTextDisplay,
 		Content: content,
 	}
+	if len(id) > 0 {
+		val := id[0]
+		c.ID = &val
+	}
+	return c
 }
 
 func Divider() types.Component {
@@ -36,6 +41,12 @@ func WithSpacing(spacing types.SeparatorSpacing) SeparatorOpt {
 func WithDivider(divider bool) SeparatorOpt {
 	return func(c *types.Component) {
 		c.Divider = &divider
+	}
+}
+
+func WithSeparatorID(id int) SeparatorOpt {
+	return func(c *types.Component) {
+		c.ID = &id
 	}
 }
 
@@ -65,6 +76,12 @@ func WithThumbnailSpoiler(spoiler bool) ThumbnailOpt {
 	}
 }
 
+func WithThumbnailID(id int) ThumbnailOpt {
+	return func(c *types.Component) {
+		c.ID = &id
+	}
+}
+
 func Thumbnail(url string, opts ...ThumbnailOpt) types.Component {
 	c := types.Component{
 		Type:  types.ComponentTypeThumbnail,
@@ -91,6 +108,12 @@ func WithFileSize(size int) FileCardOpt {
 func WithFileSpoiler(spoiler bool) FileCardOpt {
 	return func(c *types.Component) {
 		c.Spoiler = &spoiler
+	}
+}
+
+func WithFileID(id int) FileCardOpt {
+	return func(c *types.Component) {
+		c.ID = &id
 	}
 }
 
@@ -161,6 +184,11 @@ func (s *SectionBuilder) WithAccessory(accessory types.Component) *SectionBuilde
 	return s
 }
 
+func (s *SectionBuilder) WithID(id int) *SectionBuilder {
+	s.comp.ID = &id
+	return s
+}
+
 func (s *SectionBuilder) Build() types.Component {
 	return s.comp
 }
@@ -180,6 +208,11 @@ func Container(components ...types.Component) *ContainerBuilder {
 			Components: components,
 		},
 	}
+}
+
+func (c *ContainerBuilder) WithID(id int) *ContainerBuilder {
+	c.comp.ID = &id
+	return c
 }
 
 func (c *ContainerBuilder) WithAccentColor(color any) *ContainerBuilder {
