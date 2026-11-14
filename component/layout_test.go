@@ -147,3 +147,35 @@ func TestContainer(t *testing.T) {
 		t.Fatalf("expected red container card")
 	}
 }
+
+func TestLayoutWithID(t *testing.T) {
+	txt := Text("content", 42)
+	if txt.ID == nil || *txt.ID != 42 {
+		t.Fatalf("expected text id 42, got %v", txt.ID)
+	}
+
+	sep := Separator(WithSeparatorID(10))
+	if sep.ID == nil || *sep.ID != 10 {
+		t.Fatalf("expected sep id 10, got %v", sep.ID)
+	}
+
+	thumb := Thumbnail("https://example.com/t.png", WithThumbnailID(20))
+	if thumb.ID == nil || *thumb.ID != 20 {
+		t.Fatalf("expected thumb id 20, got %v", thumb.ID)
+	}
+
+	fc := FileCard("https://example.com/doc.pdf", WithFileID(30))
+	if fc.ID == nil || *fc.ID != 30 {
+		t.Fatalf("expected file id 30, got %v", fc.ID)
+	}
+
+	sec := Section("Title").WithID(50).Build()
+	if sec.ID == nil || *sec.ID != 50 {
+		t.Fatalf("expected sec id 50, got %v", sec.ID)
+	}
+
+	cont := Container(txt).WithID(99).Build()
+	if cont.ID == nil || *cont.ID != 99 {
+		t.Fatalf("expected cont id 99, got %v", cont.ID)
+	}
+}
