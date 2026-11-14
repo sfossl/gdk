@@ -48,7 +48,7 @@ When calling `ctx.Respond(gdk.Options{...})`, the following fields are processed
 
 `ctx.Respond` validates payloads before touching the network:
 - If `Content`, `Embeds`, `Components` and `Files` are all empty (and `Deferred` is `false`), it returns `gdk.ErrEmptyMessage` immediately.
-- When structural layout components are present, `gdk` automatically injects `types.MessageFlagIsComponentsV2` (`32768`). Top-level `Content` and legacy `Embeds` are mutually exclusive with layout components and return `gdk.ErrContentNotAllowedWithLayouts` or `gdk.ErrEmbedsNotAllowedWithLayouts` to prevent Discord API errors. All layout limits (40 components max, 4,000 text characters max, no nested containers, valid accessories) are verified locally.
+- When structural layout components are present, `gdk` automatically injects `gdk.MessageFlagIsComponentsV2` (`32768`). Top-level `Content` and legacy `Embeds` are mutually exclusive with layout components and return `gdk.ErrContentNotAllowedWithLayouts` or `gdk.ErrEmbedsNotAllowedWithLayouts` to prevent Discord API errors. All layout limits (40 components max, 4,000 text characters max, no nested containers, valid accessories) are verified locally.
 
 ---
 
