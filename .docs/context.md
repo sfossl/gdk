@@ -127,6 +127,20 @@ ctx.Respond(gdk.Options{
 	Mention: false,
 })
 
+// inline reply referencing another message
+ctx.Respond(gdk.Options{
+	Content: "replying to original message",
+	Reply:   originalMsgID,
+})
+
+// fine-grained allowed mentions
+ctx.Respond(gdk.Options{
+	Content: "alerting specific user",
+	AllowedMentions: &gdk.AllowedMentions{
+		Users: []types.Snowflake{targetUserID},
+	},
+})
+
 // standalone channel message
 ctx.ChannelSuite(channelID).Send("standalone message posted to channel")
 ctx.Typing()
