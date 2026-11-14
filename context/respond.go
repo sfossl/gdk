@@ -9,10 +9,14 @@ import (
 )
 
 var (
-	ErrAlreadyResponded = errors.New("interaction already acknowledged")
-	ErrModalAfterDefer  = errors.New("cannot send modal after deferring")
-	ErrNoInteraction    = errors.New("interaction payload missing")
-	ErrEmptyMessage     = errors.New("cannot send an empty message: content, embeds, components, or files required")
+	ErrAlreadyResponded        = errors.New("interaction already acknowledged")
+	ErrModalAfterDefer         = errors.New("cannot send modal after deferring")
+	ErrNoInteraction           = errors.New("interaction payload missing")
+	ErrEmptyMessage            = errors.New("cannot send an empty message: content, embeds, components, or files required")
+	ErrInvalidModalCustomID    = errors.New("modal custom id must be between 1 and 100 characters")
+	ErrInvalidModalTitle       = errors.New("modal title must be between 1 and 45 characters")
+	ErrEmptyModalComponents    = errors.New("modal must contain at least 1 component")
+	ErrInvalidModalInteraction = errors.New("cannot respond with a modal to ping, autocomplete, or modal submit interactions")
 )
 
 type Modal struct {
@@ -24,13 +28,12 @@ type Modal struct {
 type Response = Options
 
 func (c *Context) Defer(ephemeral ...bool) error {
-	if c.responded.Load() {
+	if !c.state.CompareAndSwap(stateInitial, stateDeferred) {
+		if c.state.Load() == stateDeferred {
+			return nil
+		}
 		return ErrAlreadyResponded
 	}
-	if !c.responded.CompareAndSwap(false, true) {
-		return ErrAlreadyResponded
-	}
-	c.deferred.Store(true)
 
 	isEphemeral := len(ephemeral) > 0 && ephemeral[0]
 	resp := types.InteractionResponse{
@@ -48,23 +51,22 @@ func (c *Context) sendInteractionResponse(resp types.InteractionResponse) error 
 		case c.responseChan <- resp:
 			return nil
 		default:
+			c.state.Store(stateInitial)
+			return ErrAlreadyResponded
 		}
 	}
 
 	if c.REST == nil {
-		c.deferred.Store(false)
-		c.responded.Store(false)
+		c.state.Store(stateInitial)
 		return ErrNoRESTClient
 	}
 	if c.Interaction == nil {
-		c.deferred.Store(false)
-		c.responded.Store(false)
+		c.state.Store(stateInitial)
 		return ErrNoInteraction
 	}
 	err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
 	if err != nil {
-		c.deferred.Store(false)
-		c.responded.Store(false)
+		c.state.Store(stateInitial)
 		return err
 	}
 	return nil
@@ -169,22 +171,8 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 		return nil, err
 	}
 
-	if res.Content == "" && len(res.Embeds) == 0 && len(res.Components) == 0 && len(res.Files) == 0 {
-		return nil, ErrEmptyMessage
-	}
-
-	if len(res.Components) > 0 {
-		if err := component.ValidateComponents(res.Components); err != nil {
-			return nil, err
-		}
-		if component.HasLayoutComponents(res.Components) {
-			if len(res.Embeds) > 0 {
-				return nil, component.ErrEmbedsNotAllowedWithLayouts
-			}
-			if res.Content != "" {
-				return nil, component.ErrContentNotAllowedWithLayouts
-			}
-		}
+	if err := c.validateResponseOptions(res); err != nil {
+		return nil, err
 	}
 
 	if res.Typing && c.REST != nil {
@@ -258,17 +246,7 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 			sendFlags |= types.MessageFlagIsComponentsV2
 		}
 
-		payload := rest.MessagePayload{
-			Content:          res.Content,
-			Embeds:           res.Embeds,
-			Components:       res.Components,
-			Flags:            sendFlags,
-			TTS:              res.TTS,
-			Files:            res.Files,
-			AllowedMentions:  res.ResolveAllowedMentions(c.DefaultMention),
-			MessageReference: res.ResolveReference(),
-		}
-		msg, err := c.REST.SendMessage(c.Context(), channelID, payload)
+		msg, err := c.REST.SendMessage(c.Context(), channelID, c.buildMessagePayload(res, sendFlags))
 		if err != nil {
 			return nil, err
 		}
@@ -281,48 +259,29 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 		flags |= types.MessageFlagIsComponentsV2
 	}
 
-	if c.deferred.CompareAndSwap(true, false) {
-		if c.REST == nil {
-			c.deferred.Store(true)
-			return nil, ErrNoRESTClient
-		}
-		if c.Interaction == nil {
-			c.deferred.Store(true)
-			return nil, ErrNoInteraction
-		}
-		msg, err := c.REST.EditOriginalInteractionResponse(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
-			Content:         res.Content,
-			Embeds:          res.Embeds,
-			Components:      res.Components,
-			Flags:           flags,
-			TTS:             res.TTS,
-			Files:           res.Files,
-			AllowedMentions: res.ResolveAllowedMentions(c.DefaultMention),
-		})
+	if c.state.CompareAndSwap(stateDeferred, stateResponded) {
+		msg, err := c.editOriginal(res, flags)
 		if err != nil {
-			c.deferred.Store(true)
+			c.state.Store(stateDeferred)
 			return nil, err
 		}
-		c.scheduleLifecycleTimers(res, msg)
 		return msg, nil
 	}
 
-	if c.responded.Load() {
+	if c.state.Load() == stateResponded {
+		if c.Interaction != nil {
+			switch c.Interaction.Type {
+			case types.InteractionTypePing, types.InteractionTypeApplicationCommandAutocomplete:
+				return nil, ErrAlreadyResponded
+			}
+		}
 		if c.REST == nil {
 			return nil, ErrNoRESTClient
 		}
 		if c.Interaction == nil {
 			return nil, ErrNoInteraction
 		}
-		msg, err := c.REST.CreateFollowupMessage(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
-			Content:         res.Content,
-			Embeds:          res.Embeds,
-			Components:      res.Components,
-			Flags:           flags,
-			TTS:             res.TTS,
-			Files:           res.Files,
-			AllowedMentions: res.ResolveAllowedMentions(c.DefaultMention),
-		})
+		msg, err := c.REST.CreateFollowupMessage(c.Context(), c.AppID, c.Interaction.Token, c.buildMessagePayload(res, flags))
 		if err != nil {
 			return nil, err
 		}
@@ -330,7 +289,7 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 		return msg, nil
 	}
 
-	if !c.responded.CompareAndSwap(false, true) {
+	if !c.state.CompareAndSwap(stateInitial, stateResponded) {
 		return c.Respond(res)
 	}
 
@@ -359,9 +318,9 @@ func (c *Context) respondReceipt(receipt string) error {
 	if c.Interaction == nil {
 		return nil
 	}
-	if c.deferred.CompareAndSwap(true, false) {
+	if c.state.CompareAndSwap(stateDeferred, stateResponded) {
 		if c.REST == nil {
-			c.deferred.Store(true)
+			c.state.Store(stateDeferred)
 			return ErrNoRESTClient
 		}
 		_, err := c.REST.EditOriginalInteractionResponse(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
@@ -369,17 +328,13 @@ func (c *Context) respondReceipt(receipt string) error {
 			Flags:   types.MessageFlagEphemeral,
 		})
 		if err != nil {
-			c.deferred.Store(true)
+			c.state.Store(stateDeferred)
 			return err
 		}
 		return nil
 	}
 
-	if c.responded.Load() {
-		return nil
-	}
-
-	if !c.responded.CompareAndSwap(false, true) {
+	if !c.state.CompareAndSwap(stateInitial, stateResponded) {
 		return nil
 	}
 
@@ -401,10 +356,7 @@ func flagsFromEphemeral(ephemeral bool) types.MessageFlag {
 }
 
 func (c *Context) Pong() error {
-	if c.responded.Load() {
-		return ErrAlreadyResponded
-	}
-	if !c.responded.CompareAndSwap(false, true) {
+	if !c.state.CompareAndSwap(stateInitial, stateResponded) {
 		return ErrAlreadyResponded
 	}
 
@@ -418,10 +370,7 @@ func (c *Context) Autocomplete(choices []types.Choice) error {
 	if len(choices) > 25 {
 		choices = choices[:25]
 	}
-	if c.responded.Load() {
-		return ErrAlreadyResponded
-	}
-	if !c.responded.CompareAndSwap(false, true) {
+	if !c.state.CompareAndSwap(stateInitial, stateResponded) {
 		return ErrAlreadyResponded
 	}
 
@@ -435,14 +384,35 @@ func (c *Context) Autocomplete(choices []types.Choice) error {
 }
 
 func (c *Context) Modal(m Modal) error {
-	if c.deferred.Load() {
+	if c.Interaction != nil {
+		switch c.Interaction.Type {
+		case types.InteractionTypePing,
+			types.InteractionTypeApplicationCommandAutocomplete,
+			types.InteractionTypeModalSubmit:
+			return ErrInvalidModalInteraction
+		}
+	}
+	if c.state.Load() == stateDeferred {
 		return ErrModalAfterDefer
 	}
-	if c.responded.Load() {
+	if !c.state.CompareAndSwap(stateInitial, stateResponded) {
 		return ErrAlreadyResponded
 	}
-	if !c.responded.CompareAndSwap(false, true) {
-		return ErrAlreadyResponded
+	if c.gatewayMode && c.REST == nil {
+		c.state.Store(stateInitial)
+		return ErrNoRESTClient
+	}
+	if len(m.CustomID) == 0 || len(m.CustomID) > 100 {
+		c.state.Store(stateInitial)
+		return ErrInvalidModalCustomID
+	}
+	if len(m.Title) == 0 || len(m.Title) > 45 {
+		c.state.Store(stateInitial)
+		return ErrInvalidModalTitle
+	}
+	if len(m.Components) == 0 {
+		c.state.Store(stateInitial)
+		return ErrEmptyModalComponents
 	}
 
 	resp := types.InteractionResponse{
@@ -454,4 +424,52 @@ func (c *Context) Modal(m Modal) error {
 		},
 	}
 	return c.sendInteractionResponse(resp)
+}
+
+func (c *Context) validateResponseOptions(res Options) error {
+	if res.Content == "" && len(res.Embeds) == 0 && len(res.Components) == 0 && len(res.Files) == 0 {
+		return ErrEmptyMessage
+	}
+	if len(res.Components) > 0 {
+		if err := component.ValidateComponents(res.Components); err != nil {
+			return err
+		}
+		if component.HasLayoutComponents(res.Components) {
+			if len(res.Embeds) > 0 {
+				return component.ErrEmbedsNotAllowedWithLayouts
+			}
+			if res.Content != "" {
+				return component.ErrContentNotAllowedWithLayouts
+			}
+		}
+	}
+	return nil
+}
+
+func (c *Context) buildMessagePayload(res Options, flags types.MessageFlag) rest.MessagePayload {
+	return rest.MessagePayload{
+		Content:          res.Content,
+		Embeds:           res.Embeds,
+		Components:       res.Components,
+		Flags:            flags,
+		TTS:              res.TTS,
+		Files:            res.Files,
+		AllowedMentions:  res.ResolveAllowedMentions(c.DefaultMention),
+		MessageReference: res.ResolveReference(),
+	}
+}
+
+func (c *Context) editOriginal(res Options, flags types.MessageFlag) (*types.Message, error) {
+	if c.REST == nil {
+		return nil, ErrNoRESTClient
+	}
+	if c.Interaction == nil {
+		return nil, ErrNoInteraction
+	}
+	msg, err := c.REST.EditOriginalInteractionResponse(c.Context(), c.AppID, c.Interaction.Token, c.buildMessagePayload(res, flags))
+	if err != nil {
+		return nil, err
+	}
+	c.scheduleLifecycleTimers(res, msg)
+	return msg, nil
 }
