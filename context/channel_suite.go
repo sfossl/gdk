@@ -5,6 +5,7 @@ import (
 
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/component"
 )
 
 type ChannelSuite struct {
@@ -44,7 +45,7 @@ func (a ChannelSuite) Delete(reason ...string) error {
 	if a.ctx.REST == nil {
 		return ErrNoRESTClient
 	}
-	r := strings.Join(reason, " ")
+	r := joinReason(reason)
 	return a.ctx.REST.DeleteChannel(a.ctx.Context(), a.channelID, r)
 }
 
@@ -58,7 +59,7 @@ func (a ChannelSuite) SetName(name string, reason ...string) (*types.Channel, er
 	if strings.TrimSpace(name) == "" {
 		return nil, ErrChannelNameRequired
 	}
-	r := strings.Join(reason, " ")
+	r := joinReason(reason)
 	return a.ctx.REST.ModifyChannel(a.ctx.Context(), a.channelID, rest.ModifyChannelPayload{
 		Name: &name,
 	}, r)
@@ -71,7 +72,7 @@ func (a ChannelSuite) SetTopic(topic string, reason ...string) (*types.Channel, 
 	if a.ctx.REST == nil {
 		return nil, ErrNoRESTClient
 	}
-	r := strings.Join(reason, " ")
+	r := joinReason(reason)
 	return a.ctx.REST.ModifyChannel(a.ctx.Context(), a.channelID, rest.ModifyChannelPayload{
 		Topic: &topic,
 	}, r)
@@ -88,7 +89,7 @@ func (a ChannelSuite) SetSlowmode(duration any, reason ...string) (*types.Channe
 	if err != nil {
 		return nil, err
 	}
-	r := strings.Join(reason, " ")
+	r := joinReason(reason)
 	return a.ctx.REST.ModifyChannel(a.ctx.Context(), a.channelID, rest.ModifyChannelPayload{
 		RateLimitPerUser: &sec,
 	}, r)
@@ -101,7 +102,7 @@ func (a ChannelSuite) Edit(payload rest.ModifyChannelPayload, reason ...string) 
 	if a.ctx.REST == nil {
 		return nil, ErrNoRESTClient
 	}
-	r := strings.Join(reason, " ")
+	r := joinReason(reason)
 	return a.ctx.REST.ModifyChannel(a.ctx.Context(), a.channelID, payload, r)
 }
 
@@ -115,7 +116,7 @@ func (a ChannelSuite) Create(payload rest.CreateChannelPayload, reason ...string
 	if strings.TrimSpace(payload.Name) == "" {
 		return nil, ErrChannelNameRequired
 	}
-	r := strings.Join(reason, " ")
+	r := joinReason(reason)
 	return a.ctx.REST.CreateGuildChannel(a.ctx.Context(), *a.ctx.GuildID, payload, r)
 }
 
@@ -130,12 +131,32 @@ func (a ChannelSuite) Send(args ...any) (*types.Message, error) {
 	if res.Content == "" && len(res.Embeds) == 0 && len(res.Components) == 0 && len(res.Files) == 0 {
 		return nil, ErrEmptyMessage
 	}
+
+	var flags types.MessageFlag
+	if len(res.Components) > 0 {
+		if err := component.ValidateComponents(res.Components); err != nil {
+			return nil, err
+		}
+		if component.HasLayoutComponents(res.Components) {
+			if len(res.Embeds) > 0 {
+				return nil, component.ErrEmbedsNotAllowedWithLayouts
+			}
+			if res.Content != "" {
+				return nil, component.ErrContentNotAllowedWithLayouts
+			}
+			flags |= types.MessageFlagIsComponentsV2
+		}
+	}
+
 	payload := rest.MessagePayload{
-		Content:    res.Content,
-		Embeds:     res.Embeds,
-		Components: res.Components,
-		TTS:        res.TTS,
-		Files:      res.Files,
+		Content:          res.Content,
+		Embeds:           res.Embeds,
+		Components:       res.Components,
+		Flags:            flags,
+		TTS:              res.TTS,
+		Files:            res.Files,
+		AllowedMentions:  res.ResolveAllowedMentions(a.ctx.DefaultMention),
+		MessageReference: res.ResolveReference(),
 	}
 	return a.ctx.REST.SendMessage(a.ctx.Context(), a.channelID, payload)
 }
@@ -145,7 +166,7 @@ func (a ChannelSuite) Lock(reason ...string) error {
 		Type:      ChannelLock,
 		ChannelID: a.channelID,
 		Locked:    true,
-		Reason:    strings.Join(reason, " "),
+		Reason:    joinReason(reason),
 	})
 }
 
@@ -154,12 +175,12 @@ func (a ChannelSuite) Unlock(reason ...string) error {
 		Type:      ChannelLock,
 		ChannelID: a.channelID,
 		Locked:    false,
-		Reason:    strings.Join(reason, " "),
+		Reason:    joinReason(reason),
 	})
 }
 
 func (a ChannelSuite) Purge(count int, reason ...string) (int, error) {
-	return a.ctx.purgeMessages(a.channelID, count, strings.Join(reason, " "))
+	return a.ctx.purgeMessages(a.channelID, count, joinReason(reason))
 }
 
 func (a ChannelSuite) Typing() error {
