@@ -126,9 +126,9 @@ row := gdk.ActionRow(menu)
 
 ## Structural Layout Components
 
-GDK supports modern Discord Components V2 layout structures: containers, sections, text displays, separators, media galleries, and file cards.
+GDK supports Discord's layout component structures: containers, sections, text displays, separators, media galleries, and file cards.
 
-GDK automatically detects layout components passed to `ctx.Respond` or `ctx.UpdateMessage` and injects `types.MessageFlagIsComponentsV2` (flag `32768`), validating tree limits (40 components max, 4,000 text characters max, no nested containers, proper accessory placement) before dispatching to Discord.
+GDK automatically detects layout components passed to `ctx.Respond` or `ctx.UpdateMessage` and injects the required message flag (`types.MessageFlagIsComponentsV2` / `32768`), validating tree limits (40 components max, 4,000 text characters max, no nested containers, proper accessory placement) before dispatching to Discord.
 
 > [!NOTE]
 > When layout components are used, legacy top-level `Content` and `Embeds` are disabled by Discord. Pass all text through `gdk.Text(...)` inside or alongside your layout components. Mixing legacy content or embeds returns `ErrContentNotAllowedWithLayouts` or `ErrEmbedsNotAllowedWithLayouts`.
@@ -176,7 +176,7 @@ sec = gdk.SectionWithAccessory(btn, "First text line", "Second text line")
 ```
 
 ### Component IDs
-Assign optional integer IDs to layout elements to identify nodes within Components V2 responses:
+Assign optional integer IDs to layout elements to identify nodes within layout responses:
 
 ```go
 text := gdk.Text("Header content", 1)
