@@ -26,16 +26,18 @@ For compile-time type safety without generic field resolution, pass `gdk.Message
 
 ```go
 type MessageOptions struct {
-	Type       MessageAction
-	MessageID  types.Snowflake
-	ChannelID  types.Snowflake
-	Content    string
-	Embeds     []types.Embed
-	Components []types.Component
-	Emoji      []string
-	UserID     types.Snowflake
-	PurgeCount int
-	Reason     string
+	Type            MessageAction
+	MessageID       types.Snowflake
+	ChannelID       types.Snowflake
+	Content         string
+	Embeds          []types.Embed
+	Components      []types.Component
+	Emoji           []string
+	UserID          types.Snowflake
+	PurgeCount      int
+	Reason          string
+	Reference       *types.MessageReference
+	AllowedMentions *types.AllowedMentions
 }
 
 // usage example
@@ -64,6 +66,8 @@ When calling `ctx.Message(gdk.Options{...})`, the following fields are processed
 | `Embeds` | `[]gdk.Embed` | `nil` | updated embeds when `Type` is `"edit"` |
 | `Components` | `[]gdk.Component` | `nil` | updated action rows when `Type` is `"edit"` |
 | `Files` | `[]types.File` | `nil` | file attachments when `Type` is `"edit"` |
+| `Reference` | `*types.MessageReference` | `nil` | message reference for replies |
+| `AllowedMentions` | `*types.AllowedMentions` | `nil` | fine-grained mention control |
 
 ---
 
@@ -214,6 +218,13 @@ suite.ClearReactions()
 suite.SetContent("updated message content")
 suite.SetEmbeds(embed)
 suite.SetComponents(row)
+
+// inline reply to this message
+replyMsg, err := suite.Reply("inline reply text")
+replyMsg, err = suite.Reply(gdk.Options{
+	Content: "reply with mentions allowed",
+	Mention: true,
+})
 ```
 
 ---
