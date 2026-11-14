@@ -94,6 +94,57 @@ func (a MessageSuite) SetComponents(components ...types.Component) (*types.Messa
 	return a.Edit(rest.MessagePayload{Components: components})
 }
 
+func (a MessageSuite) Reply(args ...any) (*types.Message, error) {
+	if a.messageID == 0 {
+		return nil, ErrInvalidMessageID
+	}
+	if a.channelID == 0 {
+		return nil, ErrInvalidChannelID
+	}
+	if a.ctx.REST == nil {
+		return nil, ErrNoRESTClient
+	}
+
+	opts := parseResponseOptions(args...)
+	msgID := a.messageID
+	chID := a.channelID
+	ref := &types.MessageReference{
+		MessageID: &msgID,
+		ChannelID: &chID,
+	}
+	if opts.Reference != nil {
+		ref = opts.Reference
+	}
+
+	flags := flagsFromEphemeral(opts.Ephemeral)
+	if len(opts.Components) > 0 {
+		if err := component.ValidateComponents(opts.Components); err != nil {
+			return nil, err
+		}
+		if component.HasLayoutComponents(opts.Components) {
+			if len(opts.Embeds) > 0 {
+				return nil, component.ErrEmbedsNotAllowedWithLayouts
+			}
+			if opts.Content != "" {
+				return nil, component.ErrContentNotAllowedWithLayouts
+			}
+			flags |= types.MessageFlagIsComponentsV2
+		}
+	}
+
+	payload := rest.MessagePayload{
+		Content:          opts.Content,
+		Embeds:           opts.Embeds,
+		Components:       opts.Components,
+		Flags:            flags,
+		TTS:              opts.TTS,
+		Files:            opts.Files,
+		AllowedMentions:  opts.ResolveAllowedMentions(a.ctx.DefaultMention),
+		MessageReference: ref,
+	}
+	return a.ctx.REST.SendMessage(a.ctx.Context(), a.channelID, payload)
+}
+
 func (a MessageSuite) Delete(reason ...string) error {
 	if a.channelID == 0 {
 		return ErrInvalidChannelID
