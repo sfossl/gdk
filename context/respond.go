@@ -86,6 +86,15 @@ func mergeOptions(base, override Options) Options {
 	if len(override.Files) == 0 {
 		override.Files = base.Files
 	}
+	if override.Reference == nil && base.Reference != nil {
+		override.Reference = base.Reference
+	}
+	if override.Reply == 0 && base.Reply != 0 {
+		override.Reply = base.Reply
+	}
+	if override.AllowedMentions == nil && base.AllowedMentions != nil {
+		override.AllowedMentions = base.AllowedMentions
+	}
 	if override.ComponentTimeout == nil && base.ComponentTimeout != nil {
 		override.ComponentTimeout = base.ComponentTimeout
 	}
@@ -128,6 +137,16 @@ func parseResponseOptions(args ...any) Options {
 			res.Files = append(res.Files, v)
 		case []types.File:
 			res.Files = append(res.Files, v...)
+		case types.MessageReference:
+			ref := v
+			res.Reference = &ref
+		case *types.MessageReference:
+			res.Reference = v
+		case types.AllowedMentions:
+			ment := v
+			res.AllowedMentions = &ment
+		case *types.AllowedMentions:
+			res.AllowedMentions = v
 		}
 	}
 	if res.Embed != nil {
@@ -204,12 +223,14 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 		}
 
 		payload := rest.MessagePayload{
-			Content:    res.Content,
-			Embeds:     res.Embeds,
-			Components: res.Components,
-			Flags:      dmFlags,
-			TTS:        res.TTS,
-			Files:      res.Files,
+			Content:          res.Content,
+			Embeds:           res.Embeds,
+			Components:       res.Components,
+			Flags:            dmFlags,
+			TTS:              res.TTS,
+			Files:            res.Files,
+			AllowedMentions:  res.ResolveAllowedMentions(c.DefaultMention),
+			MessageReference: res.ResolveReference(),
 		}
 		msg, err := c.REST.SendMessage(c.Context(), dmChan.ID, payload)
 		if err != nil {
@@ -238,12 +259,14 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 		}
 
 		payload := rest.MessagePayload{
-			Content:    res.Content,
-			Embeds:     res.Embeds,
-			Components: res.Components,
-			Flags:      sendFlags,
-			TTS:        res.TTS,
-			Files:      res.Files,
+			Content:          res.Content,
+			Embeds:           res.Embeds,
+			Components:       res.Components,
+			Flags:            sendFlags,
+			TTS:              res.TTS,
+			Files:            res.Files,
+			AllowedMentions:  res.ResolveAllowedMentions(c.DefaultMention),
+			MessageReference: res.ResolveReference(),
 		}
 		msg, err := c.REST.SendMessage(c.Context(), channelID, payload)
 		if err != nil {
@@ -268,12 +291,13 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 			return nil, ErrNoInteraction
 		}
 		msg, err := c.REST.EditOriginalInteractionResponse(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
-			Content:    res.Content,
-			Embeds:     res.Embeds,
-			Components: res.Components,
-			Flags:      flags,
-			TTS:        res.TTS,
-			Files:      res.Files,
+			Content:         res.Content,
+			Embeds:          res.Embeds,
+			Components:      res.Components,
+			Flags:           flags,
+			TTS:             res.TTS,
+			Files:           res.Files,
+			AllowedMentions: res.ResolveAllowedMentions(c.DefaultMention),
 		})
 		if err != nil {
 			c.deferred.Store(true)
@@ -291,12 +315,13 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 			return nil, ErrNoInteraction
 		}
 		msg, err := c.REST.CreateFollowupMessage(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
-			Content:    res.Content,
-			Embeds:     res.Embeds,
-			Components: res.Components,
-			Flags:      flags,
-			TTS:        res.TTS,
-			Files:      res.Files,
+			Content:         res.Content,
+			Embeds:          res.Embeds,
+			Components:      res.Components,
+			Flags:           flags,
+			TTS:             res.TTS,
+			Files:           res.Files,
+			AllowedMentions: res.ResolveAllowedMentions(c.DefaultMention),
 		})
 		if err != nil {
 			return nil, err
@@ -309,19 +334,6 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 		return c.Respond(res)
 	}
 
-	var allowedMentions any
-	if res.ResolveMention(c.DefaultMention) {
-		allowedMentions = map[string]any{
-			"parse":        []string{"users", "roles", "everyone"},
-			"replied_user": true,
-		}
-	} else {
-		allowedMentions = map[string]any{
-			"parse":        []string{},
-			"replied_user": false,
-		}
-	}
-
 	resp := types.InteractionResponse{
 		Type: types.CallbackTypeChannelMessageWithSource,
 		Data: &types.InteractionResponseData{
@@ -331,7 +343,7 @@ func (c *Context) Respond(args ...any) (*types.Message, error) {
 			Flags:           flags,
 			TTS:             res.TTS,
 			Files:           res.Files,
-			AllowedMentions: allowedMentions,
+			AllowedMentions: res.ResolveAllowedMentions(c.DefaultMention),
 		},
 	}
 
