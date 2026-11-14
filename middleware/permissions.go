@@ -172,64 +172,63 @@ func RequirePermissions(userPerms, botPerms types.Permission, opts ...Permission
 	}
 }
 
+var permissionChecks = [...]struct {
+	perm types.Permission
+	name string
+}{
+	{types.PermissionAdministrator, "Administrator"},
+	{types.PermissionManageGuild, "Manage Server"},
+	{types.PermissionManageRoles, "Manage Roles"},
+	{types.PermissionManageChannels, "Manage Channels"},
+	{types.PermissionKickMembers, "Kick Members"},
+	{types.PermissionBanMembers, "Ban Members"},
+	{types.PermissionCreateInstantInvite, "Create Invite"},
+	{types.PermissionChangeNickname, "Change Nickname"},
+	{types.PermissionManageNicknames, "Manage Nicknames"},
+	{types.PermissionManageGuildExpressions, "Manage Expressions"},
+	{types.PermissionManageWebhooks, "Manage Webhooks"},
+	{types.PermissionViewChannel, "View Channel"},
+	{types.PermissionViewAuditLog, "View Audit Log"},
+	{types.PermissionViewGuildInsights, "View Server Insights"},
+	{types.PermissionViewCreatorMonetizationAnalytics, "View Monetization Analytics"},
+	{types.PermissionSendMessages, "Send Messages"},
+	{types.PermissionSendTTSMessages, "Send TTS Messages"},
+	{types.PermissionManageMessages, "Manage Messages"},
+	{types.PermissionEmbedLinks, "Embed Links"},
+	{types.PermissionAttachFiles, "Attach Files"},
+	{types.PermissionReadMessageHistory, "Read Message History"},
+	{types.PermissionMentionEveryone, "Mention Everyone"},
+	{types.PermissionUseExternalEmojis, "Use External Emojis"},
+	{types.PermissionUseExternalStickers, "Use External Stickers"},
+	{types.PermissionAddReactions, "Add Reactions"},
+	{types.PermissionConnect, "Connect"},
+	{types.PermissionSpeak, "Speak"},
+	{types.PermissionMuteMembers, "Mute Members"},
+	{types.PermissionDeafenMembers, "Deafen Members"},
+	{types.PermissionMoveMembers, "Move Members"},
+	{types.PermissionUseVAD, "Use Voice Activity"},
+	{types.PermissionPrioritySpeaker, "Priority Speaker"},
+	{types.PermissionStream, "Video"},
+	{types.PermissionUseEmbeddedActivities, "Use Activities"},
+	{types.PermissionUseSoundboard, "Use Soundboard"},
+	{types.PermissionCreateGuildExpressions, "Create Expressions"},
+	{types.PermissionUseExternalSounds, "Use External Sounds"},
+	{types.PermissionSendVoiceMessages, "Send Voice Messages"},
+	{types.PermissionSendPolls, "Create Polls"},
+	{types.PermissionUseApplicationCommands, "Use Application Commands"},
+	{types.PermissionRequestToSpeak, "Request to Speak"},
+	{types.PermissionManageEvents, "Manage Events"},
+	{types.PermissionCreateEvents, "Create Events"},
+	{types.PermissionManageThreads, "Manage Threads"},
+	{types.PermissionCreatePublicThreads, "Create Public Threads"},
+	{types.PermissionCreatePrivateThreads, "Create Private Threads"},
+	{types.PermissionSendMessagesInThreads, "Send Messages in Threads"},
+	{types.PermissionModerateMembers, "Timeout Members"},
+}
+
 func PermissionNames(perms types.Permission) []string {
-	var names []string
-
-	checks := []struct {
-		perm types.Permission
-		name string
-	}{
-		{types.PermissionAdministrator, "Administrator"},
-		{types.PermissionManageGuild, "Manage Server"},
-		{types.PermissionManageRoles, "Manage Roles"},
-		{types.PermissionManageChannels, "Manage Channels"},
-		{types.PermissionKickMembers, "Kick Members"},
-		{types.PermissionBanMembers, "Ban Members"},
-		{types.PermissionCreateInstantInvite, "Create Invite"},
-		{types.PermissionChangeNickname, "Change Nickname"},
-		{types.PermissionManageNicknames, "Manage Nicknames"},
-		{types.PermissionManageGuildExpressions, "Manage Expressions"},
-		{types.PermissionManageWebhooks, "Manage Webhooks"},
-		{types.PermissionViewChannel, "View Channel"},
-		{types.PermissionViewAuditLog, "View Audit Log"},
-		{types.PermissionViewGuildInsights, "View Server Insights"},
-		{types.PermissionViewCreatorMonetizationAnalytics, "View Monetization Analytics"},
-		{types.PermissionSendMessages, "Send Messages"},
-		{types.PermissionSendTTSMessages, "Send TTS Messages"},
-		{types.PermissionManageMessages, "Manage Messages"},
-		{types.PermissionEmbedLinks, "Embed Links"},
-		{types.PermissionAttachFiles, "Attach Files"},
-		{types.PermissionReadMessageHistory, "Read Message History"},
-		{types.PermissionMentionEveryone, "Mention Everyone"},
-		{types.PermissionUseExternalEmojis, "Use External Emojis"},
-		{types.PermissionUseExternalStickers, "Use External Stickers"},
-		{types.PermissionAddReactions, "Add Reactions"},
-		{types.PermissionConnect, "Connect"},
-		{types.PermissionSpeak, "Speak"},
-		{types.PermissionMuteMembers, "Mute Members"},
-		{types.PermissionDeafenMembers, "Deafen Members"},
-		{types.PermissionMoveMembers, "Move Members"},
-		{types.PermissionUseVAD, "Use Voice Activity"},
-		{types.PermissionPrioritySpeaker, "Priority Speaker"},
-		{types.PermissionStream, "Video"},
-		{types.PermissionUseEmbeddedActivities, "Use Activities"},
-		{types.PermissionUseSoundboard, "Use Soundboard"},
-		{types.PermissionCreateGuildExpressions, "Create Expressions"},
-		{types.PermissionUseExternalSounds, "Use External Sounds"},
-		{types.PermissionSendVoiceMessages, "Send Voice Messages"},
-		{types.PermissionSendPolls, "Create Polls"},
-		{types.PermissionUseApplicationCommands, "Use Application Commands"},
-		{types.PermissionRequestToSpeak, "Request to Speak"},
-		{types.PermissionManageEvents, "Manage Events"},
-		{types.PermissionCreateEvents, "Create Events"},
-		{types.PermissionManageThreads, "Manage Threads"},
-		{types.PermissionCreatePublicThreads, "Create Public Threads"},
-		{types.PermissionCreatePrivateThreads, "Create Private Threads"},
-		{types.PermissionSendMessagesInThreads, "Send Messages in Threads"},
-		{types.PermissionModerateMembers, "Timeout Members"},
-	}
-
-	for _, c := range checks {
+	names := make([]string, 0, 4)
+	for _, c := range permissionChecks {
 		if (perms & c.perm) == c.perm {
 			names = append(names, c.name)
 		}
