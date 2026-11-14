@@ -1,8 +1,6 @@
 package context
 
 import (
-	"strings"
-
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/component"
@@ -153,7 +151,7 @@ func (a MessageSuite) Delete(reason ...string) error {
 		Type:      MsgDelete,
 		MessageID: a.messageID,
 		ChannelID: a.channelID,
-		Reason:    strings.Join(reason, " "),
+		Reason:    joinReason(reason),
 	})
 }
 
@@ -162,7 +160,7 @@ func (a MessageSuite) Purge(count int, reason ...string) (int, error) {
 	if chID == 0 {
 		return 0, ErrInvalidChannelID
 	}
-	return a.ctx.purgeMessages(chID, count, strings.Join(reason, " "))
+	return a.ctx.purgeMessages(chID, count, joinReason(reason))
 }
 
 func (a MessageSuite) Pin(reason ...string) error {
@@ -173,7 +171,7 @@ func (a MessageSuite) Pin(reason ...string) error {
 		Type:      MsgPin,
 		MessageID: a.messageID,
 		ChannelID: a.channelID,
-		Reason:    strings.Join(reason, " "),
+		Reason:    joinReason(reason),
 	})
 }
 
@@ -185,7 +183,7 @@ func (a MessageSuite) Unpin(reason ...string) error {
 		Type:      MsgUnpin,
 		MessageID: a.messageID,
 		ChannelID: a.channelID,
-		Reason:    strings.Join(reason, " "),
+		Reason:    joinReason(reason),
 	})
 }
 
