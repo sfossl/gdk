@@ -156,13 +156,16 @@ card = gdk.ContainerCard(0x5865F2,
 Sections contain up to 3 text displays with an optional accessory (a Button or Thumbnail):
 
 ```go
+// pure-text section (accessory is optional)
+secText := gdk.Section("Section Header", "Supporting text description").Build()
+
 btn := gdk.Button(gdk.ButtonOptions{
 	Style:    "primary",
 	CustomID: "btn_click",
 	Label:    "Action",
 })
 
-// fluent builder
+// fluent builder with accessory
 sec := gdk.Section(
 	"First text line",
 	"Second text line",
@@ -172,8 +175,17 @@ sec := gdk.Section(
 sec = gdk.SectionWithAccessory(btn, "First text line", "Second text line")
 ```
 
-> [!NOTE]
-> Every Section component requires an accessory (`Button` or `Thumbnail`). For standalone headings, body text, or code blocks without an accessory, place `gdk.Text(...)` directly in the container.
+### Component IDs
+Assign optional integer IDs to layout elements to identify nodes within Components V2 responses:
+
+```go
+text := gdk.Text("Header content", 1)
+sec := gdk.Section("Title").WithID(2).Build()
+card := gdk.Container(sec).WithID(3).Build()
+sep := gdk.Separator(gdk.WithSeparatorID(4))
+thumb := gdk.Thumbnail("https://example.com/logo.png", gdk.WithThumbnailID(5))
+file := gdk.FileCard("https://example.com/doc.pdf", gdk.WithFileID(6))
+```
 
 ### Separators and Spacing
 Use `gdk.Divider()` for a default divider or `gdk.Separator(...)` with options:
