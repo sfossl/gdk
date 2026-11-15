@@ -20,46 +20,64 @@ var (
 
 func (c *Context) getGuildCached(ctx context.Context, guildID types.Snowflake) (*types.Guild, error) {
 	c.cacheMu.Lock()
-	defer c.cacheMu.Unlock()
 	if c.cachedGuild != nil {
-		return c.cachedGuild, nil
+		g := c.cachedGuild
+		c.cacheMu.Unlock()
+		return g, nil
 	}
+	c.cacheMu.Unlock()
+
 	guild, err := c.REST.GetGuild(ctx, guildID)
 	if err != nil {
 		return nil, err
 	}
+
+	c.cacheMu.Lock()
 	c.cachedGuild = guild
 	if len(guild.Roles) > 0 {
 		c.cachedRoles = guild.Roles
 	}
+	c.cacheMu.Unlock()
 	return guild, nil
 }
 
 func (c *Context) getRolesCached(ctx context.Context, guildID types.Snowflake) ([]types.Role, error) {
 	c.cacheMu.Lock()
-	defer c.cacheMu.Unlock()
 	if len(c.cachedRoles) > 0 {
-		return c.cachedRoles, nil
+		r := c.cachedRoles
+		c.cacheMu.Unlock()
+		return r, nil
 	}
+	c.cacheMu.Unlock()
+
 	roles, err := c.REST.GetGuildRoles(ctx, guildID)
 	if err != nil {
 		return nil, err
 	}
+
+	c.cacheMu.Lock()
 	c.cachedRoles = roles
+	c.cacheMu.Unlock()
 	return roles, nil
 }
 
 func (c *Context) getBotMemberCached(ctx context.Context, guildID types.Snowflake) (*types.Member, error) {
 	c.cacheMu.Lock()
-	defer c.cacheMu.Unlock()
 	if c.cachedBotMem != nil {
-		return c.cachedBotMem, nil
+		bm := c.cachedBotMem
+		c.cacheMu.Unlock()
+		return bm, nil
 	}
+	c.cacheMu.Unlock()
+
 	bm, err := c.REST.GetGuildMember(ctx, guildID, c.AppID)
 	if err != nil {
 		return nil, err
 	}
+
+	c.cacheMu.Lock()
 	c.cachedBotMem = bm
+	c.cacheMu.Unlock()
 	return bm, nil
 }
 

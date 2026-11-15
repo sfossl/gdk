@@ -133,22 +133,43 @@ func (c *Context) DisableComponents() error {
 	return err
 }
 
+func isInteractive(t types.ComponentType) bool {
+	switch t {
+	case types.ComponentTypeButton,
+		types.ComponentTypeStringSelect,
+		types.ComponentTypeUserSelect,
+		types.ComponentTypeRoleSelect,
+		types.ComponentTypeMentionableSelect,
+		types.ComponentTypeChannelSelect:
+		return true
+	default:
+		return false
+	}
+}
+
+func disableComponent(c types.Component) types.Component {
+	out := c
+	if isInteractive(out.Type) {
+		out.Disabled = true
+	}
+	if out.Accessory != nil {
+		acc := disableComponent(*out.Accessory)
+		out.Accessory = &acc
+	}
+	if len(out.Components) > 0 {
+		inner := make([]types.Component, len(out.Components))
+		for i, child := range out.Components {
+			inner[i] = disableComponent(child)
+		}
+		out.Components = inner
+	}
+	return out
+}
+
 func DisableAllComponents(rows []types.Component) []types.Component {
 	out := make([]types.Component, len(rows))
 	for i, row := range rows {
-		outRow := row
-		if len(row.Components) > 0 {
-			inner := make([]types.Component, len(row.Components))
-			for j, comp := range row.Components {
-				c := comp
-				c.Disabled = true
-				inner[j] = c
-			}
-			outRow.Components = inner
-		} else {
-			outRow.Disabled = true
-		}
-		out[i] = outRow
+		out[i] = disableComponent(row)
 	}
 	return out
 }

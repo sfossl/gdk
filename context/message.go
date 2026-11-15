@@ -11,6 +11,7 @@ import (
 
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/component"
 )
 
 type MessageAction int
@@ -36,16 +37,18 @@ var (
 )
 
 type MessageOptions struct {
-	Type       MessageAction
-	MessageID  types.Snowflake
-	ChannelID  types.Snowflake
-	Reason     string
-	Emojis     []string
-	Content    string
-	Count      int
-	Embeds     []types.Embed
-	Components []types.Component
-	Files      []types.File
+	Type            MessageAction
+	MessageID       types.Snowflake
+	ChannelID       types.Snowflake
+	Reason          string
+	Emojis          []string
+	Content         string
+	Count           int
+	Embeds          []types.Embed
+	Components      []types.Component
+	Files           []types.File
+	Reference       *types.MessageReference
+	AllowedMentions *types.AllowedMentions
 }
 
 func cleanEmoji(e string) string {
@@ -302,11 +305,34 @@ func (c *Context) Message(args ...any) error {
 		_, err := c.REST.Do(c.Context(), rest.Request{Endpoint: endpoint})
 		return err
 	case MsgEdit:
+		if opts.Content == "" && len(opts.Embeds) == 0 && len(opts.Components) == 0 && len(opts.Files) == 0 {
+			return ErrEmptyMessage
+		}
+		if len(opts.Components) > 0 {
+			if err := component.ValidateComponents(opts.Components); err != nil {
+				return err
+			}
+			if component.HasLayoutComponents(opts.Components) {
+				if len(opts.Embeds) > 0 {
+					return component.ErrEmbedsNotAllowedWithLayouts
+				}
+				if opts.Content != "" {
+					return component.ErrContentNotAllowedWithLayouts
+				}
+			}
+		}
+		var flags types.MessageFlag
+		if component.HasLayoutComponents(opts.Components) {
+			flags |= types.MessageFlagIsComponentsV2
+		}
 		payload := rest.MessagePayload{
-			Content:    opts.Content,
-			Embeds:     opts.Embeds,
-			Components: opts.Components,
-			Files:      opts.Files,
+			Content:          opts.Content,
+			Embeds:           opts.Embeds,
+			Components:       opts.Components,
+			Flags:            flags,
+			Files:            opts.Files,
+			AllowedMentions:  opts.AllowedMentions,
+			MessageReference: opts.Reference,
 		}
 		_, err := c.REST.EditMessage(c.Context(), chID, opts.MessageID, payload)
 		return err
@@ -319,7 +345,7 @@ func (c *Context) Message(args ...any) error {
 }
 
 func (c *Context) purgeMessages(chID types.Snowflake, count int, reason string) (int, error) {
-	c.lastPurged = 0
+	c.lastPurged.Store(0)
 	if count < 2 || count > 100 {
 		return 0, ErrInvalidPurgeCount
 	}
@@ -362,7 +388,7 @@ func (c *Context) purgeMessages(chID types.Snowflake, count int, reason string) 
 		if err := c.REST.DeleteMessage(c.Context(), chID, validIDs[0], reason); err != nil {
 			return 0, err
 		}
-		c.lastPurged = 1
+		c.lastPurged.Store(1)
 		return 1, nil
 	}
 	bulkEndpoint := rest.Endpoint{
@@ -385,7 +411,7 @@ func (c *Context) purgeMessages(chID types.Snowflake, count int, reason string) 
 	if _, err := c.REST.Do(c.Context(), req); err != nil {
 		return 0, err
 	}
-	c.lastPurged = len(validIDs)
+	c.lastPurged.Store(int32(len(validIDs)))
 	return len(validIDs), nil
 }
 

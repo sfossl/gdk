@@ -359,7 +359,7 @@ func (a RoleSuite) Create(payload rest.RolePayload, reason ...string) (*types.Ro
 	if a.ctx.REST == nil {
 		return nil, ErrNoRESTClient
 	}
-	r := strings.Join(reason, " ")
+	r := joinReason(reason)
 	return a.ctx.REST.CreateGuildRole(a.ctx.Context(), *a.ctx.GuildID, payload, r)
 }
 
@@ -367,7 +367,7 @@ func (a RoleSuite) Edit(payload rest.RolePayload, reason ...string) (*types.Role
 	if ok, err := a.ctx.CanManageRole(a.roleID); !ok {
 		return nil, err
 	}
-	r := strings.Join(reason, " ")
+	r := joinReason(reason)
 	return a.ctx.REST.ModifyGuildRole(a.ctx.Context(), *a.ctx.GuildID, a.roleID, payload, r)
 }
 
@@ -375,7 +375,7 @@ func (a RoleSuite) Delete(reason ...string) error {
 	if ok, err := a.ctx.CanManageRole(a.roleID); !ok {
 		return err
 	}
-	r := strings.Join(reason, " ")
+	r := joinReason(reason)
 	return a.ctx.REST.DeleteGuildRole(a.ctx.Context(), *a.ctx.GuildID, a.roleID, r)
 }
 
@@ -406,7 +406,7 @@ func (a RoleSuite) Assign(memberID types.Snowflake, reason ...string) error {
 	if ok, err := a.ctx.CanManageRole(a.roleID); !ok {
 		return err
 	}
-	r := strings.Join(reason, " ")
+	r := joinReason(reason)
 	return a.ctx.REST.AddGuildMemberRole(a.ctx.Context(), *a.ctx.GuildID, memberID, a.roleID, r)
 }
 
@@ -417,6 +417,6 @@ func (a RoleSuite) Remove(memberID types.Snowflake, reason ...string) error {
 	if ok, err := a.ctx.CanManageRole(a.roleID); !ok {
 		return err
 	}
-	r := strings.Join(reason, " ")
+	r := joinReason(reason)
 	return a.ctx.REST.RemoveGuildMemberRole(a.ctx.Context(), *a.ctx.GuildID, memberID, a.roleID, r)
 }

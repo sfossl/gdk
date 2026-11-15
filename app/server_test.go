@@ -168,7 +168,7 @@ func TestWebhookServer_ContextLifespan(t *testing.T) {
 	req.Header.Set("X-Signature-Timestamp", timestamp)
 	rec := httptest.NewRecorder()
 
-	handler, err := app.webhookHandler()
+	handler, err := app.WebhookHandler()
 	if err != nil {
 		t.Fatalf("failed to create webhook handler: %v", err)
 	}
@@ -249,7 +249,7 @@ func TestWebhookServer_PanicCancelsContext(t *testing.T) {
 	req.Header.Set("X-Signature-Timestamp", timestamp)
 	rec := httptest.NewRecorder()
 
-	handler, err := app.webhookHandler()
+	handler, err := app.WebhookHandler()
 	if err != nil {
 		t.Fatalf("failed to create webhook handler: %v", err)
 	}

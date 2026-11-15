@@ -29,21 +29,26 @@ When calling `ctx.Respond(gdk.Options{...})`, the following fields are processed
 | `Target` | `gdk.Snowflake` | `ctx.TargetID()` $\to$ `ctx.Author.ID` | recipient user id when sending a dm |
 | `Type` | `any` | `"reply"` | set to `"send"` to post a standalone channel message |
 | `Channel` | `gdk.Snowflake` | `ctx.ChannelID` | target channel id for standalone channel messages |
-| `Mention` | `*bool` | `nil` (discord default) | toggles replied author ping (`@ on` / `@ off`) |
+| `Mention` | `any` | `false` (default) | toggles author and user pings (`true` = @ on, `false` = @ off; cascades Call $\to$ App $\to$ Framework) |
 | `Typing` | `bool` | `false` | triggers channel typing indicator before dispatch |
 | `Embed` | `any` | `nil` | single rich embed object shortcut |
 | `Embeds` | `[]gdk.Embed` | `nil` | rich embed objects (up to 10 per message) |
-| `Components` | `[]gdk.Component` | `nil` | action rows with buttons or select menus (up to 5 rows) |
+| `Components` | `[]gdk.Component` | `nil` | action rows (up to 5) or structural layout components (containers, sections, media) |
 | `ComponentTimeout` | `any` | `0` | duration after which all buttons and select menus are disabled |
 | `DeleteAfter` | `any` | `0` | duration after which the response message is automatically deleted |
 | `Files` | `[]gdk.File` | `nil` | file attachments and uploads |
 | `TTS` | `bool` | `false` | text-to-speech message flag |
+| `Reply` | `gdk.Snowflake` | `0` | snowflake of message to reply to inline |
+| `Reference` | `*gdk.MessageReference` | `nil` | structured Discord message reference object |
+| `AllowedMentions` | `*gdk.AllowedMentions` | `nil` | fine-grained mention control overriding boolean `Mention` flag |
 
 ---
 
 ## Pre-Flight Fast Failure
 
-`ctx.Respond` validates before touching the network. If `Content`, `Embeds`, `Components` and `Files` are all empty (and `Deferred` is `false`), it returns `gdk.ErrEmptyMessage` immediately without sending a network request.
+`ctx.Respond` validates payloads before touching the network:
+- If `Content`, `Embeds`, `Components` and `Files` are all empty (and `Deferred` is `false`), it returns `gdk.ErrEmptyMessage` immediately.
+- When structural layout components are present, `gdk` automatically injects `gdk.MessageFlagIsComponentsV2` (`32768`). Top-level `Content` and legacy `Embeds` are mutually exclusive with layout components and return `gdk.ErrContentNotAllowedWithLayouts` or `gdk.ErrEmbedsNotAllowedWithLayouts` to prevent Discord API errors. All layout limits (40 components max, 4,000 text characters max, no nested containers, valid accessories) are verified locally.
 
 ---
 
@@ -119,15 +124,61 @@ ctx.Respond(gdk.Options{
 })
 ```
 
-### Author Ping Suppression (`@ off`)
+### Author and User Mentions (`@ on` / `@ off`)
 
-Replies to the command author without triggering a mention notification badge in Discord.
+By default, replies and interaction responses are **completely silent** (`@ off`): they do not trigger desktop notifications, audible pings, or yellow background highlights.
+
+To explicitly ping the user or author (`@ on`):
 
 ```go
-noPing := false
+ctx.Respond(gdk.Options{
+    Content: "urgent alert with ping",
+    Mention: true,
+})
+```
+
+To explicitly suppress pings (or when overriding an app-level default):
+
+```go
 ctx.Respond(gdk.Options{
     Content: "response without mention",
-    Mention: &noPing,
+    Mention: false,
+})
+```
+
+Mentions cascade in three tiers: **Individual Respond Option > Project App Config (`gdk.WithDefaultMention`) > GDK Default (`false`)**.
+
+### Fine-Grained Allowed Mentions (`AllowedMentions`)
+
+For fine-grained control beyond the boolean `Mention` flag, pass a structured `*gdk.AllowedMentions` object to explicitly whitelist parse types, specific users or roles:
+
+```go
+ctx.Respond(gdk.Options{
+    Content: "alerting selected user <@123456789>",
+    AllowedMentions: &gdk.AllowedMentions{
+        Users: []types.Snowflake{123456789},
+    },
+})
+```
+
+### Inline Message Replies (`Reply` & `Reference`)
+
+Link a response directly to another message via Discord's inline reply UI:
+
+```go
+// reply directly by message snowflake
+ctx.Respond(gdk.Options{
+    Content: "replying to original query",
+    Reply:   sourceMsgID,
+})
+
+// reply using explicit MessageReference
+ctx.Respond(gdk.Options{
+    Content: "replying with fail-if-not-exists",
+    Reference: &gdk.MessageReference{
+        MessageID:         sourceMsgID,
+        FailIfNotExists:   false,
+    },
 })
 ```
 

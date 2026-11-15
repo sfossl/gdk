@@ -1,10 +1,9 @@
 package context
 
 import (
-	"strings"
-
 	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/component"
 )
 
 type MessageSuite struct {
@@ -64,6 +63,20 @@ func (a MessageSuite) Edit(payload rest.MessagePayload) (*types.Message, error) 
 	if a.ctx.REST == nil {
 		return nil, ErrNoRESTClient
 	}
+	if len(payload.Components) > 0 {
+		if err := component.ValidateComponents(payload.Components); err != nil {
+			return nil, err
+		}
+		if component.HasLayoutComponents(payload.Components) {
+			if len(payload.Embeds) > 0 {
+				return nil, component.ErrEmbedsNotAllowedWithLayouts
+			}
+			if payload.Content != "" {
+				return nil, component.ErrContentNotAllowedWithLayouts
+			}
+			payload.Flags |= types.MessageFlagIsComponentsV2
+		}
+	}
 	return a.ctx.REST.EditMessage(a.ctx.Context(), a.channelID, a.messageID, payload)
 }
 
@@ -79,6 +92,57 @@ func (a MessageSuite) SetComponents(components ...types.Component) (*types.Messa
 	return a.Edit(rest.MessagePayload{Components: components})
 }
 
+func (a MessageSuite) Reply(args ...any) (*types.Message, error) {
+	if a.messageID == 0 {
+		return nil, ErrInvalidMessageID
+	}
+	if a.channelID == 0 {
+		return nil, ErrInvalidChannelID
+	}
+	if a.ctx.REST == nil {
+		return nil, ErrNoRESTClient
+	}
+
+	opts := parseResponseOptions(args...)
+	msgID := a.messageID
+	chID := a.channelID
+	ref := &types.MessageReference{
+		MessageID: &msgID,
+		ChannelID: &chID,
+	}
+	if opts.Reference != nil {
+		ref = opts.Reference
+	}
+
+	flags := flagsFromEphemeral(opts.Ephemeral)
+	if len(opts.Components) > 0 {
+		if err := component.ValidateComponents(opts.Components); err != nil {
+			return nil, err
+		}
+		if component.HasLayoutComponents(opts.Components) {
+			if len(opts.Embeds) > 0 {
+				return nil, component.ErrEmbedsNotAllowedWithLayouts
+			}
+			if opts.Content != "" {
+				return nil, component.ErrContentNotAllowedWithLayouts
+			}
+			flags |= types.MessageFlagIsComponentsV2
+		}
+	}
+
+	payload := rest.MessagePayload{
+		Content:          opts.Content,
+		Embeds:           opts.Embeds,
+		Components:       opts.Components,
+		Flags:            flags,
+		TTS:              opts.TTS,
+		Files:            opts.Files,
+		AllowedMentions:  opts.ResolveAllowedMentions(a.ctx.DefaultMention),
+		MessageReference: ref,
+	}
+	return a.ctx.REST.SendMessage(a.ctx.Context(), a.channelID, payload)
+}
+
 func (a MessageSuite) Delete(reason ...string) error {
 	if a.channelID == 0 {
 		return ErrInvalidChannelID
@@ -87,7 +151,7 @@ func (a MessageSuite) Delete(reason ...string) error {
 		Type:      MsgDelete,
 		MessageID: a.messageID,
 		ChannelID: a.channelID,
-		Reason:    strings.Join(reason, " "),
+		Reason:    joinReason(reason),
 	})
 }
 
@@ -96,7 +160,7 @@ func (a MessageSuite) Purge(count int, reason ...string) (int, error) {
 	if chID == 0 {
 		return 0, ErrInvalidChannelID
 	}
-	return a.ctx.purgeMessages(chID, count, strings.Join(reason, " "))
+	return a.ctx.purgeMessages(chID, count, joinReason(reason))
 }
 
 func (a MessageSuite) Pin(reason ...string) error {
@@ -107,7 +171,7 @@ func (a MessageSuite) Pin(reason ...string) error {
 		Type:      MsgPin,
 		MessageID: a.messageID,
 		ChannelID: a.channelID,
-		Reason:    strings.Join(reason, " "),
+		Reason:    joinReason(reason),
 	})
 }
 
@@ -119,7 +183,7 @@ func (a MessageSuite) Unpin(reason ...string) error {
 		Type:      MsgUnpin,
 		MessageID: a.messageID,
 		ChannelID: a.channelID,
-		Reason:    strings.Join(reason, " "),
+		Reason:    joinReason(reason),
 	})
 }
 

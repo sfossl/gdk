@@ -47,6 +47,7 @@ type App struct {
 	components     map[string]middleware.Handler
 	modals         map[string]middleware.Handler
 	syncedHashes   map[string]string
+	errorHandler   func(error, *context.Context)
 	mu             sync.RWMutex
 	syncMu         sync.Mutex
 	running        atomic.Bool
@@ -103,6 +104,7 @@ func (a *App) initDispatcher() {
 		bgCtx, cancel := stdctx.WithTimeout(a.rootCtx, a.config.Timeout)
 		gdkCtx := context.NewGatewayContext(bgCtx, in, a.REST, cancel)
 		gdkCtx.Gateway = a.Gateway
+		gdkCtx.DefaultMention = a.config.DefaultMention
 		defer func() {
 			if rec := recover(); rec != nil {
 				cancel()
@@ -110,6 +112,12 @@ func (a *App) initDispatcher() {
 		}()
 		err := a.Handle(gdkCtx)
 		if err != nil {
+			a.mu.RLock()
+			eh := a.errorHandler
+			a.mu.RUnlock()
+			if eh != nil {
+				eh(err, gdkCtx)
+			}
 			cancel()
 		}
 	})
@@ -240,6 +248,13 @@ func (a *App) Modal(customID string, handler middleware.Handler) *App {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.modals[customID] = handler
+	return a
+}
+
+func (a *App) OnError(h func(error, *context.Context)) *App {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.errorHandler = h
 	return a
 }
 

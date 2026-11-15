@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"slices"
+
 	"github.com/sfossl/gdk/context"
 )
 
@@ -32,10 +34,8 @@ func (p *Pipeline) Clone() *Pipeline {
 	if p == nil {
 		return NewPipeline()
 	}
-	cloned := make([]Middleware, len(p.middlewares))
-	copy(cloned, p.middlewares)
 	return &Pipeline{
-		middlewares: cloned,
+		middlewares: slices.Clone(p.middlewares),
 	}
 }
 

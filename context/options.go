@@ -22,7 +22,7 @@ type Options struct {
 	Duration         any
 	Count            int
 	Ephemeral        bool
-	Mention          *bool
+	Mention          any
 	Typing           bool
 	Embed            any
 	Embeds           []types.Embed
@@ -45,10 +45,70 @@ type Options struct {
 	VoiceMute        *bool
 	VoiceDeaf        *bool
 	VoiceChannel     *types.Snowflake
+	Reply            types.Snowflake
+	Reference        *types.MessageReference
+	AllowedMentions  *types.AllowedMentions
+}
+
+func (o Options) ResolveReference() *types.MessageReference {
+	if o.Reference != nil {
+		return o.Reference
+	}
+	if o.Reply != 0 {
+		msgID := o.Reply
+		return &types.MessageReference{MessageID: &msgID}
+	}
+	return nil
+}
+
+type WireAllowedMentions struct {
+	Parse       []string          `json:"parse"`
+	Roles       []types.Snowflake `json:"roles,omitempty"`
+	Users       []types.Snowflake `json:"users,omitempty"`
+	RepliedUser *bool             `json:"replied_user,omitempty"`
+}
+
+func (o Options) ResolveAllowedMentions(defaultMention bool) any {
+	if o.AllowedMentions != nil {
+		return WireAllowedMentions{
+			Parse:       o.AllowedMentions.Parse,
+			Roles:       o.AllowedMentions.Roles,
+			Users:       o.AllowedMentions.Users,
+			RepliedUser: o.AllowedMentions.RepliedUser,
+		}
+	}
+	replied := o.ResolveMention(defaultMention)
+	if replied {
+		return WireAllowedMentions{
+			Parse:       []string{"users", "roles", "everyone"},
+			RepliedUser: &replied,
+		}
+	}
+	return WireAllowedMentions{
+		Parse:       []string{},
+		RepliedUser: &replied,
+	}
 }
 
 func (o Options) ResolveComponentTimeout() time.Duration {
 	return parseDuration(o.ComponentTimeout)
+}
+
+func (o Options) ResolveMention(defaultVal bool) bool {
+	if o.Mention == nil {
+		return defaultVal
+	}
+	switch v := o.Mention.(type) {
+	case bool:
+		return v
+	case *bool:
+		if v != nil {
+			return *v
+		}
+		return defaultVal
+	default:
+		return defaultVal
+	}
 }
 
 func (o Options) ResolveDeleteAfter() time.Duration {
@@ -131,4 +191,15 @@ func (o Options) ResolveMessage(c *Context) types.Snowflake {
 		return *c.Interaction.Data.TargetID
 	}
 	return 0
+}
+
+func joinReason(reasons []string) string {
+	switch len(reasons) {
+	case 0:
+		return ""
+	case 1:
+		return reasons[0]
+	default:
+		return strings.Join(reasons, " ")
+	}
 }

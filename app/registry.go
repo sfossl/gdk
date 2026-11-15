@@ -1,6 +1,7 @@
 package app
 
 import (
+	"slices"
 	"sync"
 
 	"github.com/sfossl/gdk/command"
@@ -40,9 +41,7 @@ func Register(cmd command.Command) {
 func RegisteredCommands() []command.Command {
 	regMu.RLock()
 	defer regMu.RUnlock()
-	out := make([]command.Command, len(registered))
-	copy(out, registered)
-	return out
+	return slices.Clone(registered)
 }
 
 func RegisterComponent(customID string, handler middleware.Handler) {
@@ -54,9 +53,7 @@ func RegisterComponent(customID string, handler middleware.Handler) {
 func RegisteredComponents() []ComponentRegistration {
 	compMu.RLock()
 	defer compMu.RUnlock()
-	out := make([]ComponentRegistration, len(regComps))
-	copy(out, regComps)
-	return out
+	return slices.Clone(regComps)
 }
 
 func RegisterModal(customID string, handler middleware.Handler) {
@@ -68,9 +65,7 @@ func RegisterModal(customID string, handler middleware.Handler) {
 func RegisteredModals() []ModalRegistration {
 	modalMu.RLock()
 	defer modalMu.RUnlock()
-	out := make([]ModalRegistration, len(regModals))
-	copy(out, regModals)
-	return out
+	return slices.Clone(regModals)
 }
 
 func (a *App) MountRegistered() *App {

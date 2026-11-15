@@ -231,6 +231,13 @@ func TestMember_PositionalOneLiners(t *testing.T) {
 	if lastMethod != http.MethodPatch || lastPath != "/guilds/100/members/200" {
 		t.Fatalf("unexpected timeout call: %s %s", lastMethod, lastPath)
 	}
+
+	if err := c.Member(targetID, "nick", "NewNick"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if lastMethod != http.MethodPatch || lastPath != "/guilds/100/members/200" {
+		t.Fatalf("unexpected nick call: %s %s", lastMethod, lastPath)
+	}
 }
 
 func TestMember_SuiteMethods(t *testing.T) {

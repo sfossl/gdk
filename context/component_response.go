@@ -1,18 +1,14 @@
 package context
 
 import (
-	"github.com/sfossl/gda/rest"
 	"github.com/sfossl/gda/types"
+	"github.com/sfossl/gdk/component"
 )
 
 func (c *Context) DeferUpdate() error {
-	if c.responded.Load() {
+	if !c.state.CompareAndSwap(stateInitial, stateDeferred) {
 		return ErrAlreadyResponded
 	}
-	if !c.responded.CompareAndSwap(false, true) {
-		return ErrAlreadyResponded
-	}
-	c.deferred.Store(true)
 
 	resp := types.InteractionResponse{
 		Type: types.CallbackTypeDeferredUpdateMessage,
@@ -23,95 +19,50 @@ func (c *Context) DeferUpdate() error {
 func (c *Context) UpdateMessage(args ...any) (*types.Message, error) {
 	res := parseResponseOptions(args...)
 	if res.Deferred {
-		err := c.DeferUpdate()
+		return nil, c.DeferUpdate()
+	}
+
+	if err := c.validateResponseOptions(res); err != nil {
 		return nil, err
 	}
 
 	flags := flagsFromEphemeral(res.Ephemeral)
+	if component.HasLayoutComponents(res.Components) {
+		flags |= types.MessageFlagIsComponentsV2
+	}
 
-	if c.deferred.CompareAndSwap(true, false) {
-		if c.REST == nil {
-			c.deferred.Store(true)
-			return nil, ErrNoRESTClient
-		}
-		if c.Interaction == nil {
-			c.deferred.Store(true)
-			return nil, ErrNoInteraction
-		}
-		msg, err := c.REST.EditOriginalInteractionResponse(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
-			Content:    res.Content,
-			Embeds:     res.Embeds,
-			Components: res.Components,
-			Flags:      flags,
-			TTS:        res.TTS,
-			Files:      res.Files,
-		})
+	if c.state.CompareAndSwap(stateDeferred, stateResponded) {
+		msg, err := c.editOriginal(res, flags)
 		if err != nil {
-			c.deferred.Store(true)
+			c.state.Store(stateDeferred)
 			return nil, err
 		}
-		c.scheduleLifecycleTimers(res, msg)
 		return msg, nil
 	}
 
-	if c.responded.Load() {
-		if c.REST == nil {
-			return nil, ErrNoRESTClient
-		}
-		if c.Interaction == nil {
-			return nil, ErrNoInteraction
-		}
-		msg, err := c.REST.EditOriginalInteractionResponse(c.Context(), c.AppID, c.Interaction.Token, rest.MessagePayload{
-			Content:    res.Content,
-			Embeds:     res.Embeds,
-			Components: res.Components,
-			Flags:      flags,
-			TTS:        res.TTS,
-			Files:      res.Files,
-		})
-		if err != nil {
-			return nil, err
-		}
-		c.scheduleLifecycleTimers(res, msg)
-		return msg, nil
+	if c.state.Load() == stateResponded {
+		return c.editOriginal(res, flags)
 	}
 
-	if !c.responded.CompareAndSwap(false, true) {
+	if !c.state.CompareAndSwap(stateInitial, stateResponded) {
 		return c.UpdateMessage(res)
 	}
 
 	resp := types.InteractionResponse{
 		Type: types.CallbackTypeUpdateMessage,
 		Data: &types.InteractionResponseData{
-			Content:    res.Content,
-			Embeds:     res.Embeds,
-			Components: res.Components,
-			Flags:      flags,
-			TTS:        res.TTS,
-			Files:      res.Files,
+			Content:         res.Content,
+			Embeds:          res.Embeds,
+			Components:      res.Components,
+			Flags:           flags,
+			TTS:             res.TTS,
+			Files:           res.Files,
+			AllowedMentions: res.ResolveAllowedMentions(c.DefaultMention),
 		},
 	}
 
-	if !c.gatewayMode && c.responseChan != nil {
-		select {
-		case c.responseChan <- resp:
-			c.scheduleLifecycleTimers(res, nil)
-			return nil, nil
-		default:
-		}
-	}
-
-	if c.REST == nil {
-		c.responded.Store(false)
-		return nil, ErrNoRESTClient
-	}
-	if c.Interaction == nil {
-		c.responded.Store(false)
-		return nil, ErrNoInteraction
-	}
-	err := c.REST.CreateInteractionResponse(c.Context(), c.ID, c.Interaction.Token, resp)
+	err := c.sendInteractionResponse(resp)
 	if err != nil {
-		c.responded.Store(false)
 		return nil, err
 	}
 	c.scheduleLifecycleTimers(res, nil)

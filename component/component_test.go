@@ -40,6 +40,20 @@ func TestButtons(t *testing.T) {
 	if uni.Emoji == nil || uni.Emoji.Name != "👍" || uni.Emoji.ID != nil {
 		t.Fatalf("unexpected unicode emoji %v", uni.Emoji)
 	}
+
+	skuID := types.Snowflake(987654321)
+	prem := Button("premium", skuID)
+	if prem.Style != ButtonStylePremium || prem.SKUID == nil || *prem.SKUID != skuID || prem.CustomID != "" {
+		t.Fatalf("unexpected premium button %v", prem)
+	}
+
+	premOpt := Button(ButtonOptions{
+		Style: "sku",
+		SKUID: skuID,
+	})
+	if premOpt.Style != ButtonStylePremium || premOpt.SKUID == nil || *premOpt.SKUID != skuID {
+		t.Fatalf("unexpected premium opt button %v", premOpt)
+	}
 }
 
 func TestButton_Unified(t *testing.T) {

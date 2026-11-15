@@ -24,6 +24,7 @@ func WithAutoDefer(autoDefer bool, delay ...time.Duration) AppOption
 func WithTimeout(timeout time.Duration) AppOption
 func WithWebhook(addr, path, publicKey string) AppOption
 func WithAutoSync(autoSync bool) AppOption
+func WithDefaultMention(mention bool) AppOption
 ```
 
 ### `type App` Methods
@@ -44,7 +45,9 @@ func (a *App) Sync(ctx context.Context, force ...bool) error
 func (a *App) SyncWithResult(ctx context.Context, force ...bool) (*SyncResult, error)
 func (a *App) Config() Config
 func (a *App) Err() error
+func (a *App) OnError(h func(error, *Context)) *App
 func (a *App) String() string
+func (a *App) WebhookHandler() (http.Handler, error)
 ```
 
 ### Global Registration
@@ -55,6 +58,7 @@ func RegisterComponent(customID string, handler Handler)
 func RegisteredComponents() []ComponentRegistration
 func RegisterModal(customID string, handler Handler)
 func RegisteredModals() []ModalRegistration
+func WebhookHandler(a *App) (http.Handler, error)
 
 type ComponentRegistration struct {
 	CustomID string
@@ -113,6 +117,46 @@ const (
 	CommandTypeChatInput CommandType = 1 // Slash command
 	CommandTypeUser      CommandType = 2 // User context menu
 	CommandTypeMessage   CommandType = 3 // Message context menu
+)
+```
+
+### `type OptionType`
+```go
+type OptionType int
+
+const (
+	OptionTypeSubcommand      OptionType = 1
+	OptionTypeSubcommandGroup OptionType = 2
+	OptionTypeString          OptionType = 3
+	OptionTypeInteger         OptionType = 4
+	OptionTypeBoolean         OptionType = 5
+	OptionTypeUser            OptionType = 6
+	OptionTypeChannel         OptionType = 7
+	OptionTypeRole            OptionType = 8
+	OptionTypeMentionable     OptionType = 9
+	OptionTypeNumber          OptionType = 10
+	OptionTypeAttachment      OptionType = 11
+)
+```
+
+### `type ChannelType`
+```go
+type ChannelType int
+
+const (
+	ChannelTypeGuildText          ChannelType = 0
+	ChannelTypeDM                 ChannelType = 1
+	ChannelTypeGuildVoice         ChannelType = 2
+	ChannelTypeGroupDM            ChannelType = 3
+	ChannelTypeGuildCategory      ChannelType = 4
+	ChannelTypeGuildAnnouncement  ChannelType = 5
+	ChannelTypeAnnouncementThread ChannelType = 10
+	ChannelTypePublicThread       ChannelType = 11
+	ChannelTypePrivateThread      ChannelType = 12
+	ChannelTypeGuildStageVoice    ChannelType = 13
+	ChannelTypeGuildDirectory     ChannelType = 14
+	ChannelTypeGuildForum         ChannelType = 15
+	ChannelTypeGuildMedia         ChannelType = 16
 )
 ```
 
@@ -178,7 +222,7 @@ type Options struct {
 	Duration     any
 	Count        int
 	Ephemeral    bool
-	Mention      *bool
+	Mention      any
 	Typing       bool
 	Embed        any
 	Embeds       []types.Embed
@@ -201,6 +245,9 @@ type Options struct {
 	VoiceMute    *bool
 	VoiceDeaf    *bool
 	VoiceChannel *types.Snowflake
+	Reply        types.Snowflake
+	Reference    *types.MessageReference
+	AllowedMentions *types.AllowedMentions
 }
 
 type MemberOptions struct {
@@ -242,16 +289,18 @@ type RoleOptions struct {
 }
 
 type MessageOptions struct {
-	Type       MessageAction
-	MessageID  types.Snowflake
-	ChannelID  types.Snowflake
-	Content    string
-	Embeds     []types.Embed
-	Components []types.Component
-	Emoji      []string
-	UserID     types.Snowflake
-	PurgeCount int
-	Reason     string
+	Type            MessageAction
+	MessageID       types.Snowflake
+	ChannelID       types.Snowflake
+	Content         string
+	Embeds          []types.Embed
+	Components      []types.Component
+	Emoji           []string
+	UserID          types.Snowflake
+	PurgeCount      int
+	Reason          string
+	Reference       *types.MessageReference
+	AllowedMentions *types.AllowedMentions
 }
 ```
 
@@ -393,6 +442,7 @@ func (a MessageSuite) Pin(reason ...string) error
 func (a MessageSuite) Unpin(reason ...string) error
 func (a MessageSuite) React(emoji string) error
 func (a MessageSuite) RemoveReaction(emoji string, userID ...types.Snowflake) error
+func (a MessageSuite) Reply(args ...any) (*types.Message, error)
 
 // role suite
 func (c *Context) RoleSuite(roleID ...types.Snowflake) RoleSuite
@@ -495,13 +545,26 @@ func (b *EmbedBuilder) Build() (*types.Embed, error)
 
 ### Buttons & Action Rows
 ```go
+const (
+	ButtonStylePrimary   = 1
+	ButtonStyleSecondary = 2
+	ButtonStyleSuccess   = 3
+	ButtonStyleDanger    = 4
+	ButtonStyleLink      = 5
+	ButtonStylePremium   = 6
+)
+
 func Button(args ...any) types.Component
+func WithButtonEmoji(name string, id ...types.Snowflake) ButtonOpt
+func WithButtonDisabled(disabled bool) ButtonOpt
+func WithButtonSKUID(skuID types.Snowflake) ButtonOpt
 
 type ButtonOptions struct {
 	Style    any
 	CustomID string
 	Label    string
 	URL      string
+	SKUID    types.Snowflake
 	Emoji    any
 	Disabled bool
 }
@@ -510,6 +573,64 @@ func ActionRow(components ...types.Component) types.Component
 func Row(components ...types.Component) types.Component
 func PackRows(components ...types.Component) []types.Component
 func ValidateRows(rows []types.Component) error
+
+const (
+	MaxActionRows       = 5
+	MaxButtonsPerRow    = 5
+	MaxSelectsPerRow    = 1
+	MaxTextInputsPerRow = 1
+)
+```
+
+### Structural Layout Components
+```go
+const (
+	MaxTotalComponents     = 40
+	MaxTotalTextLength     = 4000
+	MaxSectionTextDisplays = 3
+	MaxMediaGalleryItems   = 10
+)
+func Text(content string, id ...int) types.Component
+func Divider() types.Component
+func Separator(opts ...SeparatorOpt) types.Component
+func WithSpacing(spacing types.SeparatorSpacing) SeparatorOpt
+func WithDivider(divider bool) SeparatorOpt
+func WithSeparatorID(id int) SeparatorOpt
+
+func Thumbnail(url string, opts ...ThumbnailOpt) types.Component
+func WithThumbnailDescription(desc string) ThumbnailOpt
+func WithThumbnailSpoiler(spoiler bool) ThumbnailOpt
+func WithThumbnailID(id int) ThumbnailOpt
+
+func FileCard(url string, opts ...FileCardOpt) types.Component
+func WithFileName(name string) FileCardOpt
+func WithFileSize(size int) FileCardOpt
+func WithFileSpoiler(spoiler bool) FileCardOpt
+func WithFileID(id int) FileCardOpt
+
+func MediaGallery(items ...types.MediaGalleryItem) types.Component
+func MediaItem(url string, opts ...MediaItemOpt) types.MediaGalleryItem
+func WithItemDescription(desc string) MediaItemOpt
+func WithItemSpoiler(spoiler bool) MediaItemOpt
+
+func Section(texts ...string) *SectionBuilder
+func SectionWithAccessory(accessory types.Component, texts ...string) types.Component
+func (s *SectionBuilder) WithText(text string) *SectionBuilder
+func (s *SectionBuilder) WithAccessory(accessory types.Component) *SectionBuilder
+func (s *SectionBuilder) WithID(id int) *SectionBuilder
+func (s *SectionBuilder) Build() types.Component
+
+func Container(components ...types.Component) *ContainerBuilder
+func ContainerCard(color any, components ...types.Component) types.Component
+func (c *ContainerBuilder) WithAccentColor(color any) *ContainerBuilder
+func (c *ContainerBuilder) WithSpoiler(spoiler bool) *ContainerBuilder
+func (c *ContainerBuilder) WithID(id int) *ContainerBuilder
+func (c *ContainerBuilder) Add(components ...types.Component) *ContainerBuilder
+func (c *ContainerBuilder) Build() types.Component
+
+func ValidateComponents(components []types.Component) error
+func HasLayoutComponents(components []types.Component) bool
+func IsLayoutComponent(t types.ComponentType) bool
 ```
 
 ### Select Menus
@@ -586,8 +707,82 @@ func (i TimeItem) Unix() int64
 func (i TimeItem) UnixMilli() int64
 func (i TimeItem) ISO() string
 
-// Pointer helper exported under github.com/sfossl/gdk/util:
-// func Ptr[T any](v T) *T
+func Ptr[T any](v T) *T
+```
+
+## Types & Re-exports
+
+`gdk` re-exports core primitives from `github.com/sfossl/gda/types` for direct usage:
+
+### Primitives & Gateway Structures
+```go
+type Snowflake = types.Snowflake
+type Permission = types.Permission
+type Intent = types.Intent
+type Choice = types.Choice
+type Embed = types.Embed
+type EmbedField = types.EmbedField
+type Component = types.Component
+type File = types.File
+type InteractionResponse = types.InteractionResponse
+type MessageReference = types.MessageReference
+type AllowedMentions = types.AllowedMentions
+type EventName = types.EventName
+type StatusType = types.StatusType
+type ActivityType = types.ActivityType
+type Activity = types.Activity
+type PresenceUpdate = types.PresenceUpdate
+```
+
+### Gateway Events
+```go
+const (
+	EventReady               = types.EventReady
+	EventResumed             = types.EventResumed
+	EventChannelCreate       = types.EventChannelCreate
+	EventChannelUpdate       = types.EventChannelUpdate
+	EventChannelDelete       = types.EventChannelDelete
+	EventChannelPinsUpdate   = types.EventChannelPinsUpdate
+	EventThreadCreate        = types.EventThreadCreate
+	EventThreadUpdate        = types.EventThreadUpdate
+	EventThreadDelete        = types.EventThreadDelete
+	EventThreadListSync      = types.EventThreadListSync
+	EventGuildCreate         = types.EventGuildCreate
+	EventGuildUpdate         = types.EventGuildUpdate
+	EventGuildDelete         = types.EventGuildDelete
+	EventGuildBanAdd         = types.EventGuildBanAdd
+	EventGuildBanRemove      = types.EventGuildBanRemove
+	EventGuildMemberAdd      = types.EventGuildMemberAdd
+	EventGuildMemberRemove   = types.EventGuildMemberRemove
+	EventGuildMemberUpdate   = types.EventGuildMemberUpdate
+	EventGuildRoleCreate     = types.EventGuildRoleCreate
+	EventGuildRoleUpdate     = types.EventGuildRoleUpdate
+	EventGuildRoleDelete     = types.EventGuildRoleDelete
+	EventInteractionCreate   = types.EventInteractionCreate
+	EventMessageCreate       = types.EventMessageCreate
+	EventMessageUpdate       = types.EventMessageUpdate
+	EventMessageDelete       = types.EventMessageDelete
+	EventMessageDeleteBulk   = types.EventMessageDeleteBulk
+	EventMessageReactionAdd  = types.EventMessageReactionAdd
+)
+```
+
+### Presence & Activity Constants
+```go
+const (
+	StatusOnline    = types.StatusOnline
+	StatusDND       = types.StatusDND
+	StatusIdle      = types.StatusIdle
+	StatusInvisible = types.StatusInvisible
+	StatusOffline   = types.StatusOffline
+
+	ActivityTypePlaying   = types.ActivityTypePlaying
+	ActivityTypeStreaming = types.ActivityTypeStreaming
+	ActivityTypeListening = types.ActivityTypeListening
+	ActivityTypeWatching  = types.ActivityTypeWatching
+	ActivityTypeCustom    = types.ActivityTypeCustom
+	ActivityTypeCompeting = types.ActivityTypeCompeting
+)
 ```
 
 ## Error Sentinels
@@ -659,6 +854,25 @@ var (
 	ErrNonActionRowAtRoot      // non-action-row component placed at message root
 	ErrSelectMissingOptions    // string select menu contains zero options
 	ErrSelectTooManyOptions    // string select menu contains more than 25 options
+	ErrRowInvalidComponent     // action row can only contain buttons, select menus, or text inputs
+	ErrTooManyComponents        // component tree exceeds 40 components
+	ErrTotalTextLengthExceeded  // total TextDisplay characters exceed 4,000
+	ErrNestedContainers         // container placed inside another container
+	ErrEmptyContainer           // container component cannot be empty
+	ErrEmptySection             // section component must contain at least 1 text display
+	ErrEmptyMediaGallery        // media gallery must contain at least 1 item
+	ErrInvalidContainerChild    // invalid component type placed directly in container
+	ErrSectionTooManyTexts          // section contains more than 3 text displays
+	ErrSectionInvalidChild          // section can only contain text display components
+	ErrSectionMissingAccessory      // section component requires an accessory (button or thumbnail)
+	ErrInvalidSectionAccessory      // section accessory is not a button or thumbnail
+	ErrMediaGalleryTooManyItems     // media gallery contains more than 10 items
+	ErrInvalidSeparatorSpacing      // separator spacing is neither small nor large
+	ErrThumbnailMustBeAccessory     // thumbnail component can only be used as a section accessory
+	ErrButtonMustBeInRowOrAccessory // button component must be in an action row or section accessory
+	ErrInvalidRootComponent         // invalid component type at message root
+	ErrEmbedsNotAllowedWithLayouts  // cannot mix legacy embeds with layout components
+	ErrContentNotAllowedWithLayouts // cannot mix top-level content with layout components; use Text instead
 )
 ```
 
@@ -675,6 +889,10 @@ var (
 	ErrInvalidModType           // unknown moderation action type
 	ErrAlreadyResponded         // interaction callback already sent
 	ErrModalAfterDefer          // modal callback cannot be sent after interaction deferral
+	ErrInvalidModalCustomID     // modal custom id must be between 1 and 100 characters
+	ErrInvalidModalTitle        // modal title must be between 1 and 45 characters
+	ErrEmptyModalComponents     // modal must contain at least 1 component
+	ErrInvalidModalInteraction  // cannot respond with a modal to ping, autocomplete, or modal submit interactions
 	ErrNoInteraction            // context interaction payload is nil
 	ErrEmptyMessage             // message dispatched with no content, embeds, components or files
 	ErrEmptyMemberUpdate        // member update invoked with zero modified fields

@@ -23,6 +23,7 @@ var (
 	ErrNonActionRowAtRoot   = errors.New("top level message component must be an action row")
 	ErrSelectMissingOptions = errors.New("select menu must contain at least 1 option")
 	ErrSelectTooManyOptions = errors.New("select menu exceeds maximum 25 options")
+	ErrRowInvalidComponent  = errors.New("action row can only contain buttons, select menus, or text inputs")
 )
 
 func ActionRow(components ...types.Component) types.Component {
@@ -111,6 +112,8 @@ func ValidateRows(rows []types.Component) error {
 				selects++
 			case isTextInput(item):
 				inputs++
+			default:
+				return ErrRowInvalidComponent
 			}
 		}
 

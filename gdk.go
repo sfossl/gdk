@@ -1,6 +1,8 @@
 package gdk
 
 import (
+	"net/http"
+
 	"github.com/sfossl/gda/types"
 	"github.com/sfossl/gdk/app"
 	"github.com/sfossl/gdk/command"
@@ -35,6 +37,17 @@ type File = types.File
 type Attachment = types.Attachment
 type ComponentEmoji = types.ComponentEmoji
 type SelectMenuOption = types.SelectOption
+type SeparatorSpacing = types.SeparatorSpacing
+type MediaGalleryItem = types.MediaGalleryItem
+type UnfurledMedia = types.UnfurledMedia
+type MessageFlag = types.MessageFlag
+type MessageReference = types.MessageReference
+type AllowedMentions = types.AllowedMentions
+type EventName = types.EventName
+type StatusType = types.StatusType
+type ActivityType = types.ActivityType
+type Activity = types.Activity
+type PresenceUpdate = types.PresenceUpdate
 
 type App = app.App
 type Config = app.Config
@@ -66,6 +79,7 @@ type Command = command.Command
 type CommandType = command.CommandType
 type Option = command.Option
 type OptionType = command.OptionType
+type ChannelType = command.ChannelType
 type Choice = command.Choice
 type Subcommand = command.Subcommand
 type SubcommandGroup = command.SubcommandGroup
@@ -74,6 +88,12 @@ type ButtonOptions = component.ButtonOptions
 type ButtonOpt = component.ButtonOpt
 type SelectOpt = component.SelectOpt
 type TextInputOpt = component.TextInputOpt
+type SeparatorOpt = component.SeparatorOpt
+type ThumbnailOpt = component.ThumbnailOpt
+type FileCardOpt = component.FileCardOpt
+type MediaItemOpt = component.MediaItemOpt
+type SectionBuilder = component.SectionBuilder
+type ContainerBuilder = component.ContainerBuilder
 type Handler = middleware.Handler
 type Middleware = middleware.Middleware
 type PanicHandler = middleware.PanicHandler
@@ -117,6 +137,20 @@ const (
 	OptionTypeNumber          = command.OptionTypeNumber
 	OptionTypeAttachment      = command.OptionTypeAttachment
 
+	ChannelTypeGuildText          = command.ChannelTypeGuildText
+	ChannelTypeDM                 = command.ChannelTypeDM
+	ChannelTypeGuildVoice         = command.ChannelTypeGuildVoice
+	ChannelTypeGroupDM            = command.ChannelTypeGroupDM
+	ChannelTypeGuildCategory      = command.ChannelTypeGuildCategory
+	ChannelTypeGuildAnnouncement  = command.ChannelTypeGuildAnnouncement
+	ChannelTypeAnnouncementThread = command.ChannelTypeAnnouncementThread
+	ChannelTypePublicThread       = command.ChannelTypePublicThread
+	ChannelTypePrivateThread      = command.ChannelTypePrivateThread
+	ChannelTypeGuildStageVoice    = command.ChannelTypeGuildStageVoice
+	ChannelTypeGuildDirectory     = command.ChannelTypeGuildDirectory
+	ChannelTypeGuildForum         = command.ChannelTypeGuildForum
+	ChannelTypeGuildMedia         = command.ChannelTypeGuildMedia
+
 	LogFormatText = util.LogFormatText
 	LogFormatJSON = util.LogFormatJSON
 	LogFormatCSV  = util.LogFormatCSV
@@ -134,6 +168,14 @@ const (
 	ModUnban         = context.ModUnban
 	ModTimeout       = context.ModTimeout
 	ModRemoveTimeout = context.ModRemoveTimeout
+	ModAddRole       = context.ModAddRole
+	ModRemoveRole    = context.ModRemoveRole
+	ModNick          = context.ModNick
+	ModResetNick     = context.ModResetNick
+	ModMute          = context.ModMute
+	ModDeaf          = context.ModDeaf
+	ModMove          = context.ModMove
+	ModDisconnect    = context.ModDisconnect
 
 	ChannelCreate = context.ChannelCreate
 	ChannelEdit   = context.ChannelEdit
@@ -160,6 +202,7 @@ const (
 	DefaultCooldownMessage  = defaults.CooldownMessage
 	DefaultUserMissingPerms = defaults.UserMissingPerms
 	DefaultBotMissingPerms  = defaults.BotMissingPerms
+	DefaultMention          = defaults.DefaultMention
 
 	ColorBlurple = component.ColorBlurple
 	ColorGreen   = component.ColorGreen
@@ -183,6 +226,7 @@ const (
 	ButtonStyleSuccess   = component.ButtonStyleSuccess
 	ButtonStyleDanger    = component.ButtonStyleDanger
 	ButtonStyleLink      = component.ButtonStyleLink
+	ButtonStylePremium   = component.ButtonStylePremium
 
 	TextInputStyleShort     = component.TextInputStyleShort
 	TextInputStyleParagraph = component.TextInputStyleParagraph
@@ -191,6 +235,10 @@ const (
 	MaxButtonsPerRow    = component.MaxButtonsPerRow
 	MaxSelectsPerRow    = component.MaxSelectsPerRow
 	MaxTextInputsPerRow = component.MaxTextInputsPerRow
+	MaxTotalComponents     = component.MaxTotalComponents
+	MaxTotalTextLength     = component.MaxTotalTextLength
+	MaxSectionTextDisplays = component.MaxSectionTextDisplays
+	MaxMediaGalleryItems   = component.MaxMediaGalleryItems
 
 	CooldownScopeUser    = command.CooldownScopeUser
 	CooldownScopeChannel = command.CooldownScopeChannel
@@ -245,6 +293,59 @@ const (
 	ComponentTypeRoleSelect        = types.ComponentTypeRoleSelect
 	ComponentTypeMentionableSelect = types.ComponentTypeMentionableSelect
 	ComponentTypeChannelSelect     = types.ComponentTypeChannelSelect
+	ComponentTypeSection           = types.ComponentTypeSection
+	ComponentTypeTextDisplay       = types.ComponentTypeTextDisplay
+	ComponentTypeThumbnail         = types.ComponentTypeThumbnail
+	ComponentTypeMediaGallery      = types.ComponentTypeMediaGallery
+	ComponentTypeFile              = types.ComponentTypeFile
+	ComponentTypeSeparator         = types.ComponentTypeSeparator
+	ComponentTypeContainer         = types.ComponentTypeContainer
+
+	SeparatorSpacingSmall = types.SeparatorSpacingSmall
+	SeparatorSpacingLarge = types.SeparatorSpacingLarge
+
+	MessageFlagIsComponentsV2 = types.MessageFlagIsComponentsV2
+
+	EventReady                       = types.EventReady
+	EventResumed                     = types.EventResumed
+	EventMessageCreate               = types.EventMessageCreate
+	EventMessageUpdate               = types.EventMessageUpdate
+	EventMessageDelete               = types.EventMessageDelete
+	EventInteractionCreate           = types.EventInteractionCreate
+	EventGuildCreate                 = types.EventGuildCreate
+	EventGuildUpdate                 = types.EventGuildUpdate
+	EventGuildDelete                 = types.EventGuildDelete
+	EventChannelCreate               = types.EventChannelCreate
+	EventChannelUpdate               = types.EventChannelUpdate
+	EventChannelDelete               = types.EventChannelDelete
+	EventVoiceStateUpdate            = types.EventVoiceStateUpdate
+	EventAutoModerationRuleCreate    = types.EventAutoModerationRuleCreate
+	EventAutoModerationRuleUpdate    = types.EventAutoModerationRuleUpdate
+	EventAutoModerationRuleDelete    = types.EventAutoModerationRuleDelete
+	EventAutoModerationActionExecute = types.EventAutoModerationActionExecute
+	EventGuildMemberAdd              = types.EventGuildMemberAdd
+	EventGuildMemberUpdate           = types.EventGuildMemberUpdate
+	EventGuildMemberRemove           = types.EventGuildMemberRemove
+	EventGuildBanAdd                 = types.EventGuildBanAdd
+	EventGuildBanRemove              = types.EventGuildBanRemove
+	EventMessageReactionAdd          = types.EventMessageReactionAdd
+	EventMessageReactionRemove       = types.EventMessageReactionRemove
+	EventMessageReactionRemoveAll    = types.EventMessageReactionRemoveAll
+	EventTypingStart                 = types.EventTypingStart
+	EventUserUpdate                  = types.EventUserUpdate
+
+	StatusOnline    = types.StatusOnline
+	StatusDND       = types.StatusDND
+	StatusIdle      = types.StatusIdle
+	StatusInvisible = types.StatusInvisible
+	StatusOffline   = types.StatusOffline
+
+	ActivityTypeGame      = types.ActivityTypeGame
+	ActivityTypeStreaming = types.ActivityTypeStreaming
+	ActivityTypeListening = types.ActivityTypeListening
+	ActivityTypeWatching  = types.ActivityTypeWatching
+	ActivityTypeCustom    = types.ActivityTypeCustom
+	ActivityTypeCompeting = types.ActivityTypeCompeting
 )
 
 var (
@@ -289,6 +390,10 @@ var (
 	ErrInvalidModType           = context.ErrInvalidModType
 	ErrAlreadyResponded         = context.ErrAlreadyResponded
 	ErrModalAfterDefer          = context.ErrModalAfterDefer
+	ErrInvalidModalCustomID     = context.ErrInvalidModalCustomID
+	ErrInvalidModalTitle        = context.ErrInvalidModalTitle
+	ErrEmptyModalComponents     = context.ErrEmptyModalComponents
+	ErrInvalidModalInteraction  = context.ErrInvalidModalInteraction
 	ErrNoInteraction            = context.ErrNoInteraction
 	ErrEmptyMessage             = context.ErrEmptyMessage
 	ErrEmptyMemberUpdate        = context.ErrEmptyMemberUpdate
@@ -331,6 +436,7 @@ var (
 	Button             = component.Button
 	WithButtonEmoji    = component.WithButtonEmoji
 	WithButtonDisabled = component.WithButtonDisabled
+	WithButtonSKUID    = component.WithButtonSKUID
 
 	StringSelect       = component.StringSelect
 	UserSelect         = component.UserSelect
@@ -357,6 +463,52 @@ var (
 	PackRows     = component.PackRows
 	ValidateRows = component.ValidateRows
 
+	Text                     = component.Text
+	Divider                  = component.Divider
+	Separator                = component.Separator
+	WithSpacing              = component.WithSpacing
+	WithDivider              = component.WithDivider
+	WithSeparatorID          = component.WithSeparatorID
+	Thumbnail                = component.Thumbnail
+	WithThumbnailDescription = component.WithThumbnailDescription
+	WithThumbnailSpoiler     = component.WithThumbnailSpoiler
+	WithThumbnailID          = component.WithThumbnailID
+	FileCard                 = component.FileCard
+	WithFileName             = component.WithFileName
+	WithFileSize             = component.WithFileSize
+	WithFileSpoiler          = component.WithFileSpoiler
+	WithFileID               = component.WithFileID
+	MediaItem                = component.MediaItem
+	WithItemDescription      = component.WithItemDescription
+	WithItemSpoiler          = component.WithItemSpoiler
+	MediaGallery             = component.MediaGallery
+	Section                  = component.Section
+	SectionWithAccessory     = component.SectionWithAccessory
+	Container                = component.Container
+	ContainerCard            = component.ContainerCard
+	ValidateComponents       = component.ValidateComponents
+	HasLayoutComponents      = component.HasLayoutComponents
+	IsLayoutComponent        = component.IsLayoutComponent
+
+	ErrTooManyComponents            = component.ErrTooManyComponents
+	ErrTotalTextLengthExceeded      = component.ErrTotalTextLengthExceeded
+	ErrNestedContainers             = component.ErrNestedContainers
+	ErrEmptyContainer               = component.ErrEmptyContainer
+	ErrEmptySection                 = component.ErrEmptySection
+	ErrEmptyMediaGallery            = component.ErrEmptyMediaGallery
+	ErrInvalidContainerChild        = component.ErrInvalidContainerChild
+	ErrSectionTooManyTexts          = component.ErrSectionTooManyTexts
+	ErrSectionInvalidChild          = component.ErrSectionInvalidChild
+	ErrSectionMissingAccessory      = component.ErrSectionMissingAccessory
+	ErrInvalidSectionAccessory      = component.ErrInvalidSectionAccessory
+	ErrMediaGalleryTooManyItems     = component.ErrMediaGalleryTooManyItems
+	ErrInvalidSeparatorSpacing      = component.ErrInvalidSeparatorSpacing
+	ErrThumbnailMustBeAccessory     = component.ErrThumbnailMustBeAccessory
+	ErrButtonMustBeInRowOrAccessory = component.ErrButtonMustBeInRowOrAccessory
+	ErrInvalidRootComponent         = component.ErrInvalidRootComponent
+	ErrEmbedsNotAllowedWithLayouts  = component.ErrEmbedsNotAllowedWithLayouts
+	ErrContentNotAllowedWithLayouts = component.ErrContentNotAllowedWithLayouts
+
 	ErrInvalidColor            = component.ErrInvalidColor
 	ErrColorOutOfRange         = component.ErrColorOutOfRange
 	ErrEmbedTitleTooLong       = component.ErrEmbedTitleTooLong
@@ -378,6 +530,7 @@ var (
 	ErrNonActionRowAtRoot      = component.ErrNonActionRowAtRoot
 	ErrSelectMissingOptions    = component.ErrSelectMissingOptions
 	ErrSelectTooManyOptions    = component.ErrSelectTooManyOptions
+	ErrRowInvalidComponent     = component.ErrRowInvalidComponent
 
 	Guard            = middleware.Guard
 	WithPanicHandler = middleware.WithPanicHandler
@@ -417,13 +570,14 @@ var (
 	NewApp        = app.New
 	DefaultConfig = app.DefaultConfig
 
-	WithMode      = app.WithMode
-	WithIntents   = app.WithIntents
-	WithDevMode   = app.WithDevMode
-	WithAutoDefer = app.WithAutoDefer
-	WithAutoSync  = app.WithAutoSync
-	WithTimeout   = app.WithTimeout
-	WithWebhook   = app.WithWebhook
+	WithMode           = app.WithMode
+	WithIntents        = app.WithIntents
+	WithDevMode        = app.WithDevMode
+	WithAutoDefer      = app.WithAutoDefer
+	WithAutoSync       = app.WithAutoSync
+	WithTimeout        = app.WithTimeout
+	WithWebhook        = app.WithWebhook
+	WithDefaultMention = app.WithDefaultMention
 
 	Register             = app.Register
 	RegisteredCommands   = app.RegisteredCommands
@@ -447,3 +601,11 @@ var (
 	NewLogger      = util.NewLogger
 	ParseLogFormat = util.ParseLogFormat
 )
+
+func Ptr[T any](v T) *T {
+	return util.Ptr(v)
+}
+
+func WebhookHandler(a *App) (http.Handler, error) {
+	return a.WebhookHandler()
+}

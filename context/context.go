@@ -12,6 +12,12 @@ import (
 	"github.com/sfossl/gda/types"
 )
 
+const (
+	stateInitial uint32 = iota
+	stateDeferred
+	stateResponded
+)
+
 type Context struct {
 	ctx              context.Context
 	Interaction      *types.Interaction
@@ -23,8 +29,8 @@ type Context struct {
 	ChannelID        types.Snowflake
 	Author           *types.User
 	InvokerMember    *types.Member
-	responded        atomic.Bool
-	deferred         atomic.Bool
+	DefaultMention   bool
+	state            atomic.Uint32
 	gatewayMode      bool
 	responseChan     chan types.InteractionResponse
 	storeMu          sync.RWMutex
@@ -43,7 +49,7 @@ type Context struct {
 	deleteAfterTimer *time.Timer
 	activeComponents []types.Component
 	msgID            types.Snowflake
-	lastPurged       int
+	lastPurged       atomic.Int32
 	cancelFunc       context.CancelFunc
 }
 
@@ -131,7 +137,7 @@ func (c *Context) SubcommandGroup() string {
 }
 
 func (c *Context) LastPurged() int {
-	return c.lastPurged
+	return int(c.lastPurged.Load())
 }
 
 func (c *Context) Values() []string {
@@ -164,6 +170,14 @@ func (c *Context) Cancel() {
 	if c.cancelFunc != nil {
 		c.cancelFunc()
 	}
+	c.lifecycleMu.Lock()
+	if c.deleteAfterTimer != nil {
+		c.deleteAfterTimer.Stop()
+	}
+	if c.compTimeoutTimer != nil {
+		c.compTimeoutTimer.Stop()
+	}
+	c.lifecycleMu.Unlock()
 }
 
 func (c *Context) ResponseChannel() <-chan types.InteractionResponse {
@@ -171,11 +185,11 @@ func (c *Context) ResponseChannel() <-chan types.InteractionResponse {
 }
 
 func (c *Context) IsAcknowledged() bool {
-	return c.responded.Load()
+	return c.state.Load() != stateInitial
 }
 
 func (c *Context) IsDeferred() bool {
-	return c.deferred.Load()
+	return c.state.Load() == stateDeferred
 }
 
 func (c *Context) Set(key string, val any) {

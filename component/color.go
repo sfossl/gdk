@@ -2,7 +2,6 @@ package component
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -61,9 +60,7 @@ func Hex(s string) (int, error) {
 	clean = strings.TrimPrefix(clean, "0X")
 
 	if len(clean) == 3 {
-		expanded := fmt.Sprintf("%c%c%c%c%c%c",
-			clean[0], clean[0], clean[1], clean[1], clean[2], clean[2])
-		clean = expanded
+		clean = string([]byte{clean[0], clean[0], clean[1], clean[1], clean[2], clean[2]})
 	}
 
 	if len(clean) != 6 {

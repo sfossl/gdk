@@ -253,6 +253,9 @@ func (c *Context) Member(args ...any) error {
 			}
 			return c.REST.TimeoutMember(c.Context(), *c.GuildID, opts.Target, nil, opts.Reason)
 		case ModAddRole:
+			if ok, err := c.CanModerate(opts.Target); !ok {
+				return err
+			}
 			for _, r := range opts.AddRoles {
 				if ok, err := c.CanManageRole(r); !ok {
 					return err
@@ -263,6 +266,9 @@ func (c *Context) Member(args ...any) error {
 			}
 			return nil
 		case ModRemoveRole:
+			if ok, err := c.CanModerate(opts.Target); !ok {
+				return err
+			}
 			for _, r := range opts.RemoveRoles {
 				if ok, err := c.CanManageRole(r); !ok {
 					return err
@@ -273,9 +279,15 @@ func (c *Context) Member(args ...any) error {
 			}
 			return nil
 		case ModResetNick:
+			if ok, err := c.CanModerate(opts.Target); !ok {
+				return err
+			}
 			empty := ""
 			opts.Nickname = &empty
 		case ModNick, ModMute, ModDeaf, ModMove, ModDisconnect:
+			if ok, err := c.CanModerate(opts.Target); !ok {
+				return err
+			}
 		default:
 			return ErrInvalidModType
 		}

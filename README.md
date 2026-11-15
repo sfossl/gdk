@@ -17,9 +17,9 @@ go get github.com/sfossl/gdk
 `gdk` is organized into focused subsystems:
 
 - **App**: Application lifecycle runner, functional configuration, graceful shutdown, dual execution transports and modular registration (`Module`).
-- **Command**: Slash command declarations, typed option definitions across all 9 Discord option types, subcommand trees, autocomplete routing and local schema validation.
+- **Command**: Slash command declarations, typed option definitions across all 11 Discord option types, subcommand trees, autocomplete routing and local schema validation.
 - **Context**: Execution context passed to handlers, typed option extraction with default fallbacks, automatic 2.5-second deferral and fluent action suites.
-- **Component**: Declarative builders for rich embeds with strict limit checking, buttons, select menus, action rows with auto-packing (`PackRows`) and modals.
+- **Component**: Declarative builders for Discord layout components (containers, sections, media galleries, separators, text displays) alongside rich embeds, buttons, select menus, auto-packed action rows (`PackRows`) and modals.
 - **Middleware**: Interception pipelines, 64-shard partitioned token-bucket cooldown store, permission checks and panic recovery (`Guard`).
 - **Utilities**: Compound human duration parsing (`1h 30m`, `2d`) and dynamic Discord markdown timestamp formatting (`<t:UNIX:STYLE>`).
 
@@ -45,6 +45,7 @@ flowchart TD
 
 ## Capabilities
 
+- **Layout Component Engine**: Declarative builders for Discord's layout components (Containers, Sections, Separators, Media Galleries, File Cards) with automatic component flag detection, local tree validation and component IDs.
 - **Differential Synchronization**: Deterministic SHA-256 hash comparison across registered command schemas on startup, issuing zero REST requests when definitions are unchanged.
 - **Automatic Deferral**: Transparently defers interactions before Discord's 3-second deadline expires, seamlessly routing follow-up responses to asynchronous webhook edits.
 - **Modern Interactions and Event Hooks**: Optimized for Discord's application command architecture while retaining direct access to raw Gateway events (`OnMessageCreate`) via `gda` for custom message parsing when needed.
@@ -88,7 +89,7 @@ flowchart TD
 | **[Slash Commands](.docs/commands.md)** | Slash commands, option types, subcommands, choices and autocomplete |
 | **[Execution Context](.docs/context.md)** | Handler context, option getters, response lifecycle and auto-deferral |
 | **[Unified Modules](.docs/modules/index.md)** | Universal options matrix and the 5 unified execution engines |
-| **[Components & Modals](.docs/components.md)** | Embed builders, buttons, select menus, action rows and modals |
+| **[Components & Modals](.docs/components.md)** | Layout components, embed builders, buttons, select menus and modals |
 | **[Middleware](.docs/middleware.md)** | Token-bucket cooldowns, permission guards and panic recovery |
 | **[Command Synchronization](.docs/sync.md)** | Differential SHA-256 command hashing and zero-REST deployment |
 | **[Transports](.docs/transports.md)** | Gateway WebSocket and serverless Ed25519 HTTP Webhook models |

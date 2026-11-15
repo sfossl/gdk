@@ -28,7 +28,7 @@ func (a *App) runGateway(ctx stdctx.Context) error {
 	}
 }
 
-func (a *App) webhookHandler() (http.Handler, error) {
+func (a *App) WebhookHandler() (http.Handler, error) {
 	if a.config.PublicKey == "" {
 		return nil, ErrPublicKeyRequired
 	}
@@ -53,6 +53,7 @@ func (a *App) webhookHandler() (http.Handler, error) {
 
 		bgCtx, cancel := stdctx.WithTimeout(a.rootCtx, a.config.Timeout)
 		gdkCtx := context.New(bgCtx, &in, a.REST, cancel)
+		gdkCtx.DefaultMention = a.config.DefaultMention
 
 		go func() {
 			defer func() {
@@ -62,6 +63,12 @@ func (a *App) webhookHandler() (http.Handler, error) {
 			}()
 			err := a.Handle(gdkCtx)
 			if err != nil {
+				a.mu.RLock()
+				eh := a.errorHandler
+				a.mu.RUnlock()
+				if eh != nil {
+					eh(err, gdkCtx)
+				}
 				cancel()
 			}
 		}()
@@ -81,26 +88,20 @@ func (a *App) webhookHandler() (http.Handler, error) {
 			default:
 				if isDeferrableInteraction(in.Type) {
 					_ = gdkCtx.Defer(false)
-					w.Header().Set("Content-Type", "application/json")
-					_ = json.NewEncoder(w).Encode(types.InteractionResponse{
-						Type: types.CallbackTypeDeferredChannelMessageWithSource,
-					})
 				} else if in.Type == types.InteractionTypeApplicationCommandAutocomplete {
 					_ = gdkCtx.Autocomplete(nil)
-					w.Header().Set("Content-Type", "application/json")
-					_ = json.NewEncoder(w).Encode(types.InteractionResponse{
-						Type: types.CallbackTypeApplicationCommandAutocompleteResult,
-						Data: &types.InteractionResponseData{Choices: []types.Choice{}},
-					})
 				} else if in.Type == types.InteractionTypePing {
 					_ = gdkCtx.Pong()
+				}
+				select {
+				case resp := <-gdkCtx.ResponseChannel():
 					w.Header().Set("Content-Type", "application/json")
-					_ = json.NewEncoder(w).Encode(types.InteractionResponse{
-						Type: types.CallbackTypePong,
-					})
+					_ = json.NewEncoder(w).Encode(resp)
+				default:
 				}
 			}
 		case <-r.Context().Done():
+			cancel()
 			return
 		}
 	})
@@ -111,7 +112,7 @@ func (a *App) webhookHandler() (http.Handler, error) {
 }
 
 func (a *App) runWebhook(ctx stdctx.Context) error {
-	handler, err := a.webhookHandler()
+	handler, err := a.WebhookHandler()
 	if err != nil {
 		return err
 	}
